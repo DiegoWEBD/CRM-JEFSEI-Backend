@@ -32,5 +32,17 @@ jobs:
         run: |
           bandit -r . -ll
 
+      - name: 🐳 Build Docker image
+        run: docker build -t fastapi-app .
+
+      - name: 🔎 Escaneo de imagen Docker (Trivy)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: fastapi-app
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
       - name: 🔑 Escaneo de secretos (gitleaks)
         uses: gitleaks/gitleaks-action@v2
