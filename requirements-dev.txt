@@ -1,5 +1,0 @@
--r requirements.txt
-
-bandit
-pip-audit
-pytest
