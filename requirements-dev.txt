@@ -1,0 +1,7 @@
+-r requirements.txt
+
+bandit
+pip-audit
+flake8
+pytest
+gitleaks
