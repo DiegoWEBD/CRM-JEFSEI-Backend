@@ -4,4 +4,3 @@ bandit
 pip-audit
 flake8
 pytest
-gitleaks
