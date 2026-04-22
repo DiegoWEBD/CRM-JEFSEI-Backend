@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.presentacion.schemas.auth import IniciarSesionRequest, TokenResponse
+from app.presentacion.api.auth.schemas.auth import IniciarSesionRequest, TokenResponse
 from app.aplicacion.auth.use_cases.iniciar_sesion import IniciarSesionUseCase
-from app.presentacion.api.deps import obtener_caso_de_uso_iniciar_sesion
+from app.presentacion.api.auth.deps import obtener_caso_de_uso_iniciar_sesion
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

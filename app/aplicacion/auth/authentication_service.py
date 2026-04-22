@@ -5,7 +5,7 @@ from typing import Any
 class AuthenticationService(ABC):
 
     @abstractmethod
-    def encriptar_password(password: str) -> str:
+    def hash_password(password: str) -> str:
         pass
 
     @abstractmethod

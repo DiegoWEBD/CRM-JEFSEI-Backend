@@ -10,3 +10,4 @@ class Usuario:
         self.sucursal = sucursal
         self.password_encriptada = password_encriptada
         self.roles = roles
+        
