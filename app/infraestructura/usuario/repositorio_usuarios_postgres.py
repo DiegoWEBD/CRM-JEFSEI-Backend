@@ -12,6 +12,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 query = '''
                     select U.rut, U.nombre, 
                     U.correo, U.telefono,
+                    U.password_hash,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
                     RU.codigo_rol,
@@ -44,4 +45,26 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 return TupleRowsUsuarioAdapter(rows)
 
     def registrar(self, usuario: Usuario) -> bool:
-        return False
+        with obtener_conexion() as conn:
+            try:
+                with conn.cursor() as cur:
+                    query = '''
+                        insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash)
+                        values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s)
+                    '''
+                    params = {
+                        'rut': usuario.rut,
+                        'nombre': usuario.nombre,
+                        'correo': usuario.correo,
+                        'telefono': usuario.telefono,
+                        'id_sucursal': usuario.sucursal.id,
+                        'password_hash': usuario.password_hash
+                    }
+
+                    cur.execute(query, params)
+                    conn.commit()
+
+                    return True
+            except:
+                conn.rollback()
+                return False

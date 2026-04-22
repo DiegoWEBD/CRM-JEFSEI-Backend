@@ -12,7 +12,7 @@ def login(
     use_case: IniciarSesionUseCase = Depends(obtener_caso_de_uso_iniciar_sesion)
 ):
     token = use_case.execute(
-        email=request.rut,
+        rut=request.rut,
         password=request.password
     )
 

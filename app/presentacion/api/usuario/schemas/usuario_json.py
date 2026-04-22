@@ -1,13 +1,12 @@
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 
-class Usuario:
-    def __init__(self, rut: str, nombre: str, correo: str, telefono: str, sucursal: Sucursal, roles: list[Rol] = [], password_hash: str | None = None):
+class UsuarioJson:
+    def __init__(self, rut: str, nombre: str, correo: str, telefono: str, sucursal: Sucursal, roles: list[Rol]):
         self.rut = rut
         self.correo = correo
         self.nombre = nombre
         self.telefono = telefono
         self.sucursal = sucursal
-        self.password_hash = password_hash
         self.roles = roles
         
