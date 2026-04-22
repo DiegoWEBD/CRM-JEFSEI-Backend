@@ -10,3 +10,7 @@ class RepositorioUsuarios(ABC):
     @abstractmethod
     def registrar(self, usuario: Usuario) -> bool:
         pass
+
+    @abstractmethod
+    def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
+        pass

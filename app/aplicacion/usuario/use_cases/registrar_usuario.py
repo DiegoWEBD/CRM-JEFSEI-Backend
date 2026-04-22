@@ -1,4 +1,5 @@
 from app.aplicacion.auth.authentication_service import AuthenticationService
+from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -27,13 +28,17 @@ class RegistrarUsuarioUseCase:
         password_hash = self.authentication_service.hash_password(password)
         
         sucursal = Sucursal(id=id_sucursal)
+        roles = [Rol(codigo=codigo) for codigo in codigo_roles]
+        print(roles)
+
         nuevo_usuario = Usuario(
             rut=rut,
             nombre=nombre,
             correo=correo,
             telefono=telefono,
             sucursal=sucursal,
-            password_hash=password_hash
+            password_hash=password_hash,
+            roles=roles
         )
 
         return self.repositorio_usuarios.registrar(nuevo_usuario)
