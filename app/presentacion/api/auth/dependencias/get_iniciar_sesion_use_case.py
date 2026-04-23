@@ -3,7 +3,7 @@ from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticatio
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
 
-def obtener_caso_de_uso_iniciar_sesion():
+def get_iniciar_sesion_use_case():
     repositorio = RepositorioUsuariosPostgres()
     authentication_service = JwtAuthenticationService()
     yield IniciarSesionUseCase(repositorio, authentication_service)
