@@ -17,14 +17,14 @@ def get_current_user(
     authentication_service: AuthenticationService = Depends(get_authentication_service),
     use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case)
 ) -> Usuario:
+    
     token = credenciales.credentials
-    print(token)
     payload = authentication_service.decodificar_token(token)
 
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido"
+            detail="Usuario no autenticado"
         )
 
     rut: str | None = payload.get("sub")
@@ -32,7 +32,7 @@ def get_current_user(
     if rut is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario no autorizado"
+            detail="Usuario no autenticado"
         )
 
     try:
@@ -41,7 +41,7 @@ def get_current_user(
     except:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario no autorizado"
+            detail="Usuario no autenticado"
         )
 
     return usuario
