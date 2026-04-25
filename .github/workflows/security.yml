@@ -32,7 +32,7 @@ jobs:
 
       - name: 🔍 Análisis de dependencias (pip-audit)
         run: |
-          pip-audit
+          pip-audit -r requirements-dev.txt
 
       - name: 🛡️ Análisis estático de seguridad (bandit)
         run: |
