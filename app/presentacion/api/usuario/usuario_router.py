@@ -21,7 +21,7 @@ def obtener_usuario(
 
         return {
             'message': 'Usuario obtenido correctamente',
-            'data': UsuarioJsonAdapter(usuario)
+            'data': UsuarioJsonAdapter.Adapt(usuario)
         }
 
     except Exception as exc:
