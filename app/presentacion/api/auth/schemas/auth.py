@@ -9,5 +9,6 @@ class IniciarSesionRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str
+    expire_minutes: int
     usuario: UsuarioJson

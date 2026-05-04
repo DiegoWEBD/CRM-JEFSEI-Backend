@@ -1,6 +1,7 @@
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.aplicacion.auth.dtos.iniciar_sesion_response_dto import IniciarSesionResponseDTO
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
+from app.core.config import settings
     
 class IniciarSesionUseCase:
 
@@ -17,9 +18,13 @@ class IniciarSesionUseCase:
         if not self.authentication_service.verificar_password(password, usuario.password_hash):
             return None
 
-        token = self.authentication_service.crear_access_token({"sub": str(usuario.rut)})
+        token = self.authentication_service.crear_access_token({
+            "sub": usuario.rut,
+            "roles": [rol.codigo for rol in usuario.roles]
+        })
 
         return IniciarSesionResponseDTO(
             access_token=token,
-            usuario=usuario
+            usuario=usuario,
+            expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )

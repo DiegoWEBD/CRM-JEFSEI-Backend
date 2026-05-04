@@ -7,7 +7,7 @@ from app.presentacion.api.auth.dependencias.get_iniciar_sesion_use_case import g
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 def login(
     request: IniciarSesionRequest,
     use_case: IniciarSesionUseCase = Depends(get_iniciar_sesion_use_case)
@@ -25,6 +25,7 @@ def login(
 
     return TokenResponse(
         access_token=response.access_token,
-        token_type='bearer',
+        token_type=response.token_type,
+        expire_minutes=response.expire_minutes,
         usuario=UsuarioJsonAdapter.Adapt(response.usuario)
     )

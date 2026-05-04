@@ -19,6 +19,7 @@ class TupleRowsUsuarioAdapter(Usuario):
         id_sucursal=rows[0]['id_sucursal']
         nombre_sucursal=rows[0]['nombre_sucursal']
         password_hash=rows[0]['password_hash']
+        meta_mensual_uf=rows[0]['meta_mensual_uf']
 
         sucursal = Sucursal(
             id=id_sucursal, 
@@ -58,5 +59,6 @@ class TupleRowsUsuarioAdapter(Usuario):
             telefono=telefono,
             sucursal=sucursal,
             password_hash=password_hash,
-            roles=list(roles.values())
+            roles=list(roles.values()),
+            meta_mensual_uf=meta_mensual_uf
         )

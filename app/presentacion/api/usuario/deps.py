@@ -1,4 +1,5 @@
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
+from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
 from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
@@ -7,6 +8,10 @@ from app.infraestructura.usuario.repositorio_usuarios_postgres import Repositori
 def get_obtener_usuario_use_case():
     repositorio = RepositorioUsuariosPostgres()
     return ObtenerUsuarioUseCase(repositorio)
+
+def get_obtener_usuarios_use_case():
+    repositorio = RepositorioUsuariosPostgres()
+    return ObtenerUsuariosUseCase(repositorio)
 
 def get_registrar_usuario_use_case():
     repositorio = RepositorioUsuariosPostgres()

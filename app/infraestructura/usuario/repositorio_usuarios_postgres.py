@@ -1,3 +1,5 @@
+from psycopg.rows import TupleRow
+
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.infraestructura.db.conexion import obtener_conexion
@@ -12,6 +14,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 query = '''
                     select U.rut, U.nombre, 
                     U.correo, U.telefono,
+                    U.meta_mensual_uf,
                     U.password_hash,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
@@ -43,14 +46,63 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     return None
 
                 return TupleRowsUsuarioAdapter(rows)
+            
+    def obtener_todos(self) -> list[Usuario]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select U.rut, U.nombre, 
+                    U.correo, U.telefono,
+                    U.meta_mensual_uf,
+                    U.password_hash,
+                    S.id as id_sucursal,
+                    S.nombre as nombre_sucursal, 
+                    RU.codigo_rol,
+                    R.nombre as rol,
+                    PR.codigo_permiso, 
+                    P.descripcion as descripcion_permiso
+                    from Usuario U
+                    inner join Sucursal S
+                    on U.id_sucursal = S.id
+                    left join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    left join Rol R
+                    on RU.codigo_rol = R.codigo
+                    left join PermisoRol PR
+                    on R.codigo = PR.codigo_rol
+                    left join Permiso P
+                    on PR.codigo_permiso = P.codigo
+                '''
+
+                cur.execute(query)
+                rows = cur.fetchall()
+
+                if rows is None or len(rows) == 0:
+                    return None
+
+                datos_usuarios: dict[str, list[TupleRow]] = {}
+
+                for row in rows:
+                    if row['rut'] not in datos_usuarios:
+                        datos_usuarios[row['rut']] = []
+
+                    datos_usuarios[row['rut']].append(row)
+
+                usuarios: list[Usuario] = []
+
+                for values in datos_usuarios.values():
+                    usuarios.append(TupleRowsUsuarioAdapter(values))
+
+                return usuarios
 
     def registrar(self, usuario: Usuario) -> bool:
         with obtener_conexion() as conn:
             try:
                 with conn.cursor() as cur:
                     query = '''
-                        insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash)
-                        values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s)
+                        insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash, meta_mensual_uf)
+                        values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s, %(meta_mensual_uf)s)
                     '''
                     params = {
                         'rut': usuario.rut,
@@ -58,7 +110,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                         'correo': usuario.correo,
                         'telefono': usuario.telefono,
                         'id_sucursal': usuario.sucursal.id,
-                        'password_hash': usuario.password_hash
+                        'password_hash': usuario.password_hash,
+                        'meta_mensual_uf': usuario.meta_mensual_uf
                     }
 
                     cur.execute(query, params)
