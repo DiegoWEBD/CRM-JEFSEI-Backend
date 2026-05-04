@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class UsuarioJson(BaseModel):
@@ -7,4 +7,5 @@ class UsuarioJson(BaseModel):
     correo: str
     telefono: str
     sucursal: str
+    meta_mensual_uf: int | None
     roles: list[str]

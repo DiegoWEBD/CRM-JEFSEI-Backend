@@ -8,4 +8,5 @@ class RegistrarUsuarioRequest(BaseModel):
     telefono: str
     id_sucursal: int
     password: str
+    meta_mensual_uf: int
     codigo_roles: list[str]

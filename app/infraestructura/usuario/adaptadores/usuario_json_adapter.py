@@ -12,5 +12,6 @@ class UsuarioJsonAdapter:
             correo=usuario.correo,
             telefono=usuario.telefono,
             sucursal=usuario.sucursal.nombre,
+            meta_mensual_uf=usuario.meta_mensual_uf,
             roles=[rol.nombre for rol in usuario.roles]
         )

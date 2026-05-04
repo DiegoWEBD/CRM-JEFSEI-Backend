@@ -1,5 +1,4 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status, Request
 
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
@@ -7,18 +6,25 @@ from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
 from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case
 
-security = HTTPBearer()
 
 def get_authentication_service() -> AuthenticationService:
     return JwtAuthenticationService()
 
+
 def get_current_user(
-    credenciales: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
     authentication_service: AuthenticationService = Depends(get_authentication_service),
     use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case)
 ) -> Usuario:
-    
-    token = credenciales.credentials
+
+    token = request.cookies.get("token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no autenticado"
+        )
+
     payload = authentication_service.decodificar_token(token)
 
     if payload is None:
@@ -38,7 +44,7 @@ def get_current_user(
     try:
         usuario = use_case.ejecutar(rut)
 
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no autenticado"

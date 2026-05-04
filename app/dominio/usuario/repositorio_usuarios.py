@@ -8,6 +8,10 @@ class RepositorioUsuarios(ABC):
         pass
 
     @abstractmethod
+    def obtener_todos(self) -> list[Usuario]:
+        pass
+
+    @abstractmethod
     def registrar(self, usuario: Usuario) -> bool:
         pass
 
