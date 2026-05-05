@@ -10,13 +10,9 @@ class RepositorioProspectos(ABC):
         pass
     
     @abstractmethod
-    def buscar(rut: str) -> Prospecto | None:
+    def buscar(id: int) -> Prospecto | None:
         pass
 
     @abstractmethod
-    def cambiar_siguiente_estado(rut: str) -> None:
-        pass
-
-    @abstractmethod
-    def obtener_todos() -> list[Prospecto]:
+    def cambiar_siguiente_estado(id: int) -> None:
         pass

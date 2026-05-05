@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.presentacion.api.usuario.schemas.usuario_json import UsuarioJson
+from app.presentacion.api.usuario.dto.usuario_json import UsuarioJson
 
 class IniciarSesionRequest(BaseModel):
     rut: str

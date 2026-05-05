@@ -1,0 +1,6 @@
+from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.infraestructura.prospecto.servicios.consulta_prospectos_postgres_service import ConsultaProspectosPostgresService
+
+
+def get_consulta_prospectos_service() -> ConsultaProspectosService:
+    return ConsultaProspectosPostgresService()

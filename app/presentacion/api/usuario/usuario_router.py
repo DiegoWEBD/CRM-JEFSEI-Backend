@@ -5,7 +5,7 @@ from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioU
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
-from app.presentacion.api.usuario.schemas.registrar_usuario_request import RegistrarUsuarioRequest
+from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
