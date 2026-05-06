@@ -8,7 +8,7 @@ class Usuario:
         nombre: str, 
         correo: str, 
         telefono: str, 
-        sucursal: Sucursal,
+        sucursal: Sucursal | None = None,
         meta_mensual_uf: int | None = None,
         roles: list[Rol] = [], 
         password_hash: str | None = None

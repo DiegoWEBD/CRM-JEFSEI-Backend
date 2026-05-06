@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 
 from app.dominio.prospecto.prospecto import Prospecto
+from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 
 
 class RepositorioProspectos(ABC):
     
     @abstractmethod
-    def registrar(prospecto: Prospecto) -> None:
+    def registrar_prospecto_condominio(prospecto: ProspectoCondominio) -> None:
         pass
     
     @abstractmethod

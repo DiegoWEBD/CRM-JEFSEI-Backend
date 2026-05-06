@@ -1,9 +1,6 @@
-from app.dominio.cliente.cliente import Cliente
-from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
-
 class Poliza:
-    def __init__(self, numero_poliza: str, cliente: Cliente, tipo: str, evaluacion_riesgo: EvaluacionRiesgo):
+    def __init__(self, numero_poliza: str, rut_cliente: str, tipo: str, id_evaluacion_riesgo: int):
         self.numero_poliza = numero_poliza
-        self.cliente = cliente
+        self.rut_cliente = rut_cliente
         self.tipo = tipo
-        self.evaluacion_riesgo = evaluacion_riesgo
+        self.id_evaluacion_riesgo = id_evaluacion_riesgo

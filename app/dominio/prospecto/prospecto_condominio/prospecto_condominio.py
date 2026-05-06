@@ -17,16 +17,15 @@ class ProspectoCondominio(Prospecto):
         correo_contacto: str | None, 
         direccion: str, 
         comuna: Comuna, 
-        estado: EstadoParticular, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
         companies_sugeridas: list[CompanySeguros],
         nombre_contacto: str,
         cargo_contacto: str | None, 
+        estado: EstadoParticular | None = None, 
         id: int | None = None, 
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
-        fecha_registro: datetime | None = None,
         tiene_locales_comerciales: bool | None = None,
         uso_del_condominio: str | None = None,
         numero_pisos: int | None = None,
@@ -42,6 +41,7 @@ class ProspectoCondominio(Prospecto):
             id=id,
             rut_riesgo=rut_riesgo,
             nombre_riesgo=nombre_riesgo,
+            nombre_contacto=nombre_contacto,
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
@@ -49,7 +49,6 @@ class ProspectoCondominio(Prospecto):
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
-            fecha_registro=fecha_registro,
             companies_sugeridas=companies_sugeridas,
             estado=estado,
             evaluacion_riesgo=evaluacion_riesgo
@@ -63,7 +62,6 @@ class ProspectoCondominio(Prospecto):
         self.cantidad_subterraneos = cantidad_subterraneos
         self.tiene_piscina = tiene_piscina
         self.year_construccion = year_construccion
-        self.nombre_contacto = nombre_contacto
         self.cargo_contacto = cargo_contacto
         self.metros_cuadrados = metros_cuadrados
         self.desea_ser_contactado = desea_ser_contactado

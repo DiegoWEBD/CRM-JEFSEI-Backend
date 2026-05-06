@@ -11,6 +11,7 @@ class Prospecto:
         self, 
         rut_riesgo: str | None, 
         nombre_riesgo: str, 
+        nombre_contacto: str,
         telefono_contacto: str, 
         correo_contacto: str | None, 
         direccion: str, 
@@ -19,8 +20,7 @@ class Prospecto:
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
-        companies_sugeridas: list[CompanySeguros], 
-        fecha_registro: datetime | None = None,
+        companies_sugeridas: list[CompanySeguros],
         id: int | None = None,
         evaluacion_riesgo: EvaluacionRiesgo | None = None
     ):
@@ -37,4 +37,4 @@ class Prospecto:
         self.companies_sugeridas = companies_sugeridas
         self.evaluacion_riesgo = evaluacion_riesgo
         self.id = id
-        self.fecha_registro = fecha_registro
+        self.nombre_contacto = nombre_contacto
