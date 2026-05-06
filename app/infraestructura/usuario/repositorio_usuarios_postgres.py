@@ -117,7 +117,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     cur.execute(query, params)
 
                     for rol in usuario.roles:
-                        print(rol.codigo)
                         query = '''
                             insert into RolUsuario (rut_usuario, codigo_rol)
                             values (%(rut_usuario)s, %(codigo_rol)s)

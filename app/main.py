@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI
 from app.presentacion.api.auth import auth_router
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,8 +23,16 @@ app.add_middleware(
 )
 
 app.include_router(auth_router.router)
+
 app.include_router(
     router=usuario_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=prospecto_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

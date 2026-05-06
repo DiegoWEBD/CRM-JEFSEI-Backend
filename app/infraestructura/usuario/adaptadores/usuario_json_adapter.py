@@ -1,5 +1,5 @@
 from app.dominio.usuario.usuario import Usuario
-from app.presentacion.api.usuario.schemas.usuario_json import UsuarioJson
+from app.presentacion.api.usuario.dto.usuario_json import UsuarioJson
 
 
 class UsuarioJsonAdapter:
