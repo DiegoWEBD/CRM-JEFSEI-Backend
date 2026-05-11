@@ -1,5 +1,4 @@
 from app.dominio.cotizacion.cotizacion import Cotizacion
-from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
 from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.usuario.usuario import Usuario
@@ -7,10 +6,10 @@ from app.dominio.usuario.usuario import Usuario
 class EvaluacionRiesgo:
     def __init__(
         self, 
-        id: int, 
         cotizaciones: list[Cotizacion], 
         ej_comercial: Usuario, 
-        observaciones: str | None, 
+        observaciones: str | None = None, 
+        id: int | None = None, 
         ej_evaluacion: Usuario | None = None, 
         poliza: Poliza | None = None, 
         plan_pago: PlanPago | None = None

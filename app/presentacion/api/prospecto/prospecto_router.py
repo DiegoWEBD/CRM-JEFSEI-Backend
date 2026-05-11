@@ -3,13 +3,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
+from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
 from app.dominio.usuario import usuario
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.prospecto.adaptadores.json.prospecto_json_adapter import ProspectoJsonAdapter
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.deps import get_consulta_prospectos_service, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.deps import get_asignar_ejecutivo_comercial_use_case, get_consulta_prospectos_service, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dto.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.registrar_prospecto_request import RegistrarProspectoRequest
 
 
@@ -72,7 +75,7 @@ def obtener_prospectos(
 
     except Exception as exc:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc)
         )
     
@@ -109,7 +112,7 @@ def obtener_prospecto_por_id(
 
     except ValueError as exc:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc)
         )
 
@@ -118,7 +121,7 @@ def obtener_prospecto_por_id(
 def registrar_prospecto(
     request: RegistrarProspectoRequest,
     usuario: Usuario = Depends(permisos_requeridos('REGISTRAR_PROSPECTO')),
-    use_case = Depends(get_registrar_prospecto_use_case)
+    use_case: RegistrarProspectoUseCase = Depends(get_registrar_prospecto_use_case)
 ):
     try:
         use_case.ejecutar(
@@ -154,11 +157,41 @@ def registrar_prospecto(
 
     except Exception as exc:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         )
     
+@router.post("/{id}/asignar-ej-comercial", status_code=status.HTTP_200_OK)
+def asignar_ejecutivo_comercial(
+    id: int,
+    request: AsignarEjecutivoComercialRequest,
+    _ = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_COMERCIAL')),
+    use_case: AsignarEjecutivoComercialUseCase = Depends(get_asignar_ejecutivo_comercial_use_case)
+):
+    try:
+        use_case.ejecutar(
+            id_prospecto=id, 
+            rut_ej_comercial=request.rut_ej_comercial
+        )
 
+        return {
+            "message": "Ejecutivo comercial asignado correctamente"
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        )
 
 
 def tiene_permiso(codigo: str, usuario: Usuario) -> bool:
