@@ -4,16 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
+from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
-from app.dominio.usuario import usuario
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.prospecto.adaptadores.json.prospecto_json_adapter import ProspectoJsonAdapter
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.deps import get_asignar_ejecutivo_comercial_use_case, get_consulta_prospectos_service, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
-from app.presentacion.api.prospecto.dto.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
-from app.presentacion.api.prospecto.dto.registrar_prospecto_request import RegistrarProspectoRequest
+from app.presentacion.api.prospecto.deps import get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
+from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
+from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
 
 
 router = APIRouter(prefix="/prospectos", tags=["Prospectos"])
@@ -161,6 +162,7 @@ def registrar_prospecto(
             detail=str(exc)
         )
     
+
 @router.post("/{id}/asignar-ej-comercial", status_code=status.HTTP_200_OK)
 def asignar_ejecutivo_comercial(
     id: int,
@@ -193,6 +195,38 @@ def asignar_ejecutivo_comercial(
             detail=str(exc)
         )
 
+
+@router.post("/{id}/asignar-ej-evaluacion", status_code=status.HTTP_200_OK)
+def asignar_ejecutivo_evaluacion(
+    id: int,
+    request: AsignarEjecutivoEvaluacionRequest,
+    _ = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_EVALUACION')),
+    use_case: AsignarEjecutivoEvaluacionUseCase = Depends(get_asignar_ejecutivo_evaluacion_use_case)
+):
+    try:
+        use_case.ejecutar(
+            id_prospecto=id, 
+            rut_ej_evaluacion=request.rut_ej_evaluacion
+        )
+
+        return {
+            "message": "Ejecutivo de evaluación de proyectos asignado correctamente"
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        )
 
 def tiene_permiso(codigo: str, usuario: Usuario) -> bool:
     for rol in usuario.roles:

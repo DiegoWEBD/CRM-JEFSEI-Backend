@@ -19,5 +19,9 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
+    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto) -> None:
+        pass
+
+    @abstractmethod
     def cambiar_siguiente_estado(self, id: int) -> None:
         pass

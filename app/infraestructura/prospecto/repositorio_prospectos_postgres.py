@@ -197,10 +197,41 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 query = '''
                     insert into EvaluacionRiesgo(rut_ej_comercial, id_proceso_comercial)
-                    values (%(rut_ej_comercial)s, %(id_proceso_comercial)s);
+                    values (%(rut_ej_comercial)s, %(id_proceso_comercial)s)
                 '''
                 params = {
                     'rut_ej_comercial': prospecto.evaluacion_riesgo.ej_comercial.rut,
+                    'id_proceso_comercial': id_proceso_comercial
+                }
+
+                cur.execute(query, params)
+
+    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto) -> None:
+        if prospecto.id is None or prospecto.evaluacion_riesgo is None or prospecto.evaluacion_riesgo.ej_evaluacion is None:
+            return
+        
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select id
+                    from ProcesoComercial
+                    where id_prospecto = %(id_prospecto)s
+                '''
+                params = {
+                    'id_prospecto': prospecto.id
+                }
+
+                cur.execute(query, params)
+                id_proceso_comercial: int = cur.fetchone()['id']
+
+                query = '''
+                    update EvaluacionRiesgo
+                    set rut_ej_evaluacion = %(rut_ej_evaluacion)s
+                    where id_proceso_comercial = %(id_proceso_comercial)s
+                '''
+                params = {
+                    'rut_ej_evaluacion': prospecto.evaluacion_riesgo.ej_evaluacion.rut,
                     'id_proceso_comercial': id_proceso_comercial
                 }
 
