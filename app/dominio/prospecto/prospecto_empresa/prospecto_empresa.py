@@ -6,7 +6,7 @@ from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.usuario.usuario import Usuario
 
-class ProspectoCondominio(Prospecto):
+class ProspectoEmpresa(Prospecto):
     def __init__(
         self,
         rut_riesgo: str | None, 
@@ -20,20 +20,13 @@ class ProspectoCondominio(Prospecto):
         registrado_por: Usuario, 
         companies_sugeridas: list[CompanySeguros],
         nombre_contacto: str,
-        cargo_contacto: str | None, 
+        actividad: str,
+        ma_rc: float | None,
+        ma_edificio: float | None,
+        cantidad_trabajadores: int | None,
         estado: EstadoParticular | None = None, 
         id: int | None = None, 
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
-        tiene_locales_comerciales: bool | None = None,
-        uso_del_condominio: str | None = None,
-        numero_pisos: int | None = None,
-        numero_torres: int | None = None,
-        cantidad_departamentos: int | None = None,
-        cantidad_subterraneos: int | None = None,
-        tiene_piscina: bool | None = None,
-        year_construccion: int | None = None,
-        metros_cuadrados: int | None = None,
-        desea_ser_contactado: bool | None = None
     ):
         super().__init__(
             id=id,
@@ -51,15 +44,10 @@ class ProspectoCondominio(Prospecto):
             estado=estado,
             evaluacion_riesgo=evaluacion_riesgo
         )
+
+        self.actividad = actividad
+        self.ma_rc = ma_rc
+        self.ma_edificio = ma_edificio
+        self.cantidad_trabajadores = cantidad_trabajadores
         
-        self.tiene_locales_comerciales = tiene_locales_comerciales
-        self.uso_del_condominio = uso_del_condominio
-        self.numero_pisos = numero_pisos
-        self.numero_torres = numero_torres
-        self.cantidad_departamentos = cantidad_departamentos
-        self.cantidad_subterraneos = cantidad_subterraneos
-        self.tiene_piscina = tiene_piscina
-        self.year_construccion = year_construccion
-        self.cargo_contacto = cargo_contacto
-        self.metros_cuadrados = metros_cuadrados
-        self.desea_ser_contactado = desea_ser_contactado
+        

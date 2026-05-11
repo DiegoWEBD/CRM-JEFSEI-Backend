@@ -86,6 +86,7 @@ def registrar_prospecto(
     usuario: Usuario = Depends(permisos_requeridos('REGISTRAR_PROSPECTO')),
     use_case = Depends(get_registrar_prospecto_use_case)
 ):
+    print(request)
     try:
         use_case.ejecutar(
             rut_usuario=usuario.rut,

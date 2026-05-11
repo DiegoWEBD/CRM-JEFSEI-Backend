@@ -34,7 +34,11 @@ class RegistrarProspectoUseCase:
         metros_cuadrados: int | None,
         desea_ser_contactado: bool | None
     ):
-        linea_negocio = LineaNegocio(id=id_linea_negocio)
+        linea_negocio = LineaNegocio(
+            id=id_linea_negocio,
+            nombre=''
+        )
+
         usuario = Usuario(
             rut=rut_usuario,
             nombre='',
