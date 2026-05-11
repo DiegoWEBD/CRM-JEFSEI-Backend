@@ -94,6 +94,11 @@ def obtener_prospecto_por_id(
                 "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
             }
         
+        if puede_ver_propios and prospecto.registrado_por.rut == usuario.rut:
+            return {
+                "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+            }
+        
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario no autorizado"

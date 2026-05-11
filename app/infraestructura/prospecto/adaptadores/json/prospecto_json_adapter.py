@@ -1,4 +1,5 @@
 from app.dominio.prospecto.prospecto import Prospecto
+from app.infraestructura.evaluacion_riesgo.adaptadores.evaluacion_riesgo_json_adapter import EvaluacionRiesgoJsonAdapter
 from app.infraestructura.historial_estado.adaptadores.historial_estado_json_adapter import HistorialEstadoJsonAdapter
 from app.infraestructura.usuario.adaptadores.usuario_json_resumen_adapter import UsuarioJsonResumenAdapter
 from app.presentacion.api.prospecto.dto.prospecto_json import ProspectoJson
@@ -11,6 +12,7 @@ class ProspectoJsonAdapter:
 
     def to_prospecto_json(self) -> ProspectoJson:
         return ProspectoJson(
+            id=self.prospecto.id,
             rut_riesgo=self.prospecto.rut_riesgo,
             nombre_riesgo=self.prospecto.nombre_riesgo,
             nombre_contacto=self.prospecto.nombre_contacto,
@@ -23,5 +25,5 @@ class ProspectoJsonAdapter:
             linea_negocio=self.prospecto.linea_negocio.nombre,
             registrado_por=UsuarioJsonResumenAdapter(self.prospecto.registrado_por).to_usuario_json_resumen(),
             companies_sugeridas=[company.nombre for company in self.prospecto.companies_sugeridas],
-            id=self.prospecto.id
+            evaluacion_riesgo=EvaluacionRiesgoJsonAdapter(self.prospecto.evaluacion_riesgo).to_evaluacion_riesgo_json() if self.prospecto.evaluacion_riesgo else None
         )

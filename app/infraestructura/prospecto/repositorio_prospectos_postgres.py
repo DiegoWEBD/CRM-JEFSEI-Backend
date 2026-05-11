@@ -197,6 +197,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             PCO.cantidad_subterraneos, PCO.tiene_piscina,
             PCO.year_construccion, PCO.metros_cuadrados,
             PCO.desea_ser_contactado,
+            ER.id as id_evaluacion,
+            ER.rut_ej_evaluacion, U_EJ_EV.nombre as nombre_ej_evaluacion,
+            ER.rut_ej_comercial, U_EJ_COM.nombre as nombre_ej_comercial,
+            ER.observaciones as observaciones_evaluacion,
             EB.nombre as nombre_estado,
             EB.codigo as codigo_estado,
             HE.fecha_registro as fecha_registro_estado,
@@ -218,14 +222,19 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             on EP.codigo_estado_base = EB.codigo
             left join EstadoBase EB2
             on EB.codigo_siguiente_estado = EB2.codigo
+            left join EvaluacionRiesgo ER
+            on PC.id = ER.id_proceso_comercial
             inner join Comuna C
             on P.id_comuna = C.id
             inner join Usuario U
             on P.rut_registrado_por = U.rut
+            left join Usuario U_EJ_COM
+            on ER.rut_ej_comercial = U_EJ_COM.rut
+            left join Usuario U_EJ_EV
+            on ER.rut_ej_evaluacion = U_EJ_EV.rut
             inner join LineaNegocio LN
             on P.id_linea_negocio = LN.id
             where P.id = %(id)s
-            order by HE.fecha_registro desc
         '''
 
         params = {

@@ -3,6 +3,7 @@ from psycopg.rows import TupleRow
 from app.dominio.comuna.comuna import Comuna
 from app.dominio.estados.estado_base.estado_base import EstadoBase
 from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
+from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.dominio.usuario.usuario import Usuario
@@ -42,6 +43,12 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
         desea_ser_contactado = self.rows[0]['desea_ser_contactado']
         observaciones = self.rows[0]['observaciones']
         nombre_linea_negocio = self.rows[0]['linea_negocio']
+        id_evaluacion = self.rows[0]['id_evaluacion']
+        rut_ej_comercial = self.rows[0]['rut_ej_comercial']
+        nombre_ej_comercial = self.rows[0]['nombre_ej_comercial']
+        rut_ej_evaluacion = self.rows[0]['rut_ej_evaluacion']
+        nombre_ej_evaluacion = self.rows[0]['nombre_ej_evaluacion']
+        observaciones_evaluacion = self.rows[0]['observaciones_evaluacion']
 
         comuna = Comuna(
             nombre = nombre_comuna
@@ -58,6 +65,35 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
             correo='',
             telefono=''
         )
+
+        evaluacion_riesgo = None
+
+        if id_evaluacion is not None:
+
+            ej_comercial = Usuario(
+                rut = rut_ej_comercial,
+                nombre = nombre_ej_comercial,
+                correo='',
+                telefono=''
+            )
+
+            ej_evaluacion = None
+
+            if rut_ej_evaluacion is not None:
+                ej_evaluacion = Usuario(
+                    rut = rut_ej_evaluacion,
+                    nombre = nombre_ej_evaluacion,
+                    correo='',
+                    telefono=''
+                )
+
+            evaluacion_riesgo = EvaluacionRiesgo(
+                id = id_evaluacion,
+                cotizaciones = [],
+                ej_comercial = ej_comercial,
+                observaciones = observaciones_evaluacion,
+                ej_evaluacion = ej_evaluacion
+            )
 
         historial_estados: list[EstadoParticular] = []
 
@@ -111,7 +147,7 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
             nombre_contacto=nombre_contacto,
             cargo_contacto=cargo_contacto,
             historial_estados=historial_estados,
-            evaluacion_riesgo=None,
+            evaluacion_riesgo=evaluacion_riesgo,
             tiene_locales_comerciales=tiene_locales_comerciales,
             uso_del_condominio=uso_del_condominio,
             numero_pisos=numero_pisos,
