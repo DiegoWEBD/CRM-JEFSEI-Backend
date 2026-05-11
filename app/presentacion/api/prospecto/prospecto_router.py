@@ -3,10 +3,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
+from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
+from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
+from app.dominio.usuario import usuario
 from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.prospecto.adaptadores.json.prospecto_json_adapter import ProspectoJsonAdapter
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.deps import get_consulta_prospectos_service, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.deps import get_asignar_ejecutivo_comercial_use_case, get_consulta_prospectos_service, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dto.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.registrar_prospecto_request import RegistrarProspectoRequest
 
 
@@ -19,16 +25,9 @@ def obtener_prospectos(
     consulta_prospectos_service: ConsultaProspectosService = Depends(get_consulta_prospectos_service)
 ):
     try:
-        
-        def tiene_permiso(codigo: str) -> bool:
-            for rol in usuario.roles:
-                for permiso in rol.permisos:
-                    if permiso.codigo == codigo:
-                        return True
-            return False
 
-        puede_ver_todos = tiene_permiso("OBTENER_PROSPECTOS_TODOS")
-        puede_ver_propios = tiene_permiso("OBTENER_PROSPECTOS_PROPIOS")
+        puede_ver_todos = tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
+        puede_ver_propios = tiene_permiso("OBTENER_PROSPECTOS_PROPIOS", usuario)
 
         # GET /prospectos?rut_usuario=xxxxx
         if rut_usuario:
@@ -76,17 +75,54 @@ def obtener_prospectos(
 
     except Exception as exc:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc)
         )
+    
+
+@router.get("/{id}", status_code=status.HTTP_200_OK)
+def obtener_prospecto_por_id(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('OBTENER_PROSPECTOS_PROPIOS', 'OBTENER_PROSPECTOS_TODOS')),
+    use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case)
+):
+    try:
+        puede_ver_todos = tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
+        puede_ver_propios = tiene_permiso("OBTENER_PROSPECTOS_PROPIOS", usuario)
+
+        prospecto = use_case.ejecutar(id)
+
+        if puede_ver_todos:
+            return {
+                "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+            }
+        
+        if puede_ver_propios and prospecto.registrado_por.rut == usuario.rut:
+            return {
+                "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+            }
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario no autorizado"
+        ) 
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
     
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def registrar_prospecto(
     request: RegistrarProspectoRequest,
     usuario: Usuario = Depends(permisos_requeridos('REGISTRAR_PROSPECTO')),
-    use_case = Depends(get_registrar_prospecto_use_case)
+    use_case: RegistrarProspectoUseCase = Depends(get_registrar_prospecto_use_case)
 ):
-    print(request)
     try:
         use_case.ejecutar(
             rut_usuario=usuario.rut,
@@ -121,6 +157,46 @@ def registrar_prospecto(
 
     except Exception as exc:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         )
+    
+@router.post("/{id}/asignar-ej-comercial", status_code=status.HTTP_200_OK)
+def asignar_ejecutivo_comercial(
+    id: int,
+    request: AsignarEjecutivoComercialRequest,
+    _ = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_COMERCIAL')),
+    use_case: AsignarEjecutivoComercialUseCase = Depends(get_asignar_ejecutivo_comercial_use_case)
+):
+    try:
+        use_case.ejecutar(
+            id_prospecto=id, 
+            rut_ej_comercial=request.rut_ej_comercial
+        )
+
+        return {
+            "message": "Ejecutivo comercial asignado correctamente"
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        )
+
+
+def tiene_permiso(codigo: str, usuario: Usuario) -> bool:
+    for rol in usuario.roles:
+        for permiso in rol.permisos:
+            if permiso.codigo == codigo:
+                return True
+    return False

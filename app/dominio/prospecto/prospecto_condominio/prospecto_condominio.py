@@ -21,7 +21,7 @@ class ProspectoCondominio(Prospecto):
         companies_sugeridas: list[CompanySeguros],
         nombre_contacto: str,
         cargo_contacto: str | None, 
-        estado: EstadoParticular | None = None, 
+        historial_estados: list[EstadoParticular], 
         id: int | None = None, 
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
         tiene_locales_comerciales: bool | None = None,
@@ -48,7 +48,7 @@ class ProspectoCondominio(Prospecto):
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
-            estado=estado,
+            historial_estados=historial_estados,
             evaluacion_riesgo=evaluacion_riesgo
         )
         

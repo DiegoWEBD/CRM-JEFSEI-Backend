@@ -7,13 +7,17 @@ from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import Pros
 class RepositorioProspectos(ABC):
     
     @abstractmethod
-    def registrar_prospecto_condominio(prospecto: ProspectoCondominio) -> None:
+    def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
         pass
     
     @abstractmethod
-    def buscar(id: int) -> Prospecto | None:
+    def buscar(self, id: int) -> Prospecto | None:
         pass
 
     @abstractmethod
-    def cambiar_siguiente_estado(id: int) -> None:
+    def asignar_ejecutivo_comercial(self, prospecto: Prospecto) -> None:
+        pass
+
+    @abstractmethod
+    def cambiar_siguiente_estado(self, id: int) -> None:
         pass
