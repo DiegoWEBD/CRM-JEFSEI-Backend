@@ -1,3 +1,6 @@
+from psycopg import Cursor
+from psycopg.rows import TupleRow
+
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
@@ -149,48 +152,90 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             with conn.cursor() as cur:
 
                 query = '''
-                    select P.id as id_prospecto,
-                    P.rut_riesgo, P.nombre_riesgo,
-                    P.fecha_registro as fecha_registro_prospecto,
-                    P.telefono_contacto,
-                    PCO.nombre_contacto, PCO.cargo_contacto,
-                    P.correo_contacto,
-                    PCO.tiene_locales_comerciales,
-                    PCO.uso_del_condominio,
-                    PCO.numero_pisos, PCO.numero_torres,
-                    PCO.cantidad_departamentos, 
-                    PCO.cantidad_subterraneos, PCO.tiene_piscina,
-                    PCO.year_construccion, PCO.metros_cuadrados,
-                    PCO.desea_ser_contactado,
-                    EB.nombre as estado,
-                    HE.fecha_registro as fecha_registro_estado,
-                    EP.dias_limite_particular, 
-                    EB.dias_limite as dias_limite_base,
-                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
+                    select LN.nombre as linea_negocio
                     from Prospecto P
-                    inner join ProspectoCondominio PCO
-                    on P.id = PCO.id
-                    inner join ProcesoComercial PC
-                    on P.id = PC.id
-                    inner join HistorialEstado HE
-                    on PC.id = HE.id_proceso_comercial
-                    inner join EstadoParticular EP
-                    on HE.id_estado_particular = EP.id
-                    inner join EstadoBase EB
-                    on EP.codigo_estado_base = EB.codigo
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
                     where P.id = %(id)s
                 '''
+
                 params = {
                     'id': id
                 }
 
                 cur.execute(query, params)
-                rows = cur.fetchall()
+                row = cur.fetchone()
 
-                if rows is None or len(rows) == 0:
+                if row is None:
                     return None
+                
+                linea_negocio = row['linea_negocio']
 
-                return TupleRowsProspectoCondominioAdapter(rows)
+                if linea_negocio.lower() == 'condominio':
+                    return self.__obtener_prospecto_condominio(id, cur)
+                
+                return None
+                
 
     def cambiar_siguiente_estado(self, id: int) -> None:
         pass
+
+    def __obtener_prospecto_condominio(self, id: int, cursor: Cursor[TupleRow]) -> ProspectoCondominio | None:
+        query = '''
+            select P.id as id_prospecto,
+            P.rut_riesgo, P.nombre_riesgo,
+            P.telefono_contacto, P.direccion,
+            P.nombre_contacto, PCO.cargo_contacto,
+            P.correo_contacto, P.observaciones,
+            LN.nombre as linea_negocio,
+            P.rut_registrado_por, U.nombre as nombre_registrado_por,
+            C.nombre as comuna,
+            PCO.tiene_locales_comerciales,
+            PCO.uso_del_condominio,
+            PCO.numero_pisos, PCO.numero_torres,
+            PCO.cantidad_departamentos, 
+            PCO.cantidad_subterraneos, PCO.tiene_piscina,
+            PCO.year_construccion, PCO.metros_cuadrados,
+            PCO.desea_ser_contactado,
+            EB.nombre as nombre_estado,
+            EB.codigo as codigo_estado,
+            HE.fecha_registro as fecha_registro_estado,
+            EP.dias_limite_particular, 
+            EB.dias_limite as dias_limite_base,
+            EB.codigo_siguiente_estado,
+            EB2.nombre as nombre_siguiente_estado,
+            extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
+            from Prospecto P
+            inner join ProspectoCondominio PCO
+            on P.id = PCO.id
+            inner join ProcesoComercial PC
+            on P.id = PC.id
+            inner join HistorialEstado HE
+            on PC.id = HE.id_proceso_comercial
+            inner join EstadoParticular EP
+            on HE.id_estado_particular = EP.id
+            inner join EstadoBase EB
+            on EP.codigo_estado_base = EB.codigo
+            left join EstadoBase EB2
+            on EB.codigo_siguiente_estado = EB2.codigo
+            inner join Comuna C
+            on P.id_comuna = C.id
+            inner join Usuario U
+            on P.rut_registrado_por = U.rut
+            inner join LineaNegocio LN
+            on P.id_linea_negocio = LN.id
+            where P.id = %(id)s
+            order by HE.fecha_registro desc
+        '''
+
+        params = {
+            'id': id
+        }
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        if rows is None or len(rows) == 0:
+            return None
+
+        return TupleRowsProspectoCondominioAdapter(rows).to_prospecto_condominio()

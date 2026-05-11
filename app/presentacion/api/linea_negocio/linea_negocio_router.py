@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.aplicacion.linea_negocio.use_cases.obtener_lineas_de_negocio import ObtenerLineasDeNegocioUseCase
-from app.presentacion.api.lineas_negocio.deps import get_obtener_lineas_negocio_use_case
+from app.presentacion.api.linea_negocio.deps import get_obtener_lineas_negocio_use_case
 
 
 router = APIRouter(prefix="/lineas-negocio", tags=["Lineas de Negocio"])

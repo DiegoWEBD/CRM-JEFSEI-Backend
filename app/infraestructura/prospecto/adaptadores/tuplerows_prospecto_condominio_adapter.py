@@ -5,64 +5,98 @@ from app.dominio.estados.estado_base.estado_base import EstadoBase
 from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.usuario.usuario import Usuario
 
 
 class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
     
     def __init__(self, rows: list[TupleRow]):
-        id = rows[0]['id_prospecto']
-        rut_riesgo = rows[0]['rut_riesgo']
-        nombre_riesgo = rows[0]['nombre_riesgo']
-        telefono_contacto = rows[0]['telefono_contacto']
-        correo_contacto = rows[0]['correo_contacto']
-        direccion = rows[0]['direccion']
-        nombre_comuna = rows[0]['comuna']
-        rut_registrado_por = rows[0]['rut_registrado_por']
-        nombre_registrado_por = rows[0]['nombre_registrado_por']
-        fecha_registro_prospecto = rows[0]['fecha_registro_prospecto']
-        nombre_contacto = rows[0]['nombre_contacto']
-        cargo_contacto = rows[0]['cargo_contacto']
-        tiene_locales_comerciales = rows[0]['tiene_locales_comerciales']
-        uso_del_condominio = rows[0]['uso_del_condominio']
-        numero_pisos = rows[0]['numero_pisos']
-        numero_torres = rows[0]['numero_torres']
-        cantidad_departamentos = rows[0]['cantidad_departamentos']
-        cantidad_subterraneos = rows[0]['cantidad_subterraneos']
-        tiene_piscina = rows[0]['tiene_piscina']
-        year_construccion = rows[0]['year_construccion']
-        metros_cuadrados = rows[0]['metros_cuadrados']
-        desea_ser_contactado = rows[0]['desea_ser_contactado']
-        nombre_estado = rows[0]['nombre_estado']
-        codigo_estado = rows[0]['codigo_estado']
-        fecha_registro_estado = rows[0]['fecha_registro_estado']
-        dias_limite_particular = rows[0]['dias_limite_particular']
-        dias_limite_base = rows[0]['dias_limite_base']
-        dias_transcurridos = rows[0]['dias_transcurridos']
-        observaciones = rows[0]['observaciones']
-        nombre_linea_negocio = rows[0]['linea_negocio']
+
+        if not rows or len(rows) == 0:
+            raise Exception("Prospecto inválido")
+        
+        self.rows = rows
+
+    def to_prospecto_condominio(self) -> ProspectoCondominio:
+
+        id = self.rows[0]['id_prospecto']
+        rut_riesgo = self.rows[0]['rut_riesgo']
+        nombre_riesgo = self.rows[0]['nombre_riesgo']
+        telefono_contacto = self.rows[0]['telefono_contacto']
+        correo_contacto = self.rows[0]['correo_contacto']
+        direccion = self.rows[0]['direccion']
+        nombre_comuna = self.rows[0]['comuna']
+        rut_registrado_por = self.rows[0]['rut_registrado_por']
+        nombre_registrado_por = self.rows[0]['nombre_registrado_por']
+        nombre_contacto = self.rows[0]['nombre_contacto']
+        cargo_contacto = self.rows[0]['cargo_contacto']
+        tiene_locales_comerciales = self.rows[0]['tiene_locales_comerciales']
+        uso_del_condominio = self.rows[0]['uso_del_condominio']
+        numero_pisos = self.rows[0]['numero_pisos']
+        numero_torres = self.rows[0]['numero_torres']
+        cantidad_departamentos = self.rows[0]['cantidad_departamentos']
+        cantidad_subterraneos = self.rows[0]['cantidad_subterraneos']
+        tiene_piscina = self.rows[0]['tiene_piscina']
+        year_construccion = self.rows[0]['year_construccion']
+        metros_cuadrados = self.rows[0]['metros_cuadrados']
+        desea_ser_contactado = self.rows[0]['desea_ser_contactado']
+        observaciones = self.rows[0]['observaciones']
+        nombre_linea_negocio = self.rows[0]['linea_negocio']
 
         comuna = Comuna(
             nombre = nombre_comuna
         )
 
-        estado_base  =  EstadoBase(
-            codigo = codigo_estado,
-            nombre = nombre_estado,
-            dias_limite = dias_limite_base
-        )
-
-        estado_particular  =  EstadoParticular(
-            estado_base = estado_base,
-            fecha_resgistro = fecha_registro_estado,
-            dias_limite_particular = dias_limite_particular,
-            dias_transcurridos = dias_transcurridos
-        )
-
         linea_negocio = LineaNegocio(
-            nombre=nombre_linea_negocio
+            nombre=nombre_linea_negocio,
+            productos=[]
         )
 
-        super().__init__(
+        registrado_por = Usuario(
+            rut = rut_registrado_por,
+            nombre = nombre_registrado_por,
+            correo='',
+            telefono=''
+        )
+
+        historial_estados: list[EstadoParticular] = []
+
+        for row in self.rows:
+            nombre_estado = row['nombre_estado']
+            codigo_estado = row['codigo_estado']
+            fecha_registro_estado = row['fecha_registro_estado']
+            dias_limite_particular = row['dias_limite_particular']
+            dias_limite_base = row['dias_limite_base']
+            codigo_siguiente_estado = row['codigo_siguiente_estado']
+            nombre_siguiente_estado = row['nombre_siguiente_estado']
+            dias_transcurridos = row['dias_transcurridos']
+
+            siguiente_estado = None
+
+            if codigo_siguiente_estado is not None:
+                siguiente_estado = EstadoBase(
+                    codigo = codigo_siguiente_estado,
+                    nombre = nombre_siguiente_estado,
+                    dias_limite = dias_limite_base
+                )
+
+            estado_base  =  EstadoBase(
+                codigo = codigo_estado,
+                nombre = nombre_estado,
+                dias_limite = dias_limite_base,
+                siguiente_estado = siguiente_estado,
+            )
+
+            estado_particular  =  EstadoParticular(
+                estado_base = estado_base,
+                fecha_resgistro = fecha_registro_estado,
+                dias_limite_particular = dias_limite_particular,
+                dias_transcurridos = dias_transcurridos
+            )
+
+            historial_estados.append(estado_particular)
+
+        return ProspectoCondominio(
             id = id,
             rut_riesgo = rut_riesgo,
             nombre_riesgo = nombre_riesgo,
@@ -70,8 +104,22 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
             correo_contacto = correo_contacto,
             direccion = direccion,
             comuna = comuna,
-            estado = estado_particular,
             observaciones = observaciones,
             linea_negocio=linea_negocio,
-
+            registrado_por=registrado_por,
+            companies_sugeridas=[],
+            nombre_contacto=nombre_contacto,
+            cargo_contacto=cargo_contacto,
+            historial_estados=historial_estados,
+            evaluacion_riesgo=None,
+            tiene_locales_comerciales=tiene_locales_comerciales,
+            uso_del_condominio=uso_del_condominio,
+            numero_pisos=numero_pisos,
+            numero_torres=numero_torres,
+            cantidad_departamentos=cantidad_departamentos,
+            cantidad_subterraneos=cantidad_subterraneos,
+            tiene_piscina=tiene_piscina,
+            year_construccion=year_construccion,
+            metros_cuadrados=metros_cuadrados,
+            desea_ser_contactado=desea_ser_contactado
         )

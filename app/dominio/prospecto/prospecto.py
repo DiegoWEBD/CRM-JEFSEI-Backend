@@ -4,7 +4,6 @@ from app.dominio.estados.estado_particular.estado_particular import EstadoPartic
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.usuario.usuario import Usuario
-from datetime import datetime
 
 class Prospecto:
     def __init__(
@@ -16,7 +15,7 @@ class Prospecto:
         correo_contacto: str | None, 
         direccion: str, 
         comuna: Comuna, 
-        estado: EstadoParticular, 
+        historial_estados: list[EstadoParticular], 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -30,7 +29,7 @@ class Prospecto:
         self.correo_contacto = correo_contacto
         self.direccion = direccion
         self.comuna = comuna
-        self.estado = estado
+        self.historial_estados = historial_estados
         self.observaciones = observaciones
         self.linea_negocio = linea_negocio
         self.registrado_por = registrado_por
