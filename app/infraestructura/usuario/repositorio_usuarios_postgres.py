@@ -79,7 +79,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 rows = cur.fetchall()
 
                 if rows is None or len(rows) == 0:
-                    return None
+                    return []
 
                 datos_usuarios: dict[str, list[TupleRow]] = {}
 
