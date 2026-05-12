@@ -263,17 +263,19 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             ER.observaciones as observaciones_evaluacion,
             EB.nombre as nombre_estado,
             EB.codigo as codigo_estado,
+            EB.color as color_estado,
             HE.fecha_registro as fecha_registro_estado,
             EP.dias_limite_particular, 
             EB.dias_limite as dias_limite_base,
             EB.codigo_siguiente_estado,
             EB2.nombre as nombre_siguiente_estado,
+            EB2.accion as proxima_accion,
             extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
             from Prospecto P
             inner join ProspectoCondominio PCO
             on P.id = PCO.id
             inner join ProcesoComercial PC
-            on P.id = PC.id
+            on P.id = PC.id_prospecto
             inner join HistorialEstado HE
             on PC.id = HE.id_proceso_comercial
             inner join EstadoParticular EP

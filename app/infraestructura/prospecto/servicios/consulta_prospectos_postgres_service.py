@@ -15,6 +15,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
                 base_query = '''
                     select distinct on (P.id)
+                    P.id,
                     P.nombre_riesgo,
                     P.nombre_contacto,
                     LN.nombre as linea_negocio,

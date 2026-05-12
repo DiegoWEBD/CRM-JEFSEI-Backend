@@ -100,11 +100,13 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
         for row in self.rows:
             nombre_estado = row['nombre_estado']
             codigo_estado = row['codigo_estado']
+            color_estado = row['color_estado']
             fecha_registro_estado = row['fecha_registro_estado']
             dias_limite_particular = row['dias_limite_particular']
             dias_limite_base = row['dias_limite_base']
             codigo_siguiente_estado = row['codigo_siguiente_estado']
             nombre_siguiente_estado = row['nombre_siguiente_estado']
+            proxima_accion = row['proxima_accion']
             dias_transcurridos = row['dias_transcurridos']
 
             siguiente_estado = None
@@ -113,7 +115,9 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
                 siguiente_estado = EstadoBase(
                     codigo = codigo_siguiente_estado,
                     nombre = nombre_siguiente_estado,
-                    dias_limite = dias_limite_base
+                    dias_limite = dias_limite_base,
+                    accion = proxima_accion,
+                    color = ''
                 )
 
             estado_base  =  EstadoBase(
@@ -121,6 +125,8 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
                 nombre = nombre_estado,
                 dias_limite = dias_limite_base,
                 siguiente_estado = siguiente_estado,
+                accion = '',
+                color = color_estado
             )
 
             estado_particular  =  EstadoParticular(

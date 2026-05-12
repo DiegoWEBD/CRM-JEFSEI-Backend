@@ -95,12 +95,12 @@ def obtener_prospecto_por_id(
 
         if puede_ver_todos:
             return {
-                "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+                "prospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
             }
         
         if puede_ver_propios and prospecto.registrado_por.rut == usuario.rut:
             return {
-                "pospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+                "prospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
             }
         
         raise HTTPException(

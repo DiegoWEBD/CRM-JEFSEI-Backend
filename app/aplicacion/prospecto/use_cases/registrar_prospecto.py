@@ -69,7 +69,8 @@ class RegistrarProspectoUseCase:
             tiene_piscina=tiene_piscina,
             year_construccion=year_construccion,
             metros_cuadrados=metros_cuadrados,
-            desea_ser_contactado=desea_ser_contactado
+            desea_ser_contactado=desea_ser_contactado,
+            historial_estados=[]
         )
         
         self.repositorio_prospectos.registrar_prospecto_condominio(prospecto)

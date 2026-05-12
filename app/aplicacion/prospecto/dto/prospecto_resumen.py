@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class ProspectoResumen:
+    id: int
     nombre_riesgo: str
     nombre_contacto: str
     linea_negocio: str

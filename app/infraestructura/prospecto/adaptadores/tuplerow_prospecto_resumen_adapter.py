@@ -10,6 +10,7 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
         if row is None:
             raise Exception('Prospecto inválido')
 
+        id = row['id']
         nombre_riesgo = row['nombre_riesgo']
         nombre_contacto = row['nombre_contacto']
         linea_negocio = row['linea_negocio']
@@ -18,6 +19,7 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
         proxima_accion = row['proxima_accion']
 
         super().__init__(
+            id=id,
             nombre_riesgo=nombre_riesgo,
             nombre_contacto=nombre_contacto,
             linea_negocio=linea_negocio,

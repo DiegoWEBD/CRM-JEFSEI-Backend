@@ -5,7 +5,7 @@ class LineaNegocio:
     def __init__(
         self, 
         nombre: str,
-        productos: list[Producto],
+        productos: list[Producto] = [],
         id: int | None = None
     ):
         self.id = id
