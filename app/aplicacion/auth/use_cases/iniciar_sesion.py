@@ -19,8 +19,10 @@ class IniciarSesionUseCase:
             return None
 
         token = self.authentication_service.crear_access_token({
-            "sub": usuario.rut,
-            "roles": [rol.codigo for rol in usuario.roles]
+            "rut": usuario.rut,
+            "nombre": usuario.nombre,
+            "codigo_roles": [rol.codigo for rol in usuario.roles],
+            "nombre_roles": [rol.nombre for rol in usuario.roles]
         })
 
         return IniciarSesionResponseDTO(

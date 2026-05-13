@@ -8,7 +8,7 @@ class ObtenerProspectoUseCase:
 
     def ejecutar(self, id: int) -> Prospecto:
         prospecto = self.repositorio_prospectos.buscar(id)
-        print(prospecto)
+
         if prospecto is None:
             raise ValueError("No se encontró el prospecto")
 
