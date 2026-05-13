@@ -33,7 +33,7 @@ def get_current_user(
             detail="Usuario no autenticado"
         )
 
-    rut: str | None = payload.get("sub")
+    rut: str | None = payload.get("rut")
 
     if rut is None:
         raise HTTPException(

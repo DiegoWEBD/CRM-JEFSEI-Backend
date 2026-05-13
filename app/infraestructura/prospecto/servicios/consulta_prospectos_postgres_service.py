@@ -20,6 +20,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     P.nombre_contacto,
                     LN.nombre as linea_negocio,
                     EB.nombre as estado,
+                    EB.color as color_estado,
                     HE.fecha_registro as fecha_ultima_accion,
                     EB2.nombre as proxima_accion
                     from Prospecto P

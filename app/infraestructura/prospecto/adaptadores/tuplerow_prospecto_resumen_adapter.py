@@ -15,6 +15,7 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
         nombre_contacto = row['nombre_contacto']
         linea_negocio = row['linea_negocio']
         estado = row['estado']
+        color_estado = row['color_estado']
         fecha_ultima_accion = row['fecha_ultima_accion']
         proxima_accion = row['proxima_accion']
 
@@ -24,6 +25,7 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
             nombre_contacto=nombre_contacto,
             linea_negocio=linea_negocio,
             estado=estado,
+            color_estado=color_estado,
             fecha_ultima_accion=fecha_ultima_accion,
             proxima_accion=proxima_accion
         )

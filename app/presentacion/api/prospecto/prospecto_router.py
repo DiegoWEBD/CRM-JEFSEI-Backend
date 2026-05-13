@@ -15,6 +15,8 @@ from app.presentacion.api.prospecto.deps import get_asignar_ejecutivo_comercial_
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
+from app.presentacion.api.prospecto.lib.tiene_permisos_prospecto import tiene_permisos_prospecto
+from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 
 router = APIRouter(prefix="/prospectos", tags=["Prospectos"])
@@ -27,8 +29,8 @@ def obtener_prospectos(
 ):
     try:
 
-        puede_ver_todos = tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
-        puede_ver_propios = tiene_permiso("OBTENER_PROSPECTOS_PROPIOS", usuario)
+        puede_ver_todos = usuario_tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
+        puede_ver_propios = usuario_tiene_permiso("OBTENER_PROSPECTOS_PROPIOS", usuario)
 
         # GET /prospectos?rut_usuario=xxxxx
         if rut_usuario:
@@ -88,17 +90,11 @@ def obtener_prospecto_por_id(
     use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case)
 ):
     try:
-        puede_ver_todos = tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
-        puede_ver_propios = tiene_permiso("OBTENER_PROSPECTOS_PROPIOS", usuario)
 
         prospecto = use_case.ejecutar(id)
+        autorizado = tiene_permisos_prospecto(usuario=usuario, prospecto=prospecto)  
 
-        if puede_ver_todos:
-            return {
-                "prospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
-            }
-        
-        if puede_ver_propios and prospecto.registrado_por.rut == usuario.rut:
+        if autorizado:
             return {
                 "prospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
             }
@@ -228,9 +224,3 @@ def asignar_ejecutivo_evaluacion(
             detail=str(exc)
         )
 
-def tiene_permiso(codigo: str, usuario: Usuario) -> bool:
-    for rol in usuario.roles:
-        for permiso in rol.permisos:
-            if permiso.codigo == codigo:
-                return True
-    return False

@@ -297,6 +297,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             inner join LineaNegocio LN
             on P.id_linea_negocio = LN.id
             where P.id = %(id)s
+            order by HE.fecha_registro asc
         '''
 
         params = {
