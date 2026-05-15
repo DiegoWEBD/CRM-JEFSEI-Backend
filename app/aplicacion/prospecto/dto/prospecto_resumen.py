@@ -9,5 +9,7 @@ class ProspectoResumen:
     linea_negocio: str
     estado: str
     color_estado: str
+    dias_limite: int
+    dias_transcurridos: int
     fecha_ultima_accion: str
     proxima_accion: str

@@ -18,6 +18,11 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
         color_estado = row['color_estado']
         fecha_ultima_accion = row['fecha_ultima_accion']
         proxima_accion = row['proxima_accion']
+        dias_limite_base = row['dias_limite_base']
+        dias_limite_particular = row['dias_limite_particular']
+        dias_transcurridos = row['dias_transcurridos']
+
+        dias_limite = dias_limite_particular if dias_limite_particular else dias_limite_base
 
         super().__init__(
             id=id,
@@ -27,5 +32,7 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
             estado=estado,
             color_estado=color_estado,
             fecha_ultima_accion=fecha_ultima_accion,
-            proxima_accion=proxima_accion
+            proxima_accion=proxima_accion,
+            dias_limite=dias_limite,
+            dias_transcurridos=dias_transcurridos
         )

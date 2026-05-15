@@ -21,7 +21,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     LN.nombre as linea_negocio,
                     EB.nombre as estado,
                     EB.color as color_estado,
+                    EB.dias_limite as dias_limite_base,
+                    EP.dias_limite_particular,
                     HE.fecha_registro as fecha_ultima_accion,
+                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos,
                     EB2.nombre as proxima_accion
                     from Prospecto P
                     inner join LineaNegocio LN on P.id_linea_negocio = LN.id
