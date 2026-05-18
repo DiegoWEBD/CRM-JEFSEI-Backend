@@ -121,6 +121,7 @@ def registrar_prospecto(
     use_case: RegistrarProspectoUseCase = Depends(get_registrar_prospecto_use_case)
 ):
     try:
+        print('ejecutando registro de prospecto')
         use_case.ejecutar(
             rut_usuario=usuario.rut,
             rut_riesgo=request.rut_riesgo,

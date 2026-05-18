@@ -34,6 +34,7 @@ class RegistrarProspectoUseCase:
         metros_cuadrados: int | None,
         desea_ser_contactado: bool | None
     ):
+        print('ejecutando caso de uso')
         linea_negocio = LineaNegocio(
             id=id_linea_negocio,
             nombre=''
@@ -44,6 +45,10 @@ class RegistrarProspectoUseCase:
             nombre='',
             correo='',
             telefono='',
+            fecha_registro='',
+            habilitado=True,
+            eliminado=False,
+            sucursal=None
         )
         comuna = Comuna(id=id_comuna, nombre='')
 

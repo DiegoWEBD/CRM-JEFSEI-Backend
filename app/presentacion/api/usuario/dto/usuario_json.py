@@ -9,5 +9,8 @@ class UsuarioJson(BaseModel):
     correo: str
     telefono: str
     sucursal: str
+    fecha_registro: str
+    habilitado: bool
+    eliminado: bool
     meta_mensual_uf: int | None
     roles: list[RolJson]

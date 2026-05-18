@@ -40,7 +40,9 @@ class RegistrarUsuarioUseCase:
             sucursal=sucursal,
             password_hash=password_hash,
             roles=roles,
-            meta_mensual_uf=meta
+            meta_mensual_uf=meta,
+            habilitado=True,
+            eliminado=False,
         )
 
         return self.repositorio_usuarios.registrar(nuevo_usuario)

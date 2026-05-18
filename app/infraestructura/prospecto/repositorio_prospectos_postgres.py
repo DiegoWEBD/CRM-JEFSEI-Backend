@@ -135,13 +135,14 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 # Registro histórico del estado
                 query = '''
-                    insert into HistorialEstado(id_proceso_comercial, id_estado_particular)
-                    values(%(id_proceso_comercial)s, %(id_estado_particular)s)
+                    insert into HistorialEstado(id_proceso_comercial, id_estado_particular_actual, rut_cambiado_por)
+                    values(%(id_proceso_comercial)s, %(id_estado_particular_actual)s, %(rut_cambiado_por)s)
                 '''           
 
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular': id_estado_particular
+                    'id_estado_particular_actual': id_estado_particular,
+                    'rut_cambiado_por': prospecto.registrado_por.rut
                 }     
 
                 cur.execute(query, params)
@@ -249,7 +250,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             P.correo_contacto, P.observaciones,
             LN.nombre as linea_negocio,
             P.rut_registrado_por, U.nombre as nombre_registrado_por,
-            C.nombre as comuna,
+            COM.nombre as comuna,
             PCO.tiene_locales_comerciales,
             PCO.uso_del_condominio,
             PCO.numero_pisos, PCO.numero_torres,
@@ -257,45 +258,70 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             PCO.cantidad_subterraneos, PCO.tiene_piscina,
             PCO.year_construccion, PCO.metros_cuadrados,
             PCO.desea_ser_contactado,
+            SER.id as id_solicitud_evaluacion,
+            SER.fecha_solicitud as fecha_solicitud_evaluacion,
+            SER.prioridad as prioridad_solicitud,
             ER.id as id_evaluacion,
-            ER.rut_ej_evaluacion, U_EJ_EV.nombre as nombre_ej_evaluacion,
-            ER.rut_ej_comercial, U_EJ_COM.nombre as nombre_ej_comercial,
             ER.observaciones as observaciones_evaluacion,
-            EB.nombre as nombre_estado,
-            EB.codigo as codigo_estado,
-            EB.color as color_estado,
+            VER.monto_asegurado, 
+            VER.fecha_registro as fecha_version_evaluacion,
+            U_EJ_COM.rut as rut_ej_comercial, 
+            U_EJ_COM.nombre as nombre_ej_comercial,
+            U_EJ_EV.rut as rut_ej_evaluacion, 
+            U_EJ_EV.nombre as nombre_ej_evaluacion,
+            EB.nombre as nombre_estado_actual,
+            EB.codigo as codigo_estado_actual,
+            EB.color as color_estado_actual,
             HE.fecha_registro as fecha_registro_estado,
+            U_ESTADO.rut as rut_estado_cambiado_por,
+            U_ESTADO.nombre as nombre_estado_cambiado_por,
             EP.dias_limite_particular, 
             EB.dias_limite as dias_limite_base,
-            EB.codigo_siguiente_estado,
-            EB2.nombre as nombre_siguiente_estado,
-            EB2.accion as proxima_accion,
+            EB_SIG.codigo as codigo_siguiente_estado_esperado,
+            EB_SIG.nombre as nombre_siguiente_estado_esperado,
+            EB_SIG.accion as proxima_accion_esperada,
+            EB2.nombre as nombre_estado_anterior,
+            EB2.codigo as codigo_estado_anterior,
             extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
             from Prospecto P
-            inner join ProspectoCondominio PCO
-            on P.id = PCO.id
-            inner join ProcesoComercial PC
-            on P.id = PC.id_prospecto
-            inner join HistorialEstado HE
-            on PC.id = HE.id_proceso_comercial
-            inner join EstadoParticular EP
-            on HE.id_estado_particular = EP.id
-            inner join EstadoBase EB
-            on EP.codigo_estado_base = EB.codigo
-            left join EstadoBase EB2
-            on EB.codigo_siguiente_estado = EB2.codigo
-            left join EvaluacionRiesgo ER
-            on PC.id = ER.id_proceso_comercial
-            inner join Comuna C
-            on P.id_comuna = C.id
             inner join Usuario U
             on P.rut_registrado_por = U.rut
-            left join Usuario U_EJ_COM
-            on ER.rut_ej_comercial = U_EJ_COM.rut
-            left join Usuario U_EJ_EV
-            on ER.rut_ej_evaluacion = U_EJ_EV.rut
+            inner join Comuna COM
+            on P.id_comuna = COM.id
             inner join LineaNegocio LN
             on P.id_linea_negocio = LN.id
+            inner join ProcesoComercial PC
+            on P.id = PC.id_prospecto
+            left join Usuario U_EJ_COM
+            on PC.rut_ej_comercial = U_EJ_COM.rut
+            left join Usuario U_EJ_EV
+            on PC.rut_ej_evaluacion = U_EJ_EV.rut
+            left join SolicitudEvaluacionRiesgo SER
+            on PC.id = SER.id_proceso_comercial
+            left join EvaluacionRiesgo ER
+            on SER.id = ER.id_solicitud
+            left join VersionEvaluacionRiesgo VER
+            on ER.id = VER.id_evaluacion_riesgo
+            left join Cotizacion C
+            on VER.id = C.id_version_evaluacion
+            left join Poliza PO
+            on C.id = PO.id_cotizacion
+            inner join HistorialEstado HE
+            on PC.id = HE.id_proceso_comercial
+            inner join Usuario U_ESTADO
+            on HE.rut_cambiado_por = U_ESTADO.rut
+            inner join EstadoParticular EP
+            on HE.id_estado_particular_actual = EP.id
+            inner join EstadoBase EB
+            on EP.codigo_estado_base = EB.codigo
+            left join EstadoParticular EP2
+            on HE.id_estado_particular_anterior = EP2.id
+            left join EstadoBase EB2
+            on EP2.codigo_estado_base = EB2.codigo
+            left join EstadoBase EB_SIG
+            on EB.codigo_siguiente_estado = EB_SIG.codigo
+            inner join ProspectoCondominio PCO
+            on P.id = PCO.id
             where P.id = %(id)s
             order by HE.fecha_registro asc
         '''

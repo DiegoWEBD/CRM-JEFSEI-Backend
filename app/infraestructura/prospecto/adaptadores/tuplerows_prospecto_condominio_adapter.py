@@ -6,6 +6,7 @@ from app.dominio.estados.estado_particular.estado_particular import EstadoPartic
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.solicitud_evaluacion_riesgo.solicitud_evaluacion_riesgo import SolicitudEvaluacionRiesgo
 from app.dominio.usuario.usuario import Usuario
 
 
@@ -43,6 +44,11 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
         desea_ser_contactado = self.rows[0]['desea_ser_contactado']
         observaciones = self.rows[0]['observaciones']
         nombre_linea_negocio = self.rows[0]['linea_negocio']
+
+        id_solicitud_evaluacion = self.rows[0]['id_solicitud_evaluacion']
+        fecha_solicitud_evaluacion = self.rows[0]['fecha_solicitud_evaluacion']
+        prioridad_solicitud = self.rows[0]['prioridad_solicitud']
+
         id_evaluacion = self.rows[0]['id_evaluacion']
         rut_ej_comercial = self.rows[0]['rut_ej_comercial']
         nombre_ej_comercial = self.rows[0]['nombre_ej_comercial']
@@ -63,10 +69,53 @@ class TupleRowsProspectoCondominioAdapter(ProspectoCondominio):
             rut = rut_registrado_por,
             nombre = nombre_registrado_por,
             correo='',
-            telefono=''
+            telefono='',
+            sucursal=None,
+            habilitado=True,
+            eliminado=False
         )
 
+        ej_comercial = None
+        ej_evaluacion = None
+        solicitud_evaluacion = None
         evaluacion_riesgo = None
+
+        if rut_ej_comercial:
+            ej_comercial = Usuario(
+                rut = rut_ej_comercial,
+                nombre = nombre_ej_comercial,
+                correo='',
+                telefono='',
+                sucursal=None,
+                habilitado=True,
+                eliminado=False
+            )
+
+        if rut_ej_evaluacion:
+            ej_evaluacion = Usuario(
+                rut = rut_ej_evaluacion,
+                nombre = nombre_ej_evaluacion,
+                correo='',
+                telefono='',
+                sucursal=None,
+                habilitado=True,
+                eliminado=False
+            )
+
+        if id_solicitud_evaluacion:
+            solicitud_evaluacion = SolicitudEvaluacionRiesgo(
+                id=id_solicitud_evaluacion,
+                prioridad=prioridad_solicitud,
+                fecha_solicitud=fecha_solicitud_evaluacion
+            )
+
+        if id_evaluacion:
+            evaluacion_riesgo = EvaluacionRiesgo(
+                id = id_evaluacion,
+                cotizaciones = [],
+            )
+
+        # CAMBIO
 
         if id_evaluacion is not None:
 

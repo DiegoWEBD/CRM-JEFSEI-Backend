@@ -1,8 +1,9 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
-from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
+from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
+from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.usuario.usuario import Usuario
 
@@ -21,8 +22,9 @@ class ProspectoCondominio(Prospecto):
         companies_sugeridas: list[CompanySeguros],
         nombre_contacto: str,
         cargo_contacto: str | None, 
-        historial_estados: list[EstadoParticular], 
+        historial_estados: list[HistorialEstado], 
         id: int | None = None, 
+        planificacion_prospecto: PlanificacionProspecto | None = None,
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
         tiene_locales_comerciales: bool | None = None,
         uso_del_condominio: str | None = None,
@@ -49,7 +51,8 @@ class ProspectoCondominio(Prospecto):
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
             historial_estados=historial_estados,
-            evaluacion_riesgo=evaluacion_riesgo
+            evaluacion_riesgo=evaluacion_riesgo,
+            planificacion_prospecto=planificacion_prospecto
         )
         
         self.tiene_locales_comerciales = tiene_locales_comerciales
