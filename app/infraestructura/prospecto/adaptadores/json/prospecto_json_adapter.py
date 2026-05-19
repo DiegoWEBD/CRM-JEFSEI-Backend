@@ -20,7 +20,7 @@ class ProspectoJsonAdapter:
             correo_contacto=self.prospecto.correo_contacto,
             direccion=self.prospecto.direccion,
             comuna=self.prospecto.comuna.nombre,
-            historial_estados=[HistorialEstadoJsonAdapter(estado).to_historial_estado_json() for estado in self.prospecto.historial_estados],
+            historial_estados=[HistorialEstadoJsonAdapter(historial_estado).to_historial_estado_json() for historial_estado in self.prospecto.historial_estados],
             observaciones=self.prospecto.observaciones,
             linea_negocio=self.prospecto.linea_negocio.nombre,
             registrado_por=UsuarioJsonResumenAdapter(self.prospecto.registrado_por).to_usuario_json_resumen(),

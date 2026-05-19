@@ -176,6 +176,131 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     return self.__obtener_prospecto_condominio(id, cur)
                 
                 return None
+            
+    def buscar_prospecto_condominio(self, id) -> ProspectoCondominio | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select LN.nombre as linea_negocio
+                    from Prospecto P
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    where P.id = %(id)s
+                '''
+
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+                
+                linea_negocio = row['linea_negocio']
+
+                if linea_negocio.lower() != 'condominio':
+                    return None
+                
+                query = '''
+                    select P.id as id_prospecto,
+                    P.rut_riesgo, P.nombre_riesgo,
+                    P.telefono_contacto, P.direccion,
+                    P.nombre_contacto, PCO.cargo_contacto,
+                    P.correo_contacto, P.observaciones,
+                    LN.nombre as linea_negocio,
+                    P.rut_registrado_por, U.nombre as nombre_registrado_por,
+                    COM.nombre as comuna,
+                    PCO.tiene_locales_comerciales,
+                    PCO.uso_del_condominio,
+                    PCO.numero_pisos, PCO.numero_torres,
+                    PCO.cantidad_departamentos, 
+                    PCO.cantidad_subterraneos, PCO.tiene_piscina,
+                    PCO.year_construccion, PCO.metros_cuadrados,
+                    PCO.desea_ser_contactado,
+                    SER.id as id_solicitud_evaluacion,
+                    SER.fecha_solicitud as fecha_solicitud_evaluacion,
+                    SER.prioridad as prioridad_solicitud,
+                    ER.id as id_evaluacion,
+                    ER.observaciones as observaciones_evaluacion,
+                    ER.uf_por_metro_cuadrado as evaluacion_uf_por_metro_cuadrado,
+                    ER.monto_asegurado_actual as evaluacion_monto_asegurado_actual,
+                    ER.porcentaje_depreciacion as evaluacion_porcentaje_depreciacion,
+                    ER.porcentaje_espacios_comunes as evaluacion_porcentaje_espacios_comunes,
+                    U_EJ_COM.rut as rut_ej_comercial, 
+                    U_EJ_COM.nombre as nombre_ej_comercial,
+                    U_EJ_EV.rut as rut_ej_evaluacion, 
+                    U_EJ_EV.nombre as nombre_ej_evaluacion,
+                    EB.nombre as nombre_estado_actual,
+                    EB.codigo as codigo_estado_actual,
+                    EB.color as color_estado_actual,
+                    HE.fecha_registro as fecha_registro_estado,
+                    HE.motivo_cambio as motivo_cambio_estado,
+                    U_ESTADO.rut as rut_estado_cambiado_por,
+                    U_ESTADO.nombre as nombre_estado_cambiado_por,
+                    EP.dias_limite_particular, 
+                    EB.dias_limite as dias_limite_base,
+                    EB_SIG.codigo as codigo_siguiente_estado_esperado,
+                    EB_SIG.nombre as nombre_siguiente_estado_esperado,
+                    EB_SIG.accion as proxima_accion_esperada,
+                    EB2.nombre as nombre_estado_anterior,
+                    EB2.codigo as codigo_estado_anterior,
+                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
+                    from Prospecto P
+                    inner join Usuario U
+                    on P.rut_registrado_por = U.rut
+                    inner join Comuna COM
+                    on P.id_comuna = COM.id
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    inner join ProcesoComercial PC
+                    on P.id = PC.id_prospecto
+                    left join Usuario U_EJ_COM
+                    on PC.rut_ej_comercial = U_EJ_COM.rut
+                    left join Usuario U_EJ_EV
+                    on PC.rut_ej_evaluacion = U_EJ_EV.rut
+                    left join SolicitudEvaluacionRiesgo SER
+                    on PC.id = SER.id_proceso_comercial
+                    left join EvaluacionRiesgo ER
+                    on SER.id = ER.id_solicitud
+                    left join Cotizacion C
+                    on ER.id = C.id_evaluacion
+                    left join Poliza PO
+                    on C.id = PO.id_cotizacion
+                    inner join HistorialEstado HE
+                    on PC.id = HE.id_proceso_comercial
+                    inner join Usuario U_ESTADO
+                    on HE.rut_cambiado_por = U_ESTADO.rut
+                    inner join EstadoParticular EP
+                    on HE.id_estado_particular_actual = EP.id
+                    inner join EstadoBase EB
+                    on EP.codigo_estado_base = EB.codigo
+                    left join EstadoParticular EP2
+                    on HE.id_estado_particular_anterior = EP2.id
+                    left join EstadoBase EB2
+                    on EP2.codigo_estado_base = EB2.codigo
+                    left join EstadoBase EB_SIG
+                    on EB.codigo_siguiente_estado = EB_SIG.codigo
+                    inner join ProspectoCondominio PCO
+                    on P.id = PCO.id
+                    where P.id = %(id)s
+                    order by HE.fecha_registro asc
+                '''
+
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                if rows is None or len(rows) == 0:
+                    return None
+
+                print(len(rows))
+                return TupleRowsProspectoCondominioAdapter(rows).to_prospecto_condominio()
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto) -> None:
         if prospecto.id is None or prospecto.evaluacion_riesgo is None:

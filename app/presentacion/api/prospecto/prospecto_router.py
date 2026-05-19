@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
-from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
+from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
 from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.prospecto.adaptadores.json.prospecto_condominio_json_adapter import ProspectoCondominioJsonAdapter
 from app.infraestructura.prospecto.adaptadores.json.prospecto_json_adapter import ProspectoJsonAdapter
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
@@ -87,16 +88,15 @@ def obtener_prospectos(
 def obtener_prospecto_por_id(
     id: int,
     usuario: Usuario = Depends(permisos_requeridos('OBTENER_PROSPECTOS_PROPIOS', 'OBTENER_PROSPECTOS_TODOS')),
-    use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case)
+    obtener_prospecto_condominio: ObtenerProspectoCondominioUseCase = Depends(get_obtener_prospecto_use_case)
 ):
     try:
-
-        prospecto = use_case.ejecutar(id)
+        prospecto = obtener_prospecto_condominio.ejecutar(id)
         autorizado = tiene_permisos_prospecto(usuario=usuario, prospecto=prospecto)  
 
         if autorizado:
             return {
-                "prospecto": ProspectoJsonAdapter(prospecto).to_prospecto_json()
+                "prospecto": ProspectoCondominioJsonAdapter(prospecto).to_prospecto_json()
             }
         
         raise HTTPException(

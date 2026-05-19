@@ -6,6 +6,7 @@ class EstudioComercialCondominio:
     def __init__(
         self,
         monto_asegurado_actual: float | None,
+        infraseguro_actual: float | None,
         metros_cuadrados_construidos: float,
         uf_por_metro_cuadrado: float,
         porcentaje_depreciacion: float,
@@ -22,3 +23,4 @@ class EstudioComercialCondominio:
         self.porcentaje_espacios_comunes = porcentaje_espacios_comunes
         self.detalles = detalles
         self.valor_uf = valor_uf
+        self.infraseguro_actual = infraseguro_actual

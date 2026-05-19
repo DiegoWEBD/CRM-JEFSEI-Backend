@@ -1,0 +1,39 @@
+from pydantic import BaseModel
+
+from app.presentacion.api.evaluacion_riesgo.dto.evaluacion_riesgo_json import EvaluacionRiesgoJson
+from app.presentacion.api.historial_estado.dto.historial_estado_json import HistorialEstadoJson
+from app.presentacion.api.planificacion_prospecto.dto.planificacion_prospecto_json import PlanificacionProspectoJson
+from app.presentacion.api.solicitud_evaluacion_riesgo.dto.solicitud_evaluacion_riesgo_json import SolicitudEvaluacionRiesgoJson
+from app.presentacion.api.usuario.dto.usuario_json_resumen import UsuarioJsonResumen
+
+
+class ProspectoCondominioJson(BaseModel):
+    id: int
+    rut_riesgo: str | None 
+    nombre_riesgo: str 
+    nombre_contacto: str
+    telefono_contacto: str 
+    correo_contacto: str | None 
+    direccion: str 
+    comuna: str 
+    cargo_contacto: str | None
+    observaciones: str | None 
+    linea_negocio: str 
+    registrado_por: UsuarioJsonResumen 
+    ejecutivo_comercial: UsuarioJsonResumen | None
+    ejecutivo_evaluacion: UsuarioJsonResumen | None
+    companies_sugeridas: list[str]
+    historial_estados: list[HistorialEstadoJson] 
+    solicitud_evaluacion_riesgo: SolicitudEvaluacionRiesgoJson | None
+    evaluacion_riesgo: EvaluacionRiesgoJson | None
+    planificacion_prospecto: PlanificacionProspectoJson | None
+    tiene_locales_comerciales: bool | None
+    uso_del_condominio: str | None
+    numero_pisos: int | None
+    numero_torres: int | None
+    cantidad_departamentos: int | None
+    cantidad_subterraneos: int | None
+    tiene_piscina: bool | None
+    year_construccion: int | None
+    metros_cuadrados: float | None
+    desea_ser_contactado: bool | None = None

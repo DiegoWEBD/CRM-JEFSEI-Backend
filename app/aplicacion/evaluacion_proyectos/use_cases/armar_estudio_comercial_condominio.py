@@ -134,6 +134,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
         estudio = EstudioComercialCondominio(
             monto_asegurado_actual=monto_asegurado_actual,
+            infraseguro_actual=infraseguro_actual,
             metros_cuadrados_construidos=metros_cuadrados_construidos,
             uf_por_metro_cuadrado=valor_uf_por_metro_cuadrado,
             porcentaje_depreciacion=porcentaje_depreciacion,

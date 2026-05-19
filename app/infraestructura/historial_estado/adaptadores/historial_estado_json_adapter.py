@@ -1,23 +1,26 @@
-from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
+from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.presentacion.api.historial_estado.dto.historial_estado_json import HistorialEstadoJson
 
 
 class HistorialEstadoJsonAdapter:
-    def __init__(self, estado_particular: EstadoParticular):
-        self.estado_particular = estado_particular
+    def __init__(self, historial_estado: HistorialEstado):
+        self.historial_estado = historial_estado
 
     def to_historial_estado_json(self) -> HistorialEstadoJson:
 
-        dias_limite = self.estado_particular.dias_limite_particular
+        dias_limite = self.historial_estado.estado_actual.dias_limite_particular
 
         if dias_limite is None:
-            dias_limite = self.estado_particular.estado_base.dias_limite
+            dias_limite = self.historial_estado.estado_actual.estado_base.dias_limite
 
         return HistorialEstadoJson(
-            estado=self.estado_particular.estado_base.nombre,
-            color=self.estado_particular.estado_base.color,
-            fecha_registro=self.estado_particular.fecha_resgistro,
+            estado_anterior=self.historial_estado.estado_anterior.estado_base.nombre if self.historial_estado.estado_anterior else None,
+            estado_actual=self.historial_estado.estado_actual.estado_base.nombre,
+            color=self.historial_estado.estado_actual.estado_base.color,
+            fecha_registro=self.historial_estado.fecha_registro,
             dias_limite=dias_limite,
-            dias_transcurridos=self.estado_particular.dias_transcurridos,
-            proxima_accion=self.estado_particular.estado_base.siguiente_estado.accion if self.estado_particular.estado_base.siguiente_estado else None
+            dias_transcurridos=self.historial_estado.dias_transcurridos,
+            proxima_accion=self.historial_estado.estado_actual.estado_base.siguiente_estado.accion if self.historial_estado.estado_actual.estado_base.siguiente_estado else None,
+            motivo_cambio=self.historial_estado.motivo_cambio,
+            cambiado_por=self.historial_estado.cambiado_por.nombre
         )

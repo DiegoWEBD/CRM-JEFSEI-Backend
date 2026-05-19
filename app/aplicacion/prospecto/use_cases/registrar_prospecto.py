@@ -31,10 +31,10 @@ class RegistrarProspectoUseCase:
         cantidad_subterraneos: int | None,
         tiene_piscina: bool | None,
         year_construccion: int | None,
-        metros_cuadrados: int | None,
+        metros_cuadrados: float | None,
         desea_ser_contactado: bool | None
     ):
-        print('ejecutando caso de uso')
+
         linea_negocio = LineaNegocio(
             id=id_linea_negocio,
             nombre=''

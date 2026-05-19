@@ -5,6 +5,7 @@ from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
 from app.dominio.prospecto.prospecto import Prospecto
+from app.dominio.solicitud_evaluacion_riesgo.solicitud_evaluacion_riesgo import SolicitudEvaluacionRiesgo
 from app.dominio.usuario.usuario import Usuario
 
 class ProspectoCondominio(Prospecto):
@@ -12,6 +13,7 @@ class ProspectoCondominio(Prospecto):
         self,
         rut_riesgo: str | None, 
         nombre_riesgo: str, 
+        nombre_contacto: str,
         telefono_contacto: str, 
         correo_contacto: str | None, 
         direccion: str, 
@@ -19,13 +21,15 @@ class ProspectoCondominio(Prospecto):
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
-        companies_sugeridas: list[CompanySeguros],
-        nombre_contacto: str,
-        cargo_contacto: str | None, 
+        ejecutivo_comercial_asignado: Usuario | None,
+        ejecutivo_evaluacion_asignado: Usuario | None,
+        companies_sugeridas: list[CompanySeguros],   
         historial_estados: list[HistorialEstado], 
+        cargo_contacto: str | None, 
         id: int | None = None, 
         planificacion_prospecto: PlanificacionProspecto | None = None,
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
+        solicitud_evaluacion_riesgo: SolicitudEvaluacionRiesgo | None = None,
         tiene_locales_comerciales: bool | None = None,
         uso_del_condominio: str | None = None,
         numero_pisos: int | None = None,
@@ -34,7 +38,7 @@ class ProspectoCondominio(Prospecto):
         cantidad_subterraneos: int | None = None,
         tiene_piscina: bool | None = None,
         year_construccion: int | None = None,
-        metros_cuadrados: int | None = None,
+        metros_cuadrados: float | None = None,
         desea_ser_contactado: bool | None = None
     ):
         super().__init__(
@@ -51,8 +55,11 @@ class ProspectoCondominio(Prospecto):
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
             historial_estados=historial_estados,
+            solicitud_evaluacion_riesgo=solicitud_evaluacion_riesgo,
             evaluacion_riesgo=evaluacion_riesgo,
-            planificacion_prospecto=planificacion_prospecto
+            planificacion_prospecto=planificacion_prospecto,
+            ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
+            ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado
         )
         
         self.tiene_locales_comerciales = tiene_locales_comerciales

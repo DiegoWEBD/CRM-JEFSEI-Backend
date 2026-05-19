@@ -21,6 +21,8 @@ class Prospecto:
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
+        ejecutivo_comercial_asignado: Usuario | None,
+        ejecutivo_evaluacion_asignado: Usuario | None,
         companies_sugeridas: list[CompanySeguros],
         planificacion_prospecto: PlanificacionProspecto | None = None,
         id: int | None = None,
@@ -43,3 +45,5 @@ class Prospecto:
         self.nombre_contacto = nombre_contacto
         self.planificacion_prospecto = planificacion_prospecto
         self.solicitud_evaluacion_riesgo = solicitud_evaluacion_riesgo
+        self.ejecutivo_comercial_asignado = ejecutivo_comercial_asignado
+        self.ejecutivo_evaluacion_asignado = ejecutivo_evaluacion_asignado

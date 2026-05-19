@@ -4,8 +4,8 @@ class EstadoBase:
         codigo: str, 
         nombre: str, 
         dias_limite: int, 
-        accion: str,
-        color: str,
+        accion: str = '',
+        color: str = '',
         siguiente_estado: EstadoBase | None = None
     ):
         self.codigo = codigo
