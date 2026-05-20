@@ -7,12 +7,12 @@ class CompanySeguros:
         self, 
         id: int, 
         nombre: str, 
-        url_logo: str,
+        nombre_logo: str,
         factores_cuotas: list[FactorCuotasCompany],
         coberturas: list[RiesgoCobertura]
     ):
         self.id = id
         self.nombre = nombre
-        self.url_logo = url_logo
+        self.nombre_logo = nombre_logo
         self.factores_cuotas = factores_cuotas
         self.coberturas = coberturas

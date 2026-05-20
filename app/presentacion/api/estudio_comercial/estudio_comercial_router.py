@@ -15,14 +15,11 @@ def registrar_usuario(
 ):
     try:
         estudio_comercial = use_case.ejecutar(
-            monto_asegurado_actual=request.monto_asegurado_actual,
+            id_prospecto=request.id_prospecto,
             infraseguro_primer_ejemplo=request.infraseguro_primer_ejemplo,
             infraseguro_segundo_ejemplo=request.infraseguro_segundo_ejemplo,
-            metros_cuadrados_construidos=request.metros_cuadrados_construidos,
-            valor_uf_por_metro_cuadrado=request.valor_uf_por_metro_cuadrado,
-            porcentaje_depreciacion=request.porcentaje_depreciacion,
             cantidad_cuotas=request.cantidad_cuotas,
-            porcentaje_bienes_espacios_comunes=request.porcentaje_bienes_espacios_comunes
+            id_companies=request.id_companies
         )
 
         return {

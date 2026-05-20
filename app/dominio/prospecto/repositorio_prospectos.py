@@ -2,12 +2,13 @@ from abc import ABC, abstractmethod
 
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.usuario.usuario import Usuario
 
 
 class RepositorioProspectos(ABC):
     
     @abstractmethod
-    def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
+    def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> int:
         pass
     
     @abstractmethod
@@ -19,7 +20,7 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
-    def asignar_ejecutivo_comercial(self, prospecto: Prospecto) -> None:
+    def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass
 
     @abstractmethod

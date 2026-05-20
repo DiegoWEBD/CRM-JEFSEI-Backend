@@ -11,7 +11,6 @@ class EvaluacionRiesgoJsonAdapter:
     def to_evaluacion_riesgo_json(self) -> EvaluacionRiesgoJson:
         return EvaluacionRiesgoJson(
             uf_por_metro_cuadrado=self.evaluacion_riesgo.uf_por_metro_cuadrado,
-            monto_asegurado_actual=self.evaluacion_riesgo.monto_asegurado_actual,
             porcentaje_depreciacion=self.evaluacion_riesgo.porcentaje_depreciacion,
             porcentaje_espacios_comunes=self.evaluacion_riesgo.porcentaje_espacios_comunes,
             observaciones=self.evaluacion_riesgo.observaciones

@@ -11,7 +11,7 @@ class PlanificacionProspectoJsonAdapter:
         return PlanificacionProspectoJson(
             prima_vigente=self.planificacion.prima_vigente,
             company_poliza=self.planificacion.company_poliza.nombre,
-            termino_vigencia=self.planificacion.termino_vigencia,
+            termino_vigencia=self.planificacion.termino_vigencia.isoformat(),
             monto_asegurado_vigente=self.planificacion.monto_asegurado_vigente,
             fecha_envio_cotizacion=self.planificacion.fecha_envio_cotizacion.isoformat()
         )

@@ -44,22 +44,19 @@ class ArmarEstudioComercialCondominioUseCase:
         monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         
         if not prospecto.evaluacion_riesgo:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la evaluacion de riesgo')
         
         if not prospecto.evaluacion_riesgo.uf_por_metro_cuadrado:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la uf por metro cuadrado')
         
         if not prospecto.metros_cuadrados:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, faltan los metros cuadrados')
         
-        if not prospecto.evaluacion_riesgo.uf_por_metro_cuadrado:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
-        
-        if not prospecto.evaluacion_riesgo.porcentaje_depreciacion:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
+        if prospecto.evaluacion_riesgo.porcentaje_depreciacion is None:
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
         
         if not prospecto.evaluacion_riesgo.porcentaje_espacios_comunes:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos')
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
         
         return self.__armar_estudio(
             monto_asegurado_actual=monto_asegurado_actual,
@@ -162,7 +159,7 @@ class ArmarEstudioComercialCondominioUseCase:
         tasa_excenta = (prima_excenta / monto_total_asegurado) * 1000
         
         return DetalleEstudioComercial(
-            monto_total_asegurado==monto_total_asegurado,
+            monto_total_asegurado=monto_total_asegurado,
             porcentaje_infraseguro=porcentaje_infraseguro,
             iva_prima_afecta=iva_prima_afecta,
             prima_neta=prima_neta,

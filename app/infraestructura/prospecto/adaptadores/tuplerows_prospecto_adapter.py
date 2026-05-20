@@ -1,19 +1,17 @@
 from psycopg.rows import TupleRow
 
-from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
 from app.dominio.estados.estado_base.estado_base import EstadoBase
 from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
-from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
-from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.solicitud_evaluacion_riesgo.solicitud_evaluacion_riesgo import SolicitudEvaluacionRiesgo
 from app.dominio.usuario.usuario import Usuario
 
 
-class TupleRowsProspectoCondominioAdapter:
+class TupleRowsProspectoAdapter:
     
     def __init__(self, rows: list[TupleRow]):
 
@@ -22,7 +20,7 @@ class TupleRowsProspectoCondominioAdapter:
         
         self.rows = rows
 
-    def to_prospecto_condominio(self) -> ProspectoCondominio:
+    def to_prospecto(self) -> Prospecto:
 
         id = self.rows[0]['id_prospecto']
         rut_riesgo = self.rows[0]['rut_riesgo']
@@ -30,30 +28,12 @@ class TupleRowsProspectoCondominioAdapter:
         telefono_contacto = self.rows[0]['telefono_contacto']
         direccion = self.rows[0]['direccion']
         nombre_contacto = self.rows[0]['nombre_contacto']
-        cargo_contacto = self.rows[0]['cargo_contacto']
         correo_contacto = self.rows[0]['correo_contacto']
         observaciones = self.rows[0]['observaciones']
         nombre_linea_negocio = self.rows[0]['linea_negocio']
         rut_registrado_por = self.rows[0]['rut_registrado_por']
         nombre_registrado_por = self.rows[0]['nombre_registrado_por']
         nombre_comuna = self.rows[0]['comuna']  
-        tiene_locales_comerciales = self.rows[0]['tiene_locales_comerciales']
-        uso_del_condominio = self.rows[0]['uso_del_condominio']
-        numero_pisos = self.rows[0]['numero_pisos']
-        numero_torres = self.rows[0]['numero_torres']
-        cantidad_departamentos = self.rows[0]['cantidad_departamentos']
-        cantidad_subterraneos = self.rows[0]['cantidad_subterraneos']
-        tiene_piscina = self.rows[0]['tiene_piscina']
-        year_construccion = self.rows[0]['year_construccion']
-        metros_cuadrados = self.rows[0]['metros_cuadrados']
-        desea_ser_contactado = self.rows[0]['desea_ser_contactado']
-
-        id_company_planificacion = self.rows[0]['id_company_planificacion']
-        nombre_company_planificacion = self.rows[0]['nombre_company_planificacion']
-        prima_vigente_planificacion = self.rows[0]['prima_vigente_planificacion']
-        termino_vigencia_planificacion = self.rows[0]['termino_vigencia_planificacion']
-        monto_asegurado_vigente_planificacion = self.rows[0]['monto_asegurado_vigente_planificacion']
-        fecha_envio_cotizacion_planificacion = self.rows[0]['fecha_envio_cotizacion_planificacion']
 
         id_solicitud_evaluacion = self.rows[0]['id_solicitud_evaluacion']
         fecha_solicitud_evaluacion = self.rows[0]['fecha_solicitud_evaluacion']
@@ -69,26 +49,6 @@ class TupleRowsProspectoCondominioAdapter:
         nombre_ej_comercial = self.rows[0]['nombre_ej_comercial']
         rut_ej_evaluacion = self.rows[0]['rut_ej_evaluacion']
         nombre_ej_evaluacion = self.rows[0]['nombre_ej_evaluacion']
-
-        planificacion = None
-
-        if id_company_planificacion:
-
-            company_poliza_vigente = CompanySeguros(
-                id=id_company_planificacion,
-                nombre=nombre_company_planificacion,
-                nombre_logo='',
-                factores_cuotas=[],
-                coberturas=[]
-            )
-
-            planificacion = PlanificacionProspecto(
-                prima_vigente=prima_vigente_planificacion,
-                company_poliza=company_poliza_vigente,
-                termino_vigencia=termino_vigencia_planificacion,
-                monto_asegurado_vigente=monto_asegurado_vigente_planificacion,
-                fecha_envio_cotizacion=fecha_envio_cotizacion_planificacion
-            )
 
         comuna = Comuna(
             nombre = nombre_comuna
@@ -207,7 +167,9 @@ class TupleRowsProspectoCondominioAdapter:
 
             historial_estados.append(historial_estado)
 
-        return ProspectoCondominio(
+        print('creando objeto prospecto')
+
+        return Prospecto(
             id = id,
             rut_riesgo = rut_riesgo,
             nombre_riesgo = nombre_riesgo,
@@ -222,19 +184,8 @@ class TupleRowsProspectoCondominioAdapter:
             ejecutivo_evaluacion_asignado=ej_evaluacion,
             companies_sugeridas=[],
             nombre_contacto=nombre_contacto,
-            cargo_contacto=cargo_contacto,
             historial_estados=historial_estados,
-            planificacion_prospecto=planificacion,
+            planificacion_prospecto=None,
             solicitud_evaluacion_riesgo=solicitud_evaluacion,
-            evaluacion_riesgo=evaluacion_riesgo,
-            tiene_locales_comerciales=tiene_locales_comerciales,
-            uso_del_condominio=uso_del_condominio,
-            numero_pisos=numero_pisos,
-            numero_torres=numero_torres,
-            cantidad_departamentos=cantidad_departamentos,
-            cantidad_subterraneos=cantidad_subterraneos,
-            tiene_piscina=tiene_piscina,
-            year_construccion=year_construccion,
-            metros_cuadrados=metros_cuadrados,
-            desea_ser_contactado=desea_ser_contactado
+            evaluacion_riesgo=evaluacion_riesgo
         )

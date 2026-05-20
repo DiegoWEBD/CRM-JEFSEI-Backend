@@ -7,8 +7,10 @@ class RiesgoCobertura:
         self,
         id: int,
         tipo_riesgo_cobertura: TipoRiesgoCobertura,
-        nombre: str
+        nombre: str,
+        descripcion: str
     ):
         self.id = id
         self.tipo_riesgo_cobertura = tipo_riesgo_cobertura
         self.nombre = nombre
+        self.descripcion = descripcion
