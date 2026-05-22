@@ -24,7 +24,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                 rows = cur.fetchall()
 
                 if rows is None or len(rows) == 0:
-                    return None
+                    return []
 
                 return TupleRowsLineasNegocioAdapter(rows).to_lineas_negocio()
             

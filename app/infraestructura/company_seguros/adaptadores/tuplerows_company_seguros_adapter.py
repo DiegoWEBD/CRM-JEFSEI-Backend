@@ -1,4 +1,4 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
@@ -6,7 +6,7 @@ from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotas
 
 class TupleRowsCompanySegurosAdapter:
 
-    def __init__(self, rows: list[TupleRow]):
+    def __init__(self, rows: list[DictRow]):
         if not rows or len(rows) == 0:
             raise Exception('Compañia inválida')
         

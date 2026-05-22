@@ -2,12 +2,12 @@ from app.dominio.permiso.permiso import Permiso
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.usuario import Usuario
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 
 class TupleRowsUsuarioAdapter:
     
-    def __init__(self, rows: list[TupleRow]):
+    def __init__(self, rows: list[DictRow]):
 
         if not rows or len(rows) == 0:
             raise ValueError("Usuario inválido")

@@ -8,7 +8,7 @@ from app.presentacion.api.usuario.dto.usuario_json_resumen import UsuarioJsonRes
 
 
 class ProspectoCondominioJson(BaseModel):
-    id: int
+    id: int | None
     rut_riesgo: str | None 
     nombre_riesgo: str 
     nombre_contacto: str

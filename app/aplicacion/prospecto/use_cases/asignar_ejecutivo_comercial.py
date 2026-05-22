@@ -1,4 +1,3 @@
-from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario

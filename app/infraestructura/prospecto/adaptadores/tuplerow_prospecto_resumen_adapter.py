@@ -1,11 +1,11 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
 
 
 class TupleRowProspectoResumenAdapter(ProspectoResumen):
 
-    def __init__(self, row: TupleRow):
+    def __init__(self, row: DictRow):
         
         if row is None:
             raise Exception('Prospecto inválido')

@@ -1,4 +1,4 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
@@ -15,7 +15,7 @@ from app.dominio.usuario.usuario import Usuario
 
 class TupleRowsProspectoCondominioAdapter:
     
-    def __init__(self, rows: list[TupleRow]):
+    def __init__(self, rows: list[DictRow]):
 
         if not rows or len(rows) == 0:
             raise Exception("Prospecto inválido")

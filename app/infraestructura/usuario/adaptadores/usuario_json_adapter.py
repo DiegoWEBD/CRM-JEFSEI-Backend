@@ -12,7 +12,7 @@ class UsuarioJsonAdapter:
             nombre=usuario.nombre,
             correo=usuario.correo,
             telefono=usuario.telefono,
-            sucursal=usuario.sucursal.nombre,
+            sucursal=usuario.sucursal.nombre if usuario.sucursal else '',
             meta_mensual_uf=usuario.meta_mensual_uf,
             roles=[RolJson(codigo=rol.codigo, nombre=rol.nombre) for rol in usuario.roles],
             fecha_registro=usuario.fecha_registro.isoformat(),

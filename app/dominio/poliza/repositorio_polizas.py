@@ -5,9 +5,9 @@ from app.dominio.poliza.poliza import Poliza
 class RepositorioPolizas(ABC):
     
     @abstractmethod
-    def registrar(poliza: Poliza) -> None:
+    def registrar(self, poliza: Poliza) -> None:
         pass
 
     @abstractmethod
-    def buscar(rut: str) -> Poliza | None:
+    def buscar(self, rut: str) -> Poliza | None:
         pass

@@ -1,11 +1,11 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 
 
 class TupleRowLineaNegocioAdapter:
 
-    def __init__(self, row: TupleRow):
+    def __init__(self, row: DictRow):
 
         if not row:
             raise Exception('Línea de negocio inválida')

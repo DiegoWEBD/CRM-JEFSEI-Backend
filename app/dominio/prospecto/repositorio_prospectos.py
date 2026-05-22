@@ -24,7 +24,7 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
-    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto) -> None:
+    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass
 
     @abstractmethod

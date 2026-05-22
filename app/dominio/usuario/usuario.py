@@ -15,7 +15,7 @@ class Usuario:
         meta_mensual_uf: int | None = None,
         roles: list[Rol] = [], 
         password_hash: str | None = None,
-        fecha_registro: datetime | None = None,
+        fecha_registro: datetime = datetime.now(),
     ):
         self.rut = rut
         self.correo = correo

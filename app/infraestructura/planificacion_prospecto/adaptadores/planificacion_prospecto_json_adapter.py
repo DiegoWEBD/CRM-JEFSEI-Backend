@@ -13,5 +13,5 @@ class PlanificacionProspectoJsonAdapter:
             company_poliza=self.planificacion.company_poliza.nombre,
             termino_vigencia=self.planificacion.termino_vigencia.isoformat(),
             monto_asegurado_vigente=self.planificacion.monto_asegurado_vigente,
-            fecha_envio_cotizacion=self.planificacion.fecha_envio_cotizacion.isoformat()
+            fecha_envio_cotizacion=self.planificacion.fecha_envio_cotizacion.isoformat() if self.planificacion.fecha_envio_cotizacion else None
         )

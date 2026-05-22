@@ -12,7 +12,7 @@ class HistorialEstado:
         fecha_registro: datetime,
         motivo_cambio: str | None,
         cambiado_por: Usuario,
-        dias_transcurridos = int,
+        dias_transcurridos: int,
     ):
         self.estado_anterior = estado_anterior
         self.estado_actual = estado_actual

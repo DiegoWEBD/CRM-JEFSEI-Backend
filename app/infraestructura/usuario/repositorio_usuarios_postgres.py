@@ -1,4 +1,4 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -85,7 +85,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 if rows is None or len(rows) == 0:
                     return []
 
-                datos_usuarios: dict[str, list[TupleRow]] = {}
+                datos_usuarios: dict[str, list[DictRow]] = {}
 
                 for row in rows:
                     if row['rut'] not in datos_usuarios:
@@ -101,6 +101,10 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 return usuarios
 
     def registrar(self, usuario: Usuario) -> bool:
+
+        if not usuario.sucursal:
+            return False
+
         with obtener_conexion() as conn:
             try:
                 with conn.cursor() as cur:
