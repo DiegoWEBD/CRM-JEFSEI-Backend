@@ -1,24 +1,19 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
+from app.dominio.cotizacion.cotizacion import Cotizacion
 
 
 class DetalleEstudioComercial:
 
     def __init__(
         self,
-        monto_total_asegurado: float,
+        cotizacion: Cotizacion,
         porcentaje_infraseguro: float,
         iva_prima_afecta: float,
         prima_neta: float,
-        prima_bruta: float, 
-        tasa_afecta: float, 
-        tasa_excenta: float,
-        company: CompanySeguros
+        prima_bruta: float
     ):
         self.iva_prima_afecta = iva_prima_afecta
         self.prima_neta = prima_neta
         self.prima_bruta = prima_bruta
-        self.tasa_afecta = tasa_afecta
-        self.tasa_excenta = tasa_excenta
-        self.company = company
-        self.monto_total_asegurado = monto_total_asegurado
+        self.cotizacion = cotizacion
         self.porcentaje_infraseguro = porcentaje_infraseguro

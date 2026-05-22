@@ -1,5 +1,6 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
+from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
@@ -25,7 +26,7 @@ class ProspectoCondominio(Prospecto):
         ejecutivo_evaluacion_asignado: Usuario | None,
         companies_sugeridas: list[CompanySeguros],   
         historial_estados: list[HistorialEstado], 
-        cargo_contacto: str | None, 
+        cargo_contacto: str | None,
         id: int | None = None, 
         planificacion_prospecto: PlanificacionProspecto | None = None,
         evaluacion_riesgo: EvaluacionRiesgo | None = None,

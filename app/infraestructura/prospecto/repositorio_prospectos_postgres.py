@@ -247,10 +247,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on PC.id = SER.id_proceso_comercial
                     left join EvaluacionRiesgo ER
                     on SER.id = ER.id_solicitud
-                    left join Cotizacion C
-                    on ER.id = C.id_evaluacion
-                    left join Poliza PO
-                    on C.id = PO.id_cotizacion
                     inner join HistorialEstado HE
                     on PC.id = HE.id_proceso_comercial
                     inner join Usuario U_ESTADO
@@ -374,10 +370,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on PC.id = SER.id_proceso_comercial
                     left join EvaluacionRiesgo ER
                     on SER.id = ER.id_solicitud
-                    left join Cotizacion C
-                    on ER.id = C.id_evaluacion
-                    left join Poliza PO
-                    on C.id = PO.id_cotizacion
                     left join PlanificacionProspecto PP
                     on P.id = PP.id_prospecto
                     left join CompanySeguros CS_PLAN
@@ -412,7 +404,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 if rows is None or len(rows) == 0:
                     return None
 
-                print(len(rows))
                 return TupleRowsProspectoCondominioAdapter(rows).to_prospecto_condominio()
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
@@ -423,7 +414,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                print('asignando')
 
                 query = '''
                     update ProcesoComercial
@@ -513,7 +503,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                print('asignando')
 
                 query = '''
                     update ProcesoComercial

@@ -7,9 +7,9 @@ class CompanySeguros:
         self, 
         id: int, 
         nombre: str, 
-        nombre_logo: str,
-        factores_cuotas: list[FactorCuotasCompany],
-        coberturas: list[RiesgoCobertura]
+        nombre_logo: str = '',
+        factores_cuotas: list[FactorCuotasCompany] = [],
+        coberturas: list[RiesgoCobertura] = []
     ):
         self.id = id
         self.nombre = nombre

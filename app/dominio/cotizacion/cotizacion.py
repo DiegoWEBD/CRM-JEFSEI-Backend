@@ -1,23 +1,26 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from datetime import datetime
 
-from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 
 class Cotizacion:
     def __init__(
         self, 
-        id: int, 
-        prima_neta: float, 
-        tasa_interes: float, 
+        id: int,
+        monto_total_asegurado: float, 
+        tasa_afecta: float, 
+        tasa_excenta: float, 
+        tasa_politica: float, 
+        prima_adicional_asistencia: float, 
         company: CompanySeguros, 
         fecha_emision: datetime, 
         fecha_vencimiento: datetime,
-        estudios: list[EstudioComercialCondominio] | None = None
     ):
         self.id = id
-        self.prima_neta = prima_neta
-        self.tasa_interes = tasa_interes
+        self.prima_adicional_asistencia = prima_adicional_asistencia
+        self.tasa_afecta = tasa_afecta
+        self.tasa_excenta = tasa_excenta
+        self.tasa_politica = tasa_politica
         self.company = company
         self.fecha_emision = fecha_emision
         self.fecha_vencimiento = fecha_vencimiento
-        self.estudios = estudios
+        self.monto_total_asegurado = monto_total_asegurado

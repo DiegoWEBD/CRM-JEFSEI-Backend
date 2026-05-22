@@ -1,5 +1,6 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
+from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.historial_estado.historial_estado import HistorialEstado

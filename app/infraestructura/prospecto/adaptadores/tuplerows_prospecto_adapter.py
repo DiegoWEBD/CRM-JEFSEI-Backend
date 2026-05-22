@@ -167,7 +167,6 @@ class TupleRowsProspectoAdapter:
 
             historial_estados.append(historial_estado)
 
-        print('creando objeto prospecto')
 
         return Prospecto(
             id = id,
