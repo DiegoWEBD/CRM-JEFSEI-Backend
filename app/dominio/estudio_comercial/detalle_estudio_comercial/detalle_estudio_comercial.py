@@ -11,7 +11,8 @@ class DetalleEstudioComercial:
         porcentaje_infraseguro: float,
         iva_prima_afecta: float,
         prima_neta: float,
-        prima_bruta: float
+        prima_bruta: float,
+        valor_cuota: float
     ):
         self.iva_prima_afecta = iva_prima_afecta
         self.prima_neta = prima_neta
@@ -19,3 +20,4 @@ class DetalleEstudioComercial:
         self.cotizacion = cotizacion
         self.monto_asegurado = monto_asegurado
         self.porcentaje_infraseguro = porcentaje_infraseguro
+        self.valor_cuota = valor_cuota

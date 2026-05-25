@@ -1,3 +1,4 @@
 .env
 __pycache__/
 respaldo_db.sql
+documentos/
