@@ -338,21 +338,21 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     U_EJ_COM.nombre as nombre_ej_comercial,
                     U_EJ_EV.rut as rut_ej_evaluacion, 
                     U_EJ_EV.nombre as nombre_ej_evaluacion,
-                    EB.nombre as nombre_estado_actual,
-                    EB.codigo as codigo_estado_actual,
-                    EB.color as color_estado_actual,
-                    HE.fecha_registro as fecha_registro_estado,
-                    HE.motivo_cambio as motivo_cambio_estado,
-                    U_ESTADO.rut as rut_estado_cambiado_por,
-                    U_ESTADO.nombre as nombre_estado_cambiado_por,
-                    EP.dias_limite_particular, 
-                    EB.dias_limite as dias_limite_base,
-                    EB_SIG.codigo as codigo_siguiente_estado_esperado,
-                    EB_SIG.nombre as nombre_siguiente_estado_esperado,
-                    EB_SIG.accion as proxima_accion_esperada,
-                    EB2.nombre as nombre_estado_anterior,
-                    EB2.codigo as codigo_estado_anterior,
-                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
+                    C.id as id_cotizacion,
+                    C.monto_total_asegurado as cotizacion_monto_total_asegurado,
+                    C.tasa_afecta as cotizacion_tasa_afecta,
+                    C.tasa_excenta as cotizacion_tasa_excenta,
+                    C.tasa_politica as cotizacion_tasa_politica,
+                    C.prima_adicional_asistencia as cotizacion_prima_adicional_asistencia,
+                    C.fecha_emision as cotizacion_fecha_emision, 
+                    C.fecha_vencimiento as cotizacion_fecha_vencimiento,
+                    C.id_company, CS.nombre as nombre_company,
+                    ECC.id as id_estudio_comercial,
+                    ECC.cantidad_cuotas, ECC.valor_uf,
+                    DECC.porcentaje_infraseguro,
+                    DECC.iva_prima_afecta,
+                    DECC.prima_neta as detalle_prima_neta,
+                    DECC.prima_bruta as detalle_prima_bruta
                     from Prospecto P
                     inner join Usuario U
                     on P.rut_registrado_por = U.rut
@@ -366,32 +366,25 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on PC.rut_ej_comercial = U_EJ_COM.rut
                     left join Usuario U_EJ_EV
                     on PC.rut_ej_evaluacion = U_EJ_EV.rut
-                    left join SolicitudEvaluacionRiesgo SER
-                    on PC.id = SER.id_proceso_comercial
-                    left join EvaluacionRiesgo ER
-                    on SER.id = ER.id_solicitud
                     left join PlanificacionProspecto PP
                     on P.id = PP.id_prospecto
                     left join CompanySeguros CS_PLAN
                     on PP.id_company = CS_PLAN.id
-                    inner join HistorialEstado HE
-                    on PC.id = HE.id_proceso_comercial
-                    inner join Usuario U_ESTADO
-                    on HE.rut_cambiado_por = U_ESTADO.rut
-                    inner join EstadoParticular EP
-                    on HE.id_estado_particular_actual = EP.id
-                    inner join EstadoBase EB
-                    on EP.codigo_estado_base = EB.codigo
-                    left join EstadoParticular EP2
-                    on HE.id_estado_particular_anterior = EP2.id
-                    left join EstadoBase EB2
-                    on EP2.codigo_estado_base = EB2.codigo
-                    left join EstadoBase EB_SIG
-                    on EB.codigo_siguiente_estado = EB_SIG.codigo
+                    left join SolicitudEvaluacionRiesgo SER
+                    on PC.id = SER.id_proceso_comercial
+                    left join EvaluacionRiesgo ER
+                    on SER.id = ER.id_solicitud
+                    left join Cotizacion C
+                    on ER.id = C.id_evaluacion
+                    left join CompanySeguros CS
+                    on C.id_company = CS.id
+                    left join DetalleEstudioComercialCondominio DECC
+                    on C.id = DECC.id_cotizacion
+                    left join EstudioComercialCondominio ECC
+                    on DECC.id_estudio_comercial = ECC.id
                     inner join ProspectoCondominio PCO
                     on P.id = PCO.id
                     where P.id = %(id)s
-                    order by HE.fecha_registro asc
                 '''
 
                 params = {

@@ -18,8 +18,7 @@ def registrar_usuario(
             id_prospecto=request.id_prospecto,
             infraseguro_primer_ejemplo=request.infraseguro_primer_ejemplo,
             infraseguro_segundo_ejemplo=request.infraseguro_segundo_ejemplo,
-            cantidad_cuotas=request.cantidad_cuotas,
-            id_companies=request.id_companies
+            cantidad_cuotas=request.cantidad_cuotas
         )
 
         return {

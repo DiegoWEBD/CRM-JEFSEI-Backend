@@ -1,8 +1,7 @@
-from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
+from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
-from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
 
@@ -59,7 +58,7 @@ class ArmarEstudioComercialCondominioUseCase:
             porcentaje_depreciacion=prospecto.evaluacion_riesgo.porcentaje_depreciacion,
             cantidad_cuotas=cantidad_cuotas,
             porcentaje_bienes_espacios_comunes=prospecto.evaluacion_riesgo.porcentaje_espacios_comunes,
-            companies=companies
+            cotizaciones=prospecto.evaluacion_riesgo.cotizaciones
         )
 
 
@@ -73,7 +72,7 @@ class ArmarEstudioComercialCondominioUseCase:
         porcentaje_depreciacion: float,
         cantidad_cuotas: int,
         porcentaje_bienes_espacios_comunes: float,
-        companies: list[CompanySeguros]
+        cotizaciones: list[Cotizacion]
 
     ) -> EstudioComercialCondominio:
         
@@ -83,7 +82,7 @@ class ArmarEstudioComercialCondominioUseCase:
         
         infraseguro_actual = None
 
-        if monto_asegurado_actual:
+        if monto_asegurado_actual is not None:
             infraseguro_actual = round(1 - (monto_asegurado_actual / monto_asegurado_sugerido), 2)
         
         monto_asegurado_primer_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo))
@@ -91,30 +90,35 @@ class ArmarEstudioComercialCondominioUseCase:
 
         detalles: list[DetalleEstudioComercial] = []
 
-        for company in companies:
+        print(f'monto asegurado actual: {monto_asegurado_actual}')
+        print(f'infraseguro actual: {infraseguro_actual}')
 
-            detalle_monto_asegurado_sugerido = self.__detalle_estudio_segun_primas(
-                monto_total_asegurado=monto_asegurado_sugerido,
-                porcentaje_infraseguro=0,
-                prima_afecta=105.62,
-                prima_excenta=393.46,
-                company=company
+        for cotizacion in cotizaciones:
+
+            detalle_monto_asegurado_sugerido = self.__detalle_estudio(
+                cotizacion=cotizacion,
+                monto_asegurado=monto_asegurado_sugerido,
+                porcentaje_infraseguro=0
             )
 
-            detalle_monto_asegurado_primer_ejemplo = self.__detalle_estudio_segun_primas(
-                monto_total_asegurado=monto_asegurado_primer_ejemplo,
-                porcentaje_infraseguro=infraseguro_primer_ejemplo,
-                prima_afecta=105.62,
-                prima_excenta=393.46,
-                company=company
+            if monto_asegurado_actual is not None and infraseguro_actual is not None:
+                detalle_monto_asegurado_actual = self.__detalle_estudio(
+                    cotizacion=cotizacion,
+                    monto_asegurado=monto_asegurado_actual,
+                    porcentaje_infraseguro=infraseguro_actual
+                )
+                detalles.append(detalle_monto_asegurado_actual)
+
+            detalle_monto_asegurado_primer_ejemplo = self.__detalle_estudio(
+                cotizacion=cotizacion,
+                monto_asegurado=monto_asegurado_primer_ejemplo,
+                porcentaje_infraseguro=infraseguro_primer_ejemplo
             )
 
-            detalle_monto_asegurado_segundo_ejemplo = self.__detalle_estudio_segun_primas(
-                monto_total_asegurado=monto_asegurado_segundo_ejemplo,
-                porcentaje_infraseguro=infraseguro_segundo_ejemplo,
-                prima_afecta=105.62,
-                prima_excenta=393.46,
-                company=company
+            detalle_monto_asegurado_segundo_ejemplo = self.__detalle_estudio(
+                cotizacion=cotizacion,
+                monto_asegurado=monto_asegurado_segundo_ejemplo,
+                porcentaje_infraseguro=infraseguro_segundo_ejemplo
             )
 
             detalles.append(detalle_monto_asegurado_sugerido)
@@ -124,25 +128,36 @@ class ArmarEstudioComercialCondominioUseCase:
         estudio = EstudioComercialCondominio(
             cantidad_cuotas=cantidad_cuotas,
             valor_uf=40000,
-            detalles=detalles
+            detalles=detalles,
+            monto_asegurado_actual=monto_asegurado_actual,
+            porcentaje_infrasegurdo=infraseguro_actual
         )
 
         return estudio
     
     
     #######################################
-    def __detalle_estudio_segun_tasas(
-        self,
-        company: CompanySeguros,
-        monto_total_asegurado: float, 
-        tasa_afecta: float,
-        tasa_excenta: float,
-        tasa_politica: float,
-        prima_afecta_adicional: float,
-        prima_excenta_adicional: float
-    ):
-        tasa_bruta = tasa_afecta + tasa_excenta + tasa_politica
-        prima_afecta = (monto_total_asegurado * tasa_afecta / 1000) + (monto_total_asegurado * tasa_politica / 1000) + prima_afecta_adicional
-        prima_excenta = (monto_total_asegurado * tasa_excenta / 1000) + prima_excenta_adicional
-        iva_prima_afecta = prima_afecta * ArmarEstudioComercialCondominioUseCase.factor_iva
-        prima_bruta = prima_afecta + prima_excenta + iva_prima_afecta
+    def __detalle_estudio(self, cotizacion: Cotizacion, monto_asegurado: float, porcentaje_infraseguro: float) -> DetalleEstudioComercial:
+
+        decimales = 2
+        tasa_afecta = cotizacion.tasa_afecta
+        tasa_excenta = cotizacion.tasa_excenta
+        tasa_politica = cotizacion.tasa_politica
+        prima_afecta_adicional = cotizacion.prima_adicional_asistencia
+        prima_excenta_adicional = 0
+
+        #tasa_bruta = tasa_afecta + tasa_excenta + tasa_politica
+        prima_afecta = round((monto_asegurado * tasa_afecta / 1000) + (monto_asegurado * tasa_politica / 1000) + prima_afecta_adicional, decimales)
+        prima_excenta = round((monto_asegurado * tasa_excenta / 1000) + prima_excenta_adicional, decimales)
+        iva_prima_afecta = round(prima_afecta * ArmarEstudioComercialCondominioUseCase.factor_iva, decimales)
+        prima_neta = round(prima_afecta + prima_excenta, decimales)
+        prima_bruta = round(prima_neta + iva_prima_afecta, decimales)
+
+        return DetalleEstudioComercial(
+            cotizacion=cotizacion,
+            monto_asegurado=monto_asegurado,
+            porcentaje_infraseguro=porcentaje_infraseguro,
+            iva_prima_afecta=iva_prima_afecta,
+            prima_neta=prima_neta,
+            prima_bruta=prima_bruta
+        )
