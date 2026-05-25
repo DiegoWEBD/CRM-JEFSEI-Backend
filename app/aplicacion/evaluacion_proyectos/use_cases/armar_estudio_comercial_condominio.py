@@ -22,19 +22,8 @@ class ArmarEstudioComercialCondominioUseCase:
         id_prospecto: int,
         infraseguro_primer_ejemplo: float,
         infraseguro_segundo_ejemplo: float,
-        cantidad_cuotas: int,
-        id_companies: list[int]
+        cantidad_cuotas: int
     ) -> EstudioComercialCondominio:
-
-        companies: list[CompanySeguros] = []
-
-        for id_company in id_companies:
-            company = self.repositorio_company_seguros.buscar(id_company)
-
-            if not company:
-                raise ValueError(f"Companía (ID: {id_company}) no encontrada")
-            
-            companies.append(company)
 
         prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
 
@@ -57,6 +46,9 @@ class ArmarEstudioComercialCondominioUseCase:
         
         if not prospecto.evaluacion_riesgo.porcentaje_espacios_comunes:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
+        
+        if len(prospecto.evaluacion_riesgo.cotizaciones) == 0:
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, debe tener al menos una cotización')
         
         return self.__armar_estudio(
             monto_asegurado_actual=monto_asegurado_actual,
@@ -130,12 +122,6 @@ class ArmarEstudioComercialCondominioUseCase:
             detalles.append(detalle_monto_asegurado_segundo_ejemplo)
 
         estudio = EstudioComercialCondominio(
-            monto_asegurado_actual=monto_asegurado_actual,
-            infraseguro_actual=infraseguro_actual,
-            metros_cuadrados_construidos=metros_cuadrados_construidos,
-            uf_por_metro_cuadrado=valor_uf_por_metro_cuadrado,
-            porcentaje_depreciacion=porcentaje_depreciacion,
-            porcentaje_espacios_comunes=porcentaje_bienes_espacios_comunes,
             cantidad_cuotas=cantidad_cuotas,
             valor_uf=40000,
             detalles=detalles
@@ -143,31 +129,6 @@ class ArmarEstudioComercialCondominioUseCase:
 
         return estudio
     
-    def __detalle_estudio_segun_primas(
-        self, 
-        monto_total_asegurado: float, 
-        porcentaje_infraseguro: float,
-        prima_afecta: float, 
-        prima_excenta: float,
-        company: CompanySeguros
-    ) -> DetalleEstudioComercial:
-
-        iva_prima_afecta = prima_afecta * ArmarEstudioComercialCondominioUseCase.factor_iva
-        prima_neta = prima_afecta + prima_excenta
-        prima_bruta = iva_prima_afecta + prima_neta
-        tasa_afecta = (prima_afecta / monto_total_asegurado) * 1000
-        tasa_excenta = (prima_excenta / monto_total_asegurado) * 1000
-        
-        return DetalleEstudioComercial(
-            monto_total_asegurado=monto_total_asegurado,
-            porcentaje_infraseguro=porcentaje_infraseguro,
-            iva_prima_afecta=iva_prima_afecta,
-            prima_neta=prima_neta,
-            prima_bruta=prima_bruta,
-            tasa_afecta=tasa_afecta,
-            tasa_excenta=tasa_excenta,
-            company=company
-        )
     
     #######################################
     def __detalle_estudio_segun_tasas(
