@@ -1,4 +1,3 @@
-from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
 
 

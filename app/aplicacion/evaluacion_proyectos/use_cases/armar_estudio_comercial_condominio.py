@@ -1,6 +1,7 @@
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 from pathlib import Path
+from datetime import datetime
 
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
@@ -73,10 +74,12 @@ class ArmarEstudioComercialCondominioUseCase:
             'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.evaluacion_riesgo.uf_por_metro_cuadrado),
             'porcentaje_depreciacion': round(prospecto.evaluacion_riesgo.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.evaluacion_riesgo.porcentaje_espacios_comunes * 100),
-            'cantidad_cuotas': cantidad_cuotas
+            'cantidad_cuotas': cantidad_cuotas,
+            'year_actual': datetime.now().year
         }
 
         estudio = self.__armar_estudio(
+            id_prospecto=prospecto.id,
             monto_asegurado_actual=monto_asegurado_actual,
             infraseguro_primer_ejemplo=infraseguro_primer_ejemplo,
             infraseguro_segundo_ejemplo=infraseguro_segundo_ejemplo,
@@ -89,23 +92,12 @@ class ArmarEstudioComercialCondominioUseCase:
             cotizaciones=prospecto.evaluacion_riesgo.cotizaciones
         )
 
-        nombre_estudio = f'estudio_comercial_condominio_id_{prospecto.id}'
-
-        carpeta_estudio = Path( f'documentos/estudios/{nombre_estudio}')
-
-        # crea toda la ruta si no existe
-        carpeta_estudio.mkdir(parents=True, exist_ok=True)
-
-        ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
-
-        self.doc.render(self.datos_plantilla)
-        self.doc.save(ruta_docx)
-
         return estudio
     
 
     def __armar_estudio(
         self,
+        id_prospecto: int,
         monto_asegurado_actual: float | None,
         infraseguro_primer_ejemplo: float,
         infraseguro_segundo_ejemplo: float,
@@ -121,8 +113,6 @@ class ArmarEstudioComercialCondominioUseCase:
         
         valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
         valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
-        print(f'Valor total de reconstrucción + IVA: {valor_total_reconstruccion_iva}')
-        print(f'Valor total de reconstrucción con depreciación + IVA: {valor_total_reconstruccion_depreciacion_iva}')
         monto_asegurado_sugerido = round(valor_total_reconstruccion_depreciacion_iva * porcentaje_bienes_espacios_comunes)
         
         infraseguro_actual = None
@@ -221,6 +211,19 @@ class ArmarEstudioComercialCondominioUseCase:
         self.__renderizar_detalles_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo')
         self.__renderizar_detalles_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido')
 
+        nombre_estudio = f'estudio_comercial_condominio_id_{id_prospecto}'
+
+        carpeta_estudio = Path( f'documentos/estudios/{nombre_estudio}')
+
+        # crea toda la ruta si no existe
+        carpeta_estudio.mkdir(parents=True, exist_ok=True)
+
+        ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
+
+        self.doc.render(self.datos_plantilla)
+
+        self.doc.save(ruta_docx)
+
         return estudio
     
     
@@ -252,13 +255,6 @@ class ArmarEstudioComercialCondominioUseCase:
             if factor_cuota.numero_cuotas == cantidad_cuotas:
                 factor = factor_cuota.factor
 
-        print(f'\nFactor de {cotizacion.company.nombre} para {cantidad_cuotas} cuotas: {factor}')
-        print(f'Monto asegurado: UF {monto_asegurado}')
-        print(f'Prima afecta: {prima_afecta}')
-        print(f'Prima excenta: {prima_excenta}')
-        print(f'IVA prima afecta: {iva_prima_afecta}')
-        print(f'Prima bruta: {prima_bruta}')
-
         if factor is not None:
             valor_cuota = prima_bruta * factor
         else:
@@ -266,8 +262,6 @@ class ArmarEstudioComercialCondominioUseCase:
                 cantidad_cuotas=cantidad_cuotas,
                 prima_bruta=prima_bruta
             )
-
-        print(f'Valor cuota: UF {round(valor_cuota, decimales)}\n')
 
         return DetalleEstudioComercial(
             cotizacion=cotizacion,
