@@ -1,4 +1,5 @@
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, InlineImage
+from docx.shared import Mm
 from pathlib import Path
 
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
@@ -6,6 +7,7 @@ from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
 
 
 class ArmarEstudioComercialCondominioUseCase:
@@ -19,6 +21,7 @@ class ArmarEstudioComercialCondominioUseCase:
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_company_seguros = repositorio_company_seguros
         self.datos_plantilla: dict[str, object] = {}
+        self.doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
 
     def ejecutar(
         self,
@@ -62,12 +65,12 @@ class ArmarEstudioComercialCondominioUseCase:
         self.datos_plantilla = {
             'nombre_administrador': prospecto.nombre_contacto,
             'nombre_condominio': prospecto.nombre_riesgo,
-            'metros_cuadrados': prospecto.metros_cuadrados,
+            'metros_cuadrados': convertir_numero_a_formato_chileno(prospecto.metros_cuadrados),
             'year_construccion': prospecto.year_construccion,
             'cantidad_unidades': 120, # Falta implementar el campo cantidad_unidades en la tabla Prospecto y sus relacionadas
             'direccion': prospecto.direccion,
             'comuna': prospecto.comuna.nombre,
-            'uf_por_metro_cuadrado': prospecto.evaluacion_riesgo.uf_por_metro_cuadrado,
+            'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.evaluacion_riesgo.uf_por_metro_cuadrado),
             'porcentaje_depreciacion': round(prospecto.evaluacion_riesgo.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.evaluacion_riesgo.porcentaje_espacios_comunes * 100),
             'cantidad_cuotas': cantidad_cuotas
@@ -95,10 +98,8 @@ class ArmarEstudioComercialCondominioUseCase:
 
         ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
 
-        doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
-
-        doc.render(self.datos_plantilla)
-        doc.save(ruta_docx)
+        self.doc.render(self.datos_plantilla)
+        self.doc.save(ruta_docx)
 
         return estudio
     
@@ -120,6 +121,8 @@ class ArmarEstudioComercialCondominioUseCase:
         
         valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
         valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
+        print(f'Valor total de reconstrucción + IVA: {valor_total_reconstruccion_iva}')
+        print(f'Valor total de reconstrucción con depreciación + IVA: {valor_total_reconstruccion_depreciacion_iva}')
         monto_asegurado_sugerido = round(valor_total_reconstruccion_depreciacion_iva * porcentaje_bienes_espacios_comunes)
         
         infraseguro_actual = None
@@ -131,9 +134,9 @@ class ArmarEstudioComercialCondominioUseCase:
         monto_asegurado_segundo_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo))
 
         self.datos_plantilla.update({
-            'valor_reconstruccion': valor_total_reconstruccion_iva,
-            'valor_reconstruccion_depreciacion': valor_total_reconstruccion_depreciacion_iva,
-            'monto_asegurado_sugerido': monto_asegurado_sugerido
+            'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
+            'valor_reconstruccion_depreciacion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_depreciacion_iva),
+            'monto_asegurado_sugerido': convertir_numero_a_formato_chileno(monto_asegurado_sugerido)
         })
 
         detalles: list[DetalleEstudioComercial] = []
@@ -165,7 +168,7 @@ class ArmarEstudioComercialCondominioUseCase:
                 )
                 
                 self.datos_plantilla.update({
-                    'monto_asegurado_actual': monto_asegurado_actual,
+                    'monto_asegurado_actual': convertir_numero_a_formato_chileno(monto_asegurado_actual),
                     'porcentaje_infraseguro_actual': round(infraseguro_actual * 100)
                 })
 
@@ -181,7 +184,7 @@ class ArmarEstudioComercialCondominioUseCase:
             )
 
             self.datos_plantilla.update({
-                'monto_asegurado_primer_ejemplo': monto_asegurado_primer_ejemplo,
+                'monto_asegurado_primer_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_primer_ejemplo),
                 'porcentaje_infraseguro_primer_ejemplo': round(infraseguro_primer_ejemplo * 100)
             })
 
@@ -197,7 +200,7 @@ class ArmarEstudioComercialCondominioUseCase:
             )
 
             self.datos_plantilla.update({
-                'monto_asegurado_segundo_ejemplo': monto_asegurado_segundo_ejemplo,
+                'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo),
                 'porcentaje_infraseguro_segundo_ejemplo': round(infraseguro_segundo_ejemplo * 100)
             })
 
@@ -213,10 +216,10 @@ class ArmarEstudioComercialCondominioUseCase:
             porcentaje_infrasegurdo=infraseguro_actual
         )
 
-        self.__renderizar_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual')
-        self.__renderizar_docx(detalles_monto_asegurado_primer_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_primer_ejemplo')
-        self.__renderizar_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo')
-        self.__renderizar_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido')
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual')
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_primer_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_primer_ejemplo')
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo')
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido')
 
         return estudio
     
@@ -282,7 +285,7 @@ class ArmarEstudioComercialCondominioUseCase:
         cuota = (tasa * prima_bruta) / (1 - (1 + tasa) ** -cantidad_cuotas)
         return cuota
     
-    def __renderizar_docx(self, detalles: list[DetalleEstudioComercial], cantidad_unidades: int, dict_key: str):
+    def __renderizar_detalles_docx(self, detalles: list[DetalleEstudioComercial], cantidad_unidades: int, dict_key: str):
         datos_detalles = []
         VALOR_UF = 40509.29
 
@@ -290,16 +293,20 @@ class ArmarEstudioComercialCondominioUseCase:
             valor_cuota_pesos = round(detalle.valor_cuota * VALOR_UF)
             prorrateo_pesos = round(valor_cuota_pesos / cantidad_unidades)
 
+            logo = InlineImage(
+                self.doc,
+                f'app/infraestructura/logos/companies/company_{detalle.cotizacion.company.id}.png',
+                width=Mm(25)
+            )
+
             datos_detalles.append({
+                'logo': logo,
                 'nombre_company': detalle.cotizacion.company.nombre,
-                'monto_asegurado': self.__formato_chileno(detalle.monto_asegurado),
-                'prima_anual': self.__formato_chileno(detalle.prima_bruta),
-                'valor_cuota_uf': self.__formato_chileno(detalle.valor_cuota),
-                'valor_cuota_pesos': self.__formato_chileno(valor_cuota_pesos),
-                'prorrateo_pesos': self.__formato_chileno(prorrateo_pesos)
+                'monto_asegurado': convertir_numero_a_formato_chileno(detalle.monto_asegurado),
+                'prima_anual': convertir_numero_a_formato_chileno(detalle.prima_bruta),
+                'valor_cuota_uf': convertir_numero_a_formato_chileno(detalle.valor_cuota),
+                'valor_cuota_pesos': convertir_numero_a_formato_chileno(valor_cuota_pesos),
+                'prorrateo_pesos': convertir_numero_a_formato_chileno(prorrateo_pesos)
             })
 
         self.datos_plantilla[dict_key] = datos_detalles
-
-    def __formato_chileno(self, numero: int | float) -> str:
-        return f"{numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
