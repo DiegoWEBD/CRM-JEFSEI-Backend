@@ -201,9 +201,12 @@ class ArmarEstudioComercialCondominioUseCase:
         estudio = EstudioComercialCondominio(
             cantidad_cuotas=cantidad_cuotas,
             valor_uf=40000,
-            detalles=detalles,
             monto_asegurado_actual=monto_asegurado_actual,
-            porcentaje_infrasegurdo=infraseguro_actual
+            porcentaje_infrasegurdo=infraseguro_actual,
+            detalles_monto_asegurado_actual=detalles_monto_asegurado_actual,
+            detalles_monto_asegurado_primer_ejemplo=detalles_monto_asegurado_primer_ejemplo,
+            detalles_monto_asegurado_segundo_ejemplo=detalles_monto_asegurado_segundo_ejemplo,
+            detalles_monto_asegurado_sugerido=detalles_monto_asegurado_sugerido
         )
 
         self.__renderizar_detalles_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual')
