@@ -14,8 +14,8 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
         nombre_riesgo = row['nombre_riesgo']
         nombre_contacto = row['nombre_contacto']
         linea_negocio = row['linea_negocio']
-        estado = row['estado']
-        color_estado = row['color_estado']
+        codigo_estado = row['codigo_estado']
+        nombre_estado = row['nombre_estado']
         fecha_ultima_accion = row['fecha_ultima_accion']
         proxima_accion = row['proxima_accion']
         dias_limite_base = row['dias_limite_base']
@@ -29,8 +29,8 @@ class TupleRowProspectoResumenAdapter(ProspectoResumen):
             nombre_riesgo=nombre_riesgo,
             nombre_contacto=nombre_contacto,
             linea_negocio=linea_negocio,
-            estado=estado,
-            color_estado=color_estado,
+            codigo_estado=codigo_estado,
+            nombre_estado=nombre_estado,
             fecha_ultima_accion=fecha_ultima_accion,
             proxima_accion=proxima_accion,
             dias_limite=dias_limite,

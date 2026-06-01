@@ -34,6 +34,7 @@ class TupleRowsProspectoAdapter:
         rut_registrado_por = self.rows[0]['rut_registrado_por']
         nombre_registrado_por = self.rows[0]['nombre_registrado_por']
         nombre_comuna = self.rows[0]['comuna']  
+        updated_at = self.rows[0]['updated_at']
 
         id_solicitud_evaluacion = self.rows[0]['id_solicitud_evaluacion']
         fecha_solicitud_evaluacion = self.rows[0]['fecha_solicitud_evaluacion']
@@ -179,12 +180,8 @@ class TupleRowsProspectoAdapter:
             observaciones = observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
-            ejecutivo_comercial_asignado=ej_comercial,
-            ejecutivo_evaluacion_asignado=ej_evaluacion,
             companies_sugeridas=[],
             nombre_contacto=nombre_contacto,
-            historial_estados=historial_estados,
             planificacion_prospecto=None,
-            solicitud_evaluacion_riesgo=solicitud_evaluacion,
-            evaluacion_riesgo=evaluacion_riesgo
+            ultima_actualizacion=updated_at
         )

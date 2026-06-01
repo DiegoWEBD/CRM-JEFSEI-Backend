@@ -78,7 +78,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         tiene_piscina,
                         year_construccion,
                         metros_cuadrados,
-                        desea_ser_contactado
+                        desea_ser_contactado,
+                        cantidad_unidades
                     )
                     values(
                         %(id)s,
@@ -92,7 +93,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         %(tiene_piscina)s,
                         %(year_construccion)s,
                         %(metros_cuadrados)s,
-                        %(desea_ser_contactado)s
+                        %(desea_ser_contactado)s,
+                        %(cantidad_unidades)s
                     )
                 '''
 
@@ -108,12 +110,13 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'tiene_piscina': prospecto.tiene_piscina,
                     'year_construccion': prospecto.year_construccion,
                     'metros_cuadrados': prospecto.metros_cuadrados,
-                    'desea_ser_contactado': prospecto.desea_ser_contactado
+                    'desea_ser_contactado': prospecto.desea_ser_contactado,
+                    'cantidad_unidades': prospecto.cantidad_unidades
                 }
 
                 cur.execute(query, params)
 
-                rut_ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
+                rut_ejecutivo_comercial = prospecto.proceso_comercial.ejecutivo_comercial.rut if prospecto.proceso_comercial.ejecutivo_comercial else None
 
                 # Proceso comercial
                 query = '''
@@ -148,7 +151,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 if row is None:
                     raise ValueError('Error al registrar prospecto')
 
-                id_estado_particular: int = row['id']
+                id_estado_particular_registro: int = row['id']
 
                 # Registro histórico del estado
                 query = '''
@@ -158,8 +161,41 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular_actual': id_estado_particular,
+                    'id_estado_particular_actual': id_estado_particular_registro,
                     'rut_cambiado_por': prospecto.registrado_por.rut
+                }     
+
+                cur.execute(query, params)
+
+                if rut_ejecutivo_comercial is None:
+                    return id_prospecto
+
+                # Estado ejecutivo comercial asignado
+                query = '''
+                    insert into EstadoParticular(codigo_estado_base)
+                    values ('EJECUTIVO_COMERCIAL')
+                    returning id
+                '''               
+
+                cur.execute(query)
+                row = cur.fetchone()
+
+                if row is None:
+                    raise ValueError('Error al registrar prospecto')
+
+                id_estado_particular_ejecutivo: int = row['id']
+
+                # Registro histórico del estado
+                query = '''
+                    insert into HistorialEstado(id_proceso_comercial, id_estado_particular_anterior, id_estado_particular_actual, rut_cambiado_por)
+                    values(%(id_proceso_comercial)s, %(id_estado_particular_anterior)s, %(id_estado_particular_actual)s, %(rut_cambiado_por)s)
+                '''           
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'id_estado_particular_anterior': id_estado_particular_registro,
+                    'id_estado_particular_actual': id_estado_particular_ejecutivo,
+                    'rut_cambiado_por': rut_ejecutivo_comercial
                 }     
 
                 cur.execute(query, params)
@@ -310,6 +346,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.telefono_contacto, P.direccion,
                     P.nombre_contacto, PCO.cargo_contacto,
                     P.correo_contacto, P.observaciones,
+                    P.updated_at as prospecto_updated_at,
+                    PCO.updated_at as condominio_updated_at,
                     LN.nombre as linea_negocio,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
                     COM.nombre as comuna,
@@ -319,16 +357,14 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PCO.cantidad_departamentos, 
                     PCO.cantidad_subterraneos, PCO.tiene_piscina,
                     PCO.year_construccion, PCO.metros_cuadrados,
-                    PCO.desea_ser_contactado,
+                    PCO.desea_ser_contactado, PCO.cantidad_unidades,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
                     PP.termino_vigencia as termino_vigencia_planificacion,
                     PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
                     PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
-                    SER.id as id_solicitud_evaluacion,
-                    SER.fecha_solicitud as fecha_solicitud_evaluacion,
-                    SER.prioridad as prioridad_solicitud,
+                    PC.id as id_proceso_comercial,
                     ER.id as id_evaluacion,
                     ER.observaciones as observaciones_evaluacion,
                     ER.uf_por_metro_cuadrado as evaluacion_uf_por_metro_cuadrado,
@@ -338,6 +374,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     U_EJ_COM.nombre as nombre_ej_comercial,
                     U_EJ_EV.rut as rut_ej_evaluacion, 
                     U_EJ_EV.nombre as nombre_ej_evaluacion,
+                    SC.id as id_solicitud_cotizacion,
+                    SC.fecha as fecha_solicitud_cotizacion,
+                    SC.prioridad as prioridad_cotizacion,
                     C.id as id_cotizacion,
                     C.monto_total_asegurado as cotizacion_monto_total_asegurado,
                     C.tasa_afecta as cotizacion_tasa_afecta,
@@ -370,12 +409,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on P.id = PP.id_prospecto
                     left join CompanySeguros CS_PLAN
                     on PP.id_company = CS_PLAN.id
-                    left join SolicitudEvaluacionRiesgo SER
-                    on PC.id = SER.id_proceso_comercial
-                    left join EvaluacionRiesgo ER
-                    on SER.id = ER.id_solicitud
+                    left join SolicitudCotizacion SC
+                    on PC.id = SC.id_proceso_comercial
                     left join Cotizacion C
-                    on ER.id = C.id_evaluacion
+                    on SC.id = C.id_solicitud
                     left join CompanySeguros CS
                     on C.id_company = CS.id
                     left join DetalleEstudioComercialCondominio DECC
@@ -384,7 +421,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on DECC.id_estudio_comercial = ECC.id
                     inner join ProspectoCondominio PCO
                     on P.id = PCO.id
+                    left join EvaluacionRiesgo ER
+                    on PCO.id = ER.id_prospecto
                     where P.id = %(id)s
+                    order by SC.id
                 '''
 
                 params = {
@@ -400,10 +440,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 return TupleRowsProspectoCondominioAdapter(rows).to_prospecto_condominio()
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.ejecutivo_comercial_asignado:
+        if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:
             return
         
-        CODIGO_EJECUTIVO_ASIGNADO = 'EJECUTIVO_COMERCIAL_ASIGNADO'
+        CODIGO_EJECUTIVO = 'EJECUTIVO_COMERCIAL'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -415,7 +455,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     returning id
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
+                    'rut_ej_comercial': prospecto.proceso_comercial.ejecutivo_comercial.rut,
                     'id_prospecto': prospecto.id
                 }
 
@@ -423,7 +463,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 row = cur.fetchone()
 
                 if row is None:
-                    raise ValueError('Error al registrar prospecto')
+                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
 
                 id_proceso_comercial: int = row['id']
 
@@ -443,7 +483,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 row = cur.fetchone()
 
                 if row is None:
-                    raise ValueError('Error al registrar prospecto')
+                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
 
                 id_estado_particular_actual: int = row['id_estado_particular_actual']
 
@@ -453,14 +493,14 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     returning id
                 '''
                 params = {
-                    'codigo_estado_base': CODIGO_EJECUTIVO_ASIGNADO
+                    'codigo_estado_base': CODIGO_EJECUTIVO
                 }
 
                 cur.execute(query, params)
                 row = cur.fetchone()
 
                 if row is None:
-                    raise ValueError('Error al registrar prospecto')
+                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
 
                 id_estado_particular_nuevo: int = row['id']
 
@@ -488,11 +528,12 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 cur.execute(query, params)
 
 
+    # ARREGLAR LUEGO
     def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.ejecutivo_comercial_asignado:
+        if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:
             return
         
-        CODIGO_EJECUTIVO_ASIGNADO = 'EJECUTIVO_COMERCIAL_ASIGNADO'
+        CODIGO_EJECUTIVO = 'EJECUTIVO_COMERCIAL'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -504,7 +545,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     returning id
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
+                    'rut_ej_comercial': prospecto.ejecutivo_comercial.rut,
                     'id_prospecto': prospecto.id
                 }
 
@@ -542,7 +583,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     returning id
                 '''
                 params = {
-                    'codigo_estado_base': CODIGO_EJECUTIVO_ASIGNADO
+                    'codigo_estado_base': CODIGO_EJECUTIVO
                 }
 
                 cur.execute(query, params)

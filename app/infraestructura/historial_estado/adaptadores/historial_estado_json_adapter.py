@@ -16,7 +16,6 @@ class HistorialEstadoJsonAdapter:
         return HistorialEstadoJson(
             estado_anterior=self.historial_estado.estado_anterior.estado_base.nombre if self.historial_estado.estado_anterior else None,
             estado_actual=self.historial_estado.estado_actual.estado_base.nombre,
-            color=self.historial_estado.estado_actual.estado_base.color,
             fecha_registro=self.historial_estado.fecha_registro,
             dias_limite=dias_limite,
             dias_transcurridos=self.historial_estado.dias_transcurridos,

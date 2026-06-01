@@ -1,0 +1,7 @@
+from app.aplicacion.comunicado_gerencia.use_cases.obtener_comunicados_gerencia import ObtenerComunicadosGerenciaUseCase
+from app.infraestructura.comunicado_gerencia.repositorio_comunicados_gerencia_postgres import RepositorioComunicadosGerenciaPostgres
+
+
+def get_obtener_comunicados_gerencia_use_case():
+    repositorio = RepositorioComunicadosGerenciaPostgres()
+    return ObtenerComunicadosGerenciaUseCase(repositorio_comunicados_gerencia=repositorio)

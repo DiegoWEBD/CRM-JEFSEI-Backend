@@ -12,5 +12,5 @@ class EstudioComercialCondominioJsonAdapter:
         return EstudioComercialCondominioJson(
             cantidad_cuotas=self.estudio.cantidad_cuotas,
             valor_uf=self.estudio.valor_uf,
-            detalles=[DetalleEstudioComercialCondominioJsonAdapter(detalle).to_json() for detalle in self.estudio.detalles]
+            detalles=[]
         )

@@ -18,7 +18,7 @@ class AsignarEjecutivoComercialUseCase:
         if not prospecto:
             raise ValueError('Prospecto no encontrado')
         
-        if prospecto.ejecutivo_comercial_asignado:
+        if prospecto.proceso_comercial.ejecutivo_comercial:
             raise Exception('El prospecto ya tiene un ejecutivo comercial asignado')
         
         usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
@@ -36,5 +36,5 @@ class AsignarEjecutivoComercialUseCase:
         if not es_ejecutivo_comercial:
             raise Exception(f'El usuario {rut_ej_comercial} no es ejecutivo comercial')
 
-        prospecto.ejecutivo_comercial_asignado = usuario
+        prospecto.proceso_comercial.ejecutivo_comercial = usuario
         self.repositorio_prospectos.asignar_ejecutivo_comercial(prospecto, asignado_por)

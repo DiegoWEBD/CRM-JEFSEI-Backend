@@ -1,12 +1,12 @@
+from datetime import datetime
+
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.comuna.comuna import Comuna
-from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
-from app.dominio.historial_estado.historial_estado import HistorialEstado
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.prospecto.prospecto import Prospecto
-from app.dominio.solicitud_evaluacion_riesgo.solicitud_evaluacion_riesgo import SolicitudEvaluacionRiesgo
 from app.dominio.usuario.usuario import Usuario
 
 class ProspectoCondominio(Prospecto):
@@ -22,15 +22,13 @@ class ProspectoCondominio(Prospecto):
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
-        ejecutivo_comercial_asignado: Usuario | None,
-        ejecutivo_evaluacion_asignado: Usuario | None,
         companies_sugeridas: list[CompanySeguros],   
-        historial_estados: list[HistorialEstado], 
-        cargo_contacto: str | None,
+        cargo_contacto: str | None,    
+        proceso_comercial: ProcesoComercial,
+        ultima_actualizacion: datetime,
         id: int | None = None, 
         planificacion_prospecto: PlanificacionProspecto | None = None,
         evaluacion_riesgo: EvaluacionRiesgo | None = None,
-        solicitud_evaluacion_riesgo: SolicitudEvaluacionRiesgo | None = None,
         tiene_locales_comerciales: bool | None = None,
         uso_del_condominio: str | None = None,
         numero_pisos: int | None = None,
@@ -40,7 +38,8 @@ class ProspectoCondominio(Prospecto):
         tiene_piscina: bool | None = None,
         year_construccion: int | None = None,
         metros_cuadrados: float | None = None,
-        desea_ser_contactado: bool | None = None
+        desea_ser_contactado: bool | None = None,
+        cantidad_unidades: int | None = None
     ):
         super().__init__(
             id=id,
@@ -55,12 +54,9 @@ class ProspectoCondominio(Prospecto):
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
-            historial_estados=historial_estados,
-            solicitud_evaluacion_riesgo=solicitud_evaluacion_riesgo,
-            evaluacion_riesgo=evaluacion_riesgo,
             planificacion_prospecto=planificacion_prospecto,
-            ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
-            ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado
+            proceso_comercial=proceso_comercial,
+            ultima_actualizacion=ultima_actualizacion
         )
         
         self.tiene_locales_comerciales = tiene_locales_comerciales
@@ -74,3 +70,5 @@ class ProspectoCondominio(Prospecto):
         self.cargo_contacto = cargo_contacto
         self.metros_cuadrados = metros_cuadrados
         self.desea_ser_contactado = desea_ser_contactado
+        self.evaluacion_riesgo = evaluacion_riesgo
+        self.cantidad_unidades = cantidad_unidades

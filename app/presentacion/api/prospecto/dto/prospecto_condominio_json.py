@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 
 from app.presentacion.api.evaluacion_riesgo.dto.evaluacion_riesgo_json import EvaluacionRiesgoJson
-from app.presentacion.api.historial_estado.dto.historial_estado_json import HistorialEstadoJson
 from app.presentacion.api.planificacion_prospecto.dto.planificacion_prospecto_json import PlanificacionProspectoJson
-from app.presentacion.api.solicitud_evaluacion_riesgo.dto.solicitud_evaluacion_riesgo_json import SolicitudEvaluacionRiesgoJson
+from app.presentacion.api.proceso_comercial.dto.proceso_comercial_json import ProcesoComercialJson
 from app.presentacion.api.usuario.dto.usuario_json_resumen import UsuarioJsonResumen
 
 
@@ -20,13 +19,10 @@ class ProspectoCondominioJson(BaseModel):
     observaciones: str | None 
     linea_negocio: str 
     registrado_por: UsuarioJsonResumen 
-    ejecutivo_comercial: UsuarioJsonResumen | None
-    ejecutivo_evaluacion: UsuarioJsonResumen | None
     companies_sugeridas: list[str]
-    historial_estados: list[HistorialEstadoJson] 
-    solicitud_evaluacion_riesgo: SolicitudEvaluacionRiesgoJson | None
-    evaluacion_riesgo: EvaluacionRiesgoJson | None
+    proceso_comercial: ProcesoComercialJson
     planificacion_prospecto: PlanificacionProspectoJson | None
+    evaluacion_riesgo: EvaluacionRiesgoJson | None
     tiene_locales_comerciales: bool | None
     uso_del_condominio: str | None
     numero_pisos: int | None
@@ -36,4 +32,7 @@ class ProspectoCondominioJson(BaseModel):
     tiene_piscina: bool | None
     year_construccion: int | None
     metros_cuadrados: float | None
-    desea_ser_contactado: bool | None = None
+    desea_ser_contactado: bool | None
+    cantidad_unidades: int | None
+    ultima_actualizacion: str
+    informacion_completa: bool

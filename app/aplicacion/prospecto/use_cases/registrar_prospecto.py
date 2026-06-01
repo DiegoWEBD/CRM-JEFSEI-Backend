@@ -1,9 +1,9 @@
 from app.dominio.comuna.comuna import Comuna
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.usuario.usuario import Usuario
 
 
 class RegistrarProspectoUseCase:
@@ -49,6 +49,16 @@ class RegistrarProspectoUseCase:
 
         comuna = Comuna(id=id_comuna, nombre='')
 
+        proceso_comercial = ProcesoComercial(
+            ejecutivo_comercial=None,
+            ejecutivo_evaluacion=None,
+            historial_estados=[],
+            solicitudes_cotizacion=[],
+            estudio=None,
+            poliza=None,
+            plan_pago=None
+        )
+
         prospecto = ProspectoCondominio(
             rut_riesgo=rut_riesgo,
             nombre_riesgo=nombre_riesgo,
@@ -72,9 +82,7 @@ class RegistrarProspectoUseCase:
             year_construccion=year_construccion,
             metros_cuadrados=metros_cuadrados,
             desea_ser_contactado=desea_ser_contactado,
-            historial_estados=[],
-            ejecutivo_comercial_asignado=None,
-            ejecutivo_evaluacion_asignado=None
+            proceso_comercial=proceso_comercial
         )
         
         return self.repositorio_prospectos.registrar_prospecto_condominio(prospecto)

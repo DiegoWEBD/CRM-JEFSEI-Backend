@@ -8,7 +8,7 @@ class EstudioComercialCondominio:
         cantidad_cuotas: int,
         valor_uf: float,
         monto_asegurado_actual: float | None,
-        porcentaje_infrasegurdo: float | None,
+        porcentaje_infraseguro: float | None,
         detalles_monto_asegurado_actual: list[DetalleEstudioComercial],
         detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial],
         detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial],
@@ -17,7 +17,7 @@ class EstudioComercialCondominio:
         self.cantidad_cuotas = cantidad_cuotas
         self.valor_uf = valor_uf
         self.monto_asegurado_actual = monto_asegurado_actual
-        self.porcentaje_infraseguro = porcentaje_infrasegurdo
+        self.porcentaje_infraseguro = porcentaje_infraseguro
         self.detalles_monto_asegurado_actual = detalles_monto_asegurado_actual
         self.detalles_monto_asegurado_sugerido = detalles_monto_asegurado_sugerido
         self.detalles_monto_asegurado_primer_ejemplo = detalles_monto_asegurado_primer_ejemplo
