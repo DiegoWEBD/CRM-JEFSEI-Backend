@@ -1,5 +1,6 @@
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.infraestructura.evaluacion_riesgo.adaptadores.evaluacion_riesgo_json_adapter import EvaluacionRiesgoJsonAdapter
+from app.infraestructura.linea_negocio.adaptadores.linea_negocio_json_adapter import LineaNegocioJsonAdapter
 from app.infraestructura.planificacion_prospecto.adaptadores.planificacion_prospecto_json_adapter import PlanificacionProspectoJsonAdapter
 from app.infraestructura.proceso_comercial.adaptadores.proceso_comercial_json_adapter import ProcesoComercialJsonAdapter
 from app.infraestructura.usuario.adaptadores.usuario_json_resumen_adapter import UsuarioJsonResumenAdapter
@@ -56,7 +57,6 @@ class ProspectoCondominioJsonAdapter:
             self.prospecto.year_construccion is not None,
             self.prospecto.metros_cuadrados is not None,
             self.prospecto.desea_ser_contactado is not None,
-            self.prospecto.cantidad_unidades is not None,
             datos_completos_evaluacion,
             datos_completos_planificacion
         ])
@@ -69,10 +69,11 @@ class ProspectoCondominioJsonAdapter:
             telefono_contacto=self.prospecto.telefono_contacto,
             correo_contacto=self.prospecto.correo_contacto,
             direccion=self.prospecto.direccion,
-            comuna=self.prospecto.comuna.nombre,
+            region=self.prospecto.region,
+            comuna=self.prospecto.comuna,
             cargo_contacto=self.prospecto.cargo_contacto,
             observaciones=self.prospecto.observaciones,
-            linea_negocio=self.prospecto.linea_negocio.nombre,
+            linea_negocio=LineaNegocioJsonAdapter(self.prospecto.linea_negocio).to_json(),
             registrado_por=UsuarioJsonResumenAdapter(self.prospecto.registrado_por).to_usuario_json_resumen(),
             companies_sugeridas=[company.nombre for company in self.prospecto.companies_sugeridas],
             evaluacion_riesgo=EvaluacionRiesgoJsonAdapter(self.prospecto.evaluacion_riesgo).to_evaluacion_riesgo_json() if self.prospecto.evaluacion_riesgo else None,
@@ -88,7 +89,6 @@ class ProspectoCondominioJsonAdapter:
             year_construccion=self.prospecto.year_construccion,
             metros_cuadrados=self.prospecto.metros_cuadrados,
             desea_ser_contactado=self.prospecto.desea_ser_contactado,
-            cantidad_unidades=self.prospecto.cantidad_unidades,
             ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
             informacion_completa=informacion_completa
         )

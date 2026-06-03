@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from app.dominio.company_seguros.company_seguros import CompanySeguros
-from app.dominio.comuna.comuna import Comuna
 from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
@@ -18,7 +17,8 @@ class ProspectoCondominio(Prospecto):
         telefono_contacto: str, 
         correo_contacto: str | None, 
         direccion: str, 
-        comuna: Comuna, 
+        region: str,
+        comuna: str, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -38,8 +38,7 @@ class ProspectoCondominio(Prospecto):
         tiene_piscina: bool | None = None,
         year_construccion: int | None = None,
         metros_cuadrados: float | None = None,
-        desea_ser_contactado: bool | None = None,
-        cantidad_unidades: int | None = None
+        desea_ser_contactado: bool | None = None
     ):
         super().__init__(
             id=id,
@@ -49,6 +48,7 @@ class ProspectoCondominio(Prospecto):
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
+            region=region,
             comuna=comuna,
             observaciones=observaciones,
             linea_negocio=linea_negocio,
@@ -71,4 +71,3 @@ class ProspectoCondominio(Prospecto):
         self.metros_cuadrados = metros_cuadrados
         self.desea_ser_contactado = desea_ser_contactado
         self.evaluacion_riesgo = evaluacion_riesgo
-        self.cantidad_unidades = cantidad_unidades

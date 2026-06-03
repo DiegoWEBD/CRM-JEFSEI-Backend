@@ -25,6 +25,7 @@ class DictRowHistorialEstadoAdapter:
         codigo_siguiente_estado = self.row['codigo_siguiente_estado']
         nombre_siguiente_estado = self.row['nombre_siguiente_estado']
         dias_limite_siguiente_estado = self.row['dias_limite_siguiente_estado']
+        proxima_accion = self.row['proxima_accion']
         fecha_registro = self.row['fecha_registro']
         motivo_cambio = self.row['motivo_cambio']
         rut_cambiado_por = self.row['rut_cambiado_por']
@@ -65,7 +66,8 @@ class DictRowHistorialEstadoAdapter:
             estado_base_siguiente = EstadoBase(
                 codigo=codigo_siguiente_estado,
                 nombre=nombre_siguiente_estado,
-                dias_limite=dias_limite_siguiente_estado
+                dias_limite=dias_limite_siguiente_estado,
+                accion=proxima_accion
             )
 
             estado_base_actual.siguiente_estado = estado_base_siguiente

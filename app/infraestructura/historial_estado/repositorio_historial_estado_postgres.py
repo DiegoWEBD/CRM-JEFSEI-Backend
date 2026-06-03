@@ -24,6 +24,7 @@ class RepositorioHistorialEstadoPostgres(RepositorioHistorialEstado):
                     EB_SIG.codigo as codigo_siguiente_estado,
                     EB_SIG.nombre as nombre_siguiente_estado,
                     EB_SIG.dias_limite as dias_limite_siguiente_estado,
+                    EB_SIG.accion as proxima_accion,
                     HE.fecha_registro, HE.motivo_cambio,
                     U.rut as rut_cambiado_por,
                     U.nombre as nombre_cambiado_por,

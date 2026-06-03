@@ -348,16 +348,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
                     PCO.updated_at as condominio_updated_at,
+                    LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
-                    COM.nombre as comuna,
+                    P.region, P.comuna,
                     PCO.tiene_locales_comerciales,
                     PCO.uso_del_condominio,
                     PCO.numero_pisos, PCO.numero_torres,
                     PCO.cantidad_departamentos, 
                     PCO.cantidad_subterraneos, PCO.tiene_piscina,
                     PCO.year_construccion, PCO.metros_cuadrados,
-                    PCO.desea_ser_contactado, PCO.cantidad_unidades,
+                    PCO.desea_ser_contactado,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -395,8 +396,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     from Prospecto P
                     inner join Usuario U
                     on P.rut_registrado_por = U.rut
-                    inner join Comuna COM
-                    on P.id_comuna = COM.id
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     inner join ProcesoComercial PC

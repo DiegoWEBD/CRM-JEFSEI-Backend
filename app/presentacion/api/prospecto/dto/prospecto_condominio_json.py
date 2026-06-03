@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from app.presentacion.api.evaluacion_riesgo.dto.evaluacion_riesgo_json import EvaluacionRiesgoJson
+from app.presentacion.api.linea_negocio.dto.linea_negocio_json import LineaNegocioJson
 from app.presentacion.api.planificacion_prospecto.dto.planificacion_prospecto_json import PlanificacionProspectoJson
 from app.presentacion.api.proceso_comercial.dto.proceso_comercial_json import ProcesoComercialJson
 from app.presentacion.api.usuario.dto.usuario_json_resumen import UsuarioJsonResumen
@@ -14,10 +15,11 @@ class ProspectoCondominioJson(BaseModel):
     telefono_contacto: str 
     correo_contacto: str | None 
     direccion: str 
+    region: str
     comuna: str 
     cargo_contacto: str | None
     observaciones: str | None 
-    linea_negocio: str 
+    linea_negocio: LineaNegocioJson 
     registrado_por: UsuarioJsonResumen 
     companies_sugeridas: list[str]
     proceso_comercial: ProcesoComercialJson
@@ -33,6 +35,5 @@ class ProspectoCondominioJson(BaseModel):
     year_construccion: int | None
     metros_cuadrados: float | None
     desea_ser_contactado: bool | None
-    cantidad_unidades: int | None
     ultima_actualizacion: str
     informacion_completa: bool

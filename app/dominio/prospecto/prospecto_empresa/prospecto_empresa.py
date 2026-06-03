@@ -1,5 +1,6 @@
+from datetime import datetime
+
 from app.dominio.company_seguros.company_seguros import CompanySeguros
-from app.dominio.comuna.comuna import Comuna
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
@@ -13,8 +14,9 @@ class ProspectoEmpresa(Prospecto):
         nombre_riesgo: str, 
         telefono_contacto: str, 
         correo_contacto: str | None, 
-        direccion: str, 
-        comuna: Comuna, 
+        direccion: str,
+        region: str, 
+        comuna: str, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -25,6 +27,7 @@ class ProspectoEmpresa(Prospecto):
         ma_rc: float | None,
         ma_edificio: float | None,
         cantidad_trabajadores: int | None,
+        ultima_actualizacion: datetime,
         id: int | None = None, 
         planificacion_prospecto: PlanificacionProspecto | None = None
     ):
@@ -36,13 +39,15 @@ class ProspectoEmpresa(Prospecto):
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
+            region=region,
             comuna=comuna,
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
             planificacion_prospecto=planificacion_prospecto,
-            proceso_comercial=proceso_comercial
+            proceso_comercial=proceso_comercial,
+            ultima_actualizacion=ultima_actualizacion
         )
 
         self.actividad = actividad

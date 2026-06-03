@@ -14,8 +14,8 @@ class HistorialEstadoJsonAdapter:
             dias_limite = self.historial_estado.estado_actual.estado_base.dias_limite
 
         return HistorialEstadoJson(
-            estado_anterior=self.historial_estado.estado_anterior.estado_base.nombre if self.historial_estado.estado_anterior else None,
-            estado_actual=self.historial_estado.estado_actual.estado_base.nombre,
+            estado_anterior=self.historial_estado.estado_anterior.estado_base.codigo if self.historial_estado.estado_anterior else None,
+            estado_actual=self.historial_estado.estado_actual.estado_base.codigo,
             fecha_registro=self.historial_estado.fecha_registro,
             dias_limite=dias_limite,
             dias_transcurridos=self.historial_estado.dias_transcurridos,

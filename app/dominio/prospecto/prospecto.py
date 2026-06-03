@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from app.dominio.company_seguros.company_seguros import CompanySeguros
-from app.dominio.comuna.comuna import Comuna
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
@@ -16,7 +15,8 @@ class Prospecto:
         telefono_contacto: str, 
         correo_contacto: str | None, 
         direccion: str, 
-        comuna: Comuna,    
+        region: str,
+        comuna: str,    
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -31,6 +31,7 @@ class Prospecto:
         self.telefono_contacto = telefono_contacto
         self.correo_contacto = correo_contacto
         self.direccion = direccion
+        self.region = region
         self.comuna = comuna
         self.observaciones = observaciones
         self.linea_negocio = linea_negocio
