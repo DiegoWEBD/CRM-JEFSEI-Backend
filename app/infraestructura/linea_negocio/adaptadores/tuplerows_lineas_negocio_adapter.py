@@ -1,4 +1,4 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.producto.producto import Producto
@@ -6,7 +6,7 @@ from app.dominio.producto.producto import Producto
 
 class TupleRowsLineasNegocioAdapter:
 
-    def __init__(self, rows: list[TupleRow]):
+    def __init__(self, rows: list[DictRow]):
 
         if not rows or len(rows) == 0:
             raise ValueError("Lineas de negocio inválidas")

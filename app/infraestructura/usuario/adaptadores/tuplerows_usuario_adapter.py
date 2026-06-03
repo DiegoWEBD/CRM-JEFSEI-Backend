@@ -2,24 +2,31 @@ from app.dominio.permiso.permiso import Permiso
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.usuario import Usuario
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 
-class TupleRowsUsuarioAdapter(Usuario):
+class TupleRowsUsuarioAdapter:
     
-    def __init__(self, rows: list[TupleRow]):
+    def __init__(self, rows: list[DictRow]):
 
         if not rows or len(rows) == 0:
             raise ValueError("Usuario inválido")
         
-        rut=rows[0]['rut']
-        nombre=rows[0]['nombre']
-        correo=rows[0]['correo']
-        telefono=rows[0]['telefono']
-        id_sucursal=rows[0]['id_sucursal']
-        nombre_sucursal=rows[0]['nombre_sucursal']
-        password_hash=rows[0]['password_hash']
-        meta_mensual_uf=rows[0]['meta_mensual_uf']
+        self.rows = rows
+
+    def to_usuario(self) -> Usuario:
+        
+        rut=self.rows[0]['rut']
+        nombre=self.rows[0]['nombre']
+        correo=self.rows[0]['correo']
+        telefono=self.rows[0]['telefono']
+        id_sucursal=self.rows[0]['id_sucursal']
+        nombre_sucursal=self.rows[0]['nombre_sucursal']
+        password_hash=self.rows[0]['password_hash']
+        meta_mensual_uf=self.rows[0]['meta_mensual_uf']
+        fecha_registro=self.rows[0]['fecha_registro']
+        habilitado=self.rows[0]['habilitado']
+        eliminado=self.rows[0]['eliminado']
 
         sucursal = Sucursal(
             id=id_sucursal, 
@@ -28,7 +35,7 @@ class TupleRowsUsuarioAdapter(Usuario):
 
         roles: dict[str, Rol] = {}
 
-        for row in rows:
+        for row in self.rows:
             codigo_rol = row['codigo_rol']
             rol = roles.get(codigo_rol)
 
@@ -52,7 +59,7 @@ class TupleRowsUsuarioAdapter(Usuario):
                 )
                 rol.permisos.append(permiso)
 
-        super().__init__(
+        return Usuario(
             rut=rut,
             nombre=nombre,
             correo=correo,
@@ -60,5 +67,8 @@ class TupleRowsUsuarioAdapter(Usuario):
             sucursal=sucursal,
             password_hash=password_hash,
             roles=list(roles.values()),
-            meta_mensual_uf=meta_mensual_uf
+            meta_mensual_uf=meta_mensual_uf,
+            fecha_registro=fecha_registro,
+            habilitado=habilitado,
+            eliminado=eliminado,
         )

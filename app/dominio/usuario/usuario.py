@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 
@@ -6,12 +7,15 @@ class Usuario:
         self, 
         rut: str, 
         nombre: str, 
-        correo: str, 
-        telefono: str, 
+        correo: str = '', 
+        telefono: str = '', 
         sucursal: Sucursal | None = None,
+        habilitado: bool = True,
+        eliminado: bool = False,
         meta_mensual_uf: int | None = None,
         roles: list[Rol] = [], 
-        password_hash: str | None = None
+        password_hash: str | None = None,
+        fecha_registro: datetime = datetime.now(),
     ):
         self.rut = rut
         self.correo = correo
@@ -21,4 +25,6 @@ class Usuario:
         self.password_hash = password_hash
         self.roles = roles
         self.meta_mensual_uf = meta_mensual_uf
-        
+        self.fecha_registro = fecha_registro
+        self.habilitado = habilitado
+        self.eliminado = eliminado

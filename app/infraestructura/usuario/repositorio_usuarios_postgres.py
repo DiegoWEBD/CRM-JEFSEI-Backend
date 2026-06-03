@@ -1,4 +1,4 @@
-from psycopg.rows import TupleRow
+from psycopg.rows import DictRow
 
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -16,6 +16,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     U.correo, U.telefono,
                     U.meta_mensual_uf,
                     U.password_hash,
+                    U.fecha_registro,
+                    U.habilitado, U.eliminado,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
                     RU.codigo_rol,
@@ -45,7 +47,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 if rows is None or len(rows) == 0:
                     return None
 
-                return TupleRowsUsuarioAdapter(rows)
+                return TupleRowsUsuarioAdapter(rows).to_usuario()
             
     def obtener_todos(self) -> list[Usuario]:
         with obtener_conexion() as conn:
@@ -56,6 +58,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     U.correo, U.telefono,
                     U.meta_mensual_uf,
                     U.password_hash,
+                    U.fecha_registro,
+                    U.habilitado, U.eliminado,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
                     RU.codigo_rol,
@@ -81,7 +85,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 if rows is None or len(rows) == 0:
                     return []
 
-                datos_usuarios: dict[str, list[TupleRow]] = {}
+                datos_usuarios: dict[str, list[DictRow]] = {}
 
                 for row in rows:
                     if row['rut'] not in datos_usuarios:
@@ -92,11 +96,15 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 usuarios: list[Usuario] = []
 
                 for values in datos_usuarios.values():
-                    usuarios.append(TupleRowsUsuarioAdapter(values))
+                    usuarios.append(TupleRowsUsuarioAdapter(values).to_usuario())
 
                 return usuarios
 
     def registrar(self, usuario: Usuario) -> bool:
+
+        if not usuario.sucursal:
+            return False
+
         with obtener_conexion() as conn:
             try:
                 with conn.cursor() as cur:

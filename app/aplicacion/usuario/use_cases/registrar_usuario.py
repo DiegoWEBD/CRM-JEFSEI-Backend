@@ -28,7 +28,7 @@ class RegistrarUsuarioUseCase:
         
         password_hash = self.authentication_service.hash_password(password)
         
-        sucursal = Sucursal(id=id_sucursal)
+        sucursal = Sucursal(id=id_sucursal, nombre='')
         roles = [Rol(codigo=codigo, nombre='') for codigo in codigo_roles]
         meta = None if meta_mensual_uf == 0 else meta_mensual_uf
 
@@ -40,7 +40,9 @@ class RegistrarUsuarioUseCase:
             sucursal=sucursal,
             password_hash=password_hash,
             roles=roles,
-            meta_mensual_uf=meta
+            meta_mensual_uf=meta,
+            habilitado=True,
+            eliminado=False,
         )
 
         return self.repositorio_usuarios.registrar(nuevo_usuario)

@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from app.dominio.company_seguros.company_seguros import CompanySeguros
-from app.dominio.comuna.comuna import Comuna
-from app.dominio.estados.estado_particular.estado_particular import EstadoParticular
-from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
+from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.usuario.usuario import Usuario
 
@@ -13,20 +14,22 @@ class ProspectoEmpresa(Prospecto):
         nombre_riesgo: str, 
         telefono_contacto: str, 
         correo_contacto: str | None, 
-        direccion: str, 
-        comuna: Comuna, 
+        direccion: str,
+        region: str, 
+        comuna: str, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
         companies_sugeridas: list[CompanySeguros],
         nombre_contacto: str,
         actividad: str,
+        proceso_comercial: ProcesoComercial,
         ma_rc: float | None,
         ma_edificio: float | None,
         cantidad_trabajadores: int | None,
-        estado: EstadoParticular | None = None, 
+        ultima_actualizacion: datetime,
         id: int | None = None, 
-        evaluacion_riesgo: EvaluacionRiesgo | None = None,
+        planificacion_prospecto: PlanificacionProspecto | None = None
     ):
         super().__init__(
             id=id,
@@ -36,13 +39,15 @@ class ProspectoEmpresa(Prospecto):
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
+            region=region,
             comuna=comuna,
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             companies_sugeridas=companies_sugeridas,
-            estado=estado,
-            evaluacion_riesgo=evaluacion_riesgo
+            planificacion_prospecto=planificacion_prospecto,
+            proceso_comercial=proceso_comercial,
+            ultima_actualizacion=ultima_actualizacion
         )
 
         self.actividad = actividad

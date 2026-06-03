@@ -19,42 +19,38 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     P.nombre_riesgo,
                     P.nombre_contacto,
                     LN.nombre as linea_negocio,
-                    EB.nombre as estado,
-                    EB.color as color_estado,
+                    EB.codigo as codigo_estado,
+                    EB.nombre as nombre_estado,
+                    EB.dias_limite as dias_limite_base,
+                    EP.dias_limite_particular,
                     HE.fecha_registro as fecha_ultima_accion,
-                    EB2.nombre as proxima_accion
+                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos,
+                    EB2.accion as proxima_accion
                     from Prospecto P
                     inner join LineaNegocio LN on P.id_linea_negocio = LN.id
                     inner join ProcesoComercial PC on P.id = PC.id_prospecto
                     inner join HistorialEstado HE on PC.id = HE.id_proceso_comercial
-                    inner join EstadoParticular EP on HE.id_estado_particular = EP.id
+                    inner join EstadoParticular EP on HE.id_estado_particular_actual = EP.id
                     inner join EstadoBase EB on EP.codigo_estado_base = EB.codigo
                     left join EstadoBase EB2 on EB.codigo_siguiente_estado = EB2.codigo
-                    {extra_joins}
                     {where_clause}
                     order by P.id, HE.fecha_registro desc
                 '''
 
                 params = {}
-                extra_joins = ""
                 where_clause = ""
 
                 if rut_usuario:
-                    extra_joins = '''
-                        left join EvaluacionRiesgo ER
-                        on PC.id = ER.id_proceso_comercial
-                    '''
 
                     where_clause = '''
                         where P.rut_registrado_por = %(rut_usuario)s
-                        or ER.rut_ej_comercial = %(rut_usuario)s
-                        or ER.rut_ej_evaluacion = %(rut_usuario)s
+                        or PC.rut_ej_comercial = %(rut_usuario)s
+                        or PC.rut_ej_evaluacion = %(rut_usuario)s
                     '''
 
                     params["rut_usuario"] = rut_usuario
 
                 query = base_query.format(
-                    extra_joins=extra_joins,
                     where_clause=where_clause
                 )
 

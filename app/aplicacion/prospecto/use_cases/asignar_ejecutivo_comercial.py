@@ -1,30 +1,40 @@
-from app.dominio.evaluacion_riesgo.evaluacion_riesgo import EvaluacionRiesgo
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
+from app.dominio.usuario.usuario import Usuario
 
 
 class AsignarEjecutivoComercialUseCase:
-    def __init__(self, repositorio_prospectos: RepositorioProspectos, repositorio_usuarios: RepositorioUsuarios):
+    def __init__(
+        self, 
+        repositorio_prospectos: RepositorioProspectos, 
+        repositorio_usuarios: RepositorioUsuarios
+    ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
 
-    def ejecutar(self, id_prospecto: int, rut_ej_comercial: str):
+    def ejecutar(self, id_prospecto: int, rut_ej_comercial: str, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
-        if prospecto is None:
-            raise ValueError("Prospecto no encontrado")
+        if not prospecto:
+            raise ValueError('Prospecto no encontrado')
         
-        if prospecto.evaluacion_riesgo is not None:
-            raise Exception("El prospecto ya tiene un ejecutivo comercial asignado")
+        if prospecto.proceso_comercial.ejecutivo_comercial:
+            raise Exception('El prospecto ya tiene un ejecutivo comercial asignado')
         
-        ejecutivo_comercial = self.repositorio_usuarios.buscar(rut_ej_comercial)
-        if ejecutivo_comercial is None:
-            raise ValueError("Ejecutivo comercial no encontrado")
+        usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
 
-        evaluacion_riesgo = EvaluacionRiesgo(
-            cotizaciones=[],
-            ej_comercial=ejecutivo_comercial,
-        )
+        if not usuario:
+            raise ValueError('Ejecutivo comercial no encontrado')
+        
+        es_ejecutivo_comercial = False
 
-        prospecto.evaluacion_riesgo = evaluacion_riesgo
-        self.repositorio_prospectos.asignar_ejecutivo_comercial(prospecto)
+        for rol in usuario.roles:
+            if rol.codigo == 'EJECUTIVO_COMERCIAL':
+                es_ejecutivo_comercial = True
+                break
+
+        if not es_ejecutivo_comercial:
+            raise Exception(f'El usuario {rut_ej_comercial} no es ejecutivo comercial')
+
+        prospecto.proceso_comercial.ejecutivo_comercial = usuario
+        self.repositorio_prospectos.asignar_ejecutivo_comercial(prospecto, asignado_por)

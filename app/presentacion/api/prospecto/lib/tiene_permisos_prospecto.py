@@ -18,10 +18,10 @@ def tiene_permisos_prospecto(
         prospecto.registrado_por.rut
     }
 
-    if prospecto.evaluacion_riesgo:
-        ruts_autorizados.update([prospecto.evaluacion_riesgo.ej_comercial.rut])
+    if prospecto.proceso_comercial.ejecutivo_comercial:
+        ruts_autorizados.update([prospecto.proceso_comercial.ejecutivo_comercial.rut])
 
-        if prospecto.evaluacion_riesgo.ej_evaluacion:
-            ruts_autorizados.update([prospecto.evaluacion_riesgo.ej_evaluacion.rut])
+    if prospecto.proceso_comercial.ejecutivo_evaluacion:
+        ruts_autorizados.update([prospecto.proceso_comercial.ejecutivo_evaluacion.rut])
 
     return usuario.rut in ruts_autorizados

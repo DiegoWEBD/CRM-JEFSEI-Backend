@@ -14,6 +14,9 @@ class IniciarSesionUseCase:
 
         if not usuario:
             return None
+        
+        if not usuario.password_hash:
+            return None
 
         if not self.authentication_service.verificar_password(password, usuario.password_hash):
             return None
