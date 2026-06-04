@@ -22,7 +22,7 @@ class Prospecto:
         registrado_por: Usuario, 
         companies_sugeridas: list[CompanySeguros],
         proceso_comercial: ProcesoComercial,
-        ultima_actualizacion: datetime,
+        ultima_actualizacion: datetime = datetime.now(),
         planificacion_prospecto: PlanificacionProspecto | None = None,
         id: int | None = None
     ):

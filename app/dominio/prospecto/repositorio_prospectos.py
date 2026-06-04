@@ -28,5 +28,9 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
+    def actualizar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
+        pass
+
+    @abstractmethod
     def cambiar_siguiente_estado(self, id: int) -> None:
         pass

@@ -202,7 +202,103 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return id_prospecto
 
-    
+    def actualizar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
+        if prospecto.id is None:
+            return
+        
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Datos básicos del prospecto
+                query = '''
+                    update Prospecto
+                    set rut_riesgo = %(rut_riesgo)s,
+                    nombre_riesgo = %(nombre_riesgo)s,
+                    nombre_contacto = %(nombre_contacto)s,
+                    telefono_contacto = %(telefono_contacto)s,
+                    correo_contacto = %(correo_contacto)s,
+                    direccion = %(direccion)s,
+                    region = %(region)s,
+                    comuna = %(comuna)s,
+                    observaciones = %(observaciones)s,
+                    id_linea_negocio = %(id_linea_negocio)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'rut_riesgo': prospecto.rut_riesgo,
+                    'nombre_riesgo': prospecto.nombre_riesgo,
+                    'nombre_contacto': prospecto.nombre_contacto,
+                    'telefono_contacto': prospecto.telefono_contacto,
+                    'correo_contacto': prospecto.correo_contacto,
+                    'direccion': prospecto.direccion,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
+                    'observaciones': prospecto.observaciones,
+                    'id_linea_negocio': prospecto.linea_negocio.id,
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+                # Datos específicos del condominio
+                query = '''
+                    update ProspectoCondominio
+                    set cargo_contacto = %(cargo_contacto)s,
+                    tiene_locales_comerciales = %(tiene_locales_comerciales)s,
+                    uso_del_condominio = %(uso_del_condominio)s,
+                    numero_pisos = %(numero_pisos)s,
+                    numero_torres = %(numero_torres)s,
+                    cantidad_departamentos = %(cantidad_departamentos)s,
+                    cantidad_subterraneos = %(cantidad_subterraneos)s,
+                    tiene_piscina = %(tiene_piscina)s,
+                    year_construccion = %(year_construccion)s,
+                    metros_cuadrados = %(metros_cuadrados)s,
+                    desea_ser_contactado = %(desea_ser_contactado)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'cargo_contacto': prospecto.cargo_contacto,
+                    'tiene_locales_comerciales': prospecto.tiene_locales_comerciales,
+                    'uso_del_condominio': prospecto.uso_del_condominio,
+                    'numero_pisos': prospecto.numero_pisos,
+                    'numero_torres': prospecto.numero_torres,
+                    'cantidad_departamentos': prospecto.cantidad_departamentos,
+                    'cantidad_subterraneos': prospecto.cantidad_subterraneos,
+                    'tiene_piscina': prospecto.tiene_piscina,
+                    'year_construccion': prospecto.year_construccion,
+                    'metros_cuadrados': prospecto.metros_cuadrados,
+                    'desea_ser_contactado': prospecto.desea_ser_contactado,
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+                if prospecto.evaluacion_riesgo is None:
+                    return
+
+                # Datos tecnicos para evaluacion
+                query = '''
+                    insert into EvaluacionRiesgo (uf_por_metro_cuadrado, porcentaje_depreciacion, porcentaje_espacios_comunes, id_prospecto)
+                    values (%(uf_por_metro_cuadrado)s, %(porcentaje_depreciacion)s, %(porcentaje_espacios_comunes)s, %(id_prospecto)s)
+                    on conflict (id_prospecto)
+                    do update set
+                        uf_por_metro_cuadrado = excluded.uf_por_metro_cuadrado,
+                        porcentaje_depreciacion = excluded.porcentaje_depreciacion,
+                        porcentaje_espacios_comunes = excluded.porcentaje_espacios_comunes
+                '''
+
+                params = {
+                    'uf_por_metro_cuadrado': prospecto.evaluacion_riesgo.uf_por_metro_cuadrado,
+                    'porcentaje_depreciacion': prospecto.evaluacion_riesgo.porcentaje_depreciacion,
+                    'porcentaje_espacios_comunes': prospecto.evaluacion_riesgo.porcentaje_espacios_comunes,
+                    'id_prospecto': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+
     def buscar(self, id: int) -> Prospecto | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
