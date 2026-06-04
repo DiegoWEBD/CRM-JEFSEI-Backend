@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -11,7 +13,8 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
@@ -251,3 +254,66 @@ def asignar_ejecutivo_evaluacion(
             detail=str(exc)
         )
 
+
+@router.put('/condominios/{id}', status_code=status.HTTP_200_OK)
+def actualizar_prospecto_condominio(
+    id: int,
+    request: ActualizarProspectoCondominioRequest,
+    usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
+    use_case: ActualizarProspectoCondominioUseCase = Depends(get_actualizar_prospecto_condominio_use_case)
+):
+    print(request)
+    try:
+        use_case.ejecutar(
+            id=id,
+            rut_usuario=usuario.rut,
+            rut_riesgo=request.rut_riesgo,
+            nombre_riesgo=request.nombre_riesgo,
+            nombre_contacto=request.nombre_contacto,
+            telefono_contacto=request.telefono_contacto,
+            correo_contacto=request.correo_contacto,
+            direccion=request.direccion,
+            region=request.region,
+            comuna=request.comuna,
+            cargo_contacto=request.cargo_contacto,
+            observaciones=request.observaciones,
+            id_linea_negocio=request.id_linea_negocio,
+            uf_por_metro_cuadrado=request.uf_por_metro_cuadrado,
+            porcentaje_depreciacion=request.porcentaje_depreciacion,
+            porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
+            tiene_locales_comerciales=request.tiene_locales_comerciales,
+            uso_del_condominio=request.uso_del_condominio,
+            numero_pisos=request.numero_pisos,
+            numero_torres=request.numero_torres,
+            cantidad_departamentos=request.cantidad_departamentos,
+            cantidad_subterraneos=request.cantidad_subterraneos,
+            tiene_piscina=request.tiene_piscina,
+            year_construccion=request.year_construccion,
+            metros_cuadrados=request.metros_cuadrados,
+            desea_ser_contactado=request.desea_ser_contactado
+        )
+
+        return {
+            'message': 'Prospecto actualizado correctamente'
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+    
+    except UsuarioNoAutorizadoException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        )
