@@ -12,13 +12,13 @@ class ObtenerProspectoCondominioUseCase:
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_historial_estado = repositorio_historial_estado
 
-    def ejecutar(self, id: int) -> ProspectoCondominio:
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id)
+    def ejecutar(self, id: int, rut_usuario: str | None) -> ProspectoCondominio:
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id, rut_usuario)
 
         if prospecto is None or prospecto.id is None:
             raise ValueError('No se encontró el prospecto')
 
-        historial_estados = self.repositorio_historial_estado.buscar_historial_prospecto(prospecto.id)
-        prospecto.proceso_comercial.historial_estados = historial_estados
+        #historial_estados = self.repositorio_historial_estado.buscar_historial_prospecto(prospecto.id)
+        #prospecto.proceso_comercial.historial_estados = historial_estados
         
         return prospecto

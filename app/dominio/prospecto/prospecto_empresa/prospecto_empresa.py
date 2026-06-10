@@ -11,12 +11,12 @@ class ProspectoEmpresa(Prospecto):
     def __init__(
         self,
         rut_riesgo: str | None, 
-        nombre_riesgo: str, 
-        telefono_contacto: str, 
+        nombre_riesgo: str | None, 
+        telefono_contacto: str | None, 
         correo_contacto: str | None, 
-        direccion: str,
-        region: str, 
-        comuna: str, 
+        direccion: str | None,
+        region: str | None, 
+        comuna: str | None, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -29,10 +29,12 @@ class ProspectoEmpresa(Prospecto):
         cantidad_trabajadores: int | None,
         ultima_actualizacion: datetime,
         id: int | None = None, 
+        id_cliente: int | None = None,
         planificacion_prospecto: PlanificacionProspecto | None = None
     ):
         super().__init__(
             id=id,
+            id_cliente=id_cliente,
             rut_riesgo=rut_riesgo,
             nombre_riesgo=nombre_riesgo,
             nombre_contacto=nombre_contacto,

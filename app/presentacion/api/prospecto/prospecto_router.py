@@ -18,7 +18,6 @@ from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
-from app.presentacion.api.prospecto.lib.tiene_permisos_prospecto import tiene_permisos_prospecto
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 
@@ -99,16 +98,17 @@ def obtener_prospecto_por_id(
 
         prospecto = obtener_prospecto_factory.obtener(
             linea_negocio=linea_negocio.nombre,
-            id_prospecto=id
+            id_prospecto=id,
+            rut_usuario=usuario.rut
         )
 
-        autorizado = tiene_permisos_prospecto(usuario=usuario, prospecto=prospecto)  
+        #autorizado = tiene_permisos_prospecto(usuario=usuario, prospecto=prospecto)  
 
-        if not autorizado:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Usuario no autorizado'
-            ) 
+        #if not autorizado:
+        #    raise HTTPException(
+        #        status_code=status.HTTP_403_FORBIDDEN,
+        #        detail='Usuario no autorizado'
+        #    ) 
 
         adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio.nombre)  
 
@@ -120,9 +120,15 @@ def obtener_prospecto_por_id(
     except HTTPException:
         raise
 
-    except ValueError as exc:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail='Prospecto no encontrado'
+        )
+    
+    except UsuarioNoAutorizadoException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc)
         )
 
@@ -269,13 +275,11 @@ def actualizar_prospecto_condominio(
             rut_usuario=usuario.rut,
             rut_riesgo=request.rut_riesgo,
             nombre_riesgo=request.nombre_riesgo,
-            nombre_contacto=request.nombre_contacto,
             telefono_contacto=request.telefono_contacto,
             correo_contacto=request.correo_contacto,
             direccion=request.direccion,
             region=request.region,
             comuna=request.comuna,
-            cargo_contacto=request.cargo_contacto,
             observaciones=request.observaciones,
             id_linea_negocio=request.id_linea_negocio,
             uf_por_metro_cuadrado=request.uf_por_metro_cuadrado,
@@ -283,14 +287,19 @@ def actualizar_prospecto_condominio(
             porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
             tiene_locales_comerciales=request.tiene_locales_comerciales,
             uso_del_condominio=request.uso_del_condominio,
+            materialidad=request.materialidad,
+            clasificacion_preliminar_incendio=request.clasificacion_preliminar_incendio,
+            procesos_productivos=request.procesos_productivos,
             numero_pisos=request.numero_pisos,
             numero_torres=request.numero_torres,
             cantidad_departamentos=request.cantidad_departamentos,
             cantidad_subterraneos=request.cantidad_subterraneos,
             tiene_piscina=request.tiene_piscina,
+            ubicacion_piscina=request.ubicacion_piscina,
+            tiene_alarma_incendio=request.tiene_alarma_incendio,
+            tiene_sprinklers=request.tiene_sprinklers,
             year_construccion=request.year_construccion,
-            metros_cuadrados=request.metros_cuadrados,
-            desea_ser_contactado=request.desea_ser_contactado
+            metros_cuadrados=request.metros_cuadrados
         )
 
         return {

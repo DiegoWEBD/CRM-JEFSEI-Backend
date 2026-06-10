@@ -3,7 +3,7 @@ class EstadoBase:
         self, 
         codigo: str, 
         nombre: str, 
-        dias_limite: int, 
+        dias_limite: int | None, 
         accion: str = '',
         siguiente_estado: EstadoBase | None = None
     ):

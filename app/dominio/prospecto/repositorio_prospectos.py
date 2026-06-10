@@ -16,7 +16,7 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
-    def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
+    def buscar_prospecto_condominio(self, id: int, rut_usuario: str) -> ProspectoCondominio | None:
         pass
 
     @abstractmethod

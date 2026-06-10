@@ -1,9 +1,11 @@
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.prospecto.adaptadores.tuplerows_prospecto_adapter import TupleRowsProspectoAdapter
+from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
+from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
 from app.infraestructura.prospecto.adaptadores.tuplerows_prospecto_condominio_adapter import TupleRowsProspectoCondominioAdapter
 
 
@@ -214,7 +216,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     update Prospecto
                     set rut_riesgo = %(rut_riesgo)s,
                     nombre_riesgo = %(nombre_riesgo)s,
-                    nombre_contacto = %(nombre_contacto)s,
                     telefono_contacto = %(telefono_contacto)s,
                     correo_contacto = %(correo_contacto)s,
                     direccion = %(direccion)s,
@@ -228,7 +229,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 params = {
                     'rut_riesgo': prospecto.rut_riesgo,
                     'nombre_riesgo': prospecto.nombre_riesgo,
-                    'nombre_contacto': prospecto.nombre_contacto,
                     'telefono_contacto': prospecto.telefono_contacto,
                     'correo_contacto': prospecto.correo_contacto,
                     'direccion': prospecto.direccion,
@@ -244,56 +244,47 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 # Datos específicos del condominio
                 query = '''
                     update ProspectoCondominio
-                    set cargo_contacto = %(cargo_contacto)s,
-                    tiene_locales_comerciales = %(tiene_locales_comerciales)s,
+                    set tiene_locales_comerciales = %(tiene_locales_comerciales)s,
                     uso_del_condominio = %(uso_del_condominio)s,
+                    materialidad = %(materialidad)s,
+                    clasificacion_preliminar_incendio = %(clasificacion_preliminar_incendio)s,
+                    procesos_productivos = %(procesos_productivos)s,
                     numero_pisos = %(numero_pisos)s,
                     numero_torres = %(numero_torres)s,
                     cantidad_departamentos = %(cantidad_departamentos)s,
                     cantidad_subterraneos = %(cantidad_subterraneos)s,
                     tiene_piscina = %(tiene_piscina)s,
+                    ubicacion_piscina = %(ubicacion_piscina)s,
+                    tiene_alarma_incendio = %(tiene_alarma_incendio)s,
+                    tiene_sprinklers = %(tiene_sprinklers)s,
                     year_construccion = %(year_construccion)s,
                     metros_cuadrados = %(metros_cuadrados)s,
-                    desea_ser_contactado = %(desea_ser_contactado)s
+                    uf_por_metro_cuadrado = %(uf_por_metro_cuadrado)s,
+                    porcentaje_depreciacion = %(porcentaje_depreciacion)s,
+                    porcentaje_espacios_comunes = %(porcentaje_espacios_comunes)s
                     where id = %(id)s
                 '''
 
                 params = {
-                    'cargo_contacto': prospecto.cargo_contacto,
                     'tiene_locales_comerciales': prospecto.tiene_locales_comerciales,
                     'uso_del_condominio': prospecto.uso_del_condominio,
+                    'materialidad': prospecto.materialidad,
+                    'clasificacion_preliminar_incendio': prospecto.clasificacion_preliminar_incendio,
+                    'procesos_productivos': prospecto.procesos_productivos,
                     'numero_pisos': prospecto.numero_pisos,
                     'numero_torres': prospecto.numero_torres,
                     'cantidad_departamentos': prospecto.cantidad_departamentos,
                     'cantidad_subterraneos': prospecto.cantidad_subterraneos,
                     'tiene_piscina': prospecto.tiene_piscina,
+                    'ubicacion_piscina': prospecto.ubicacion_piscina,
+                    'tiene_alarma_incendio': prospecto.tiene_alarma_incendio,
+                    'tiene_sprinklers': prospecto.tiene_sprinklers,
                     'year_construccion': prospecto.year_construccion,
                     'metros_cuadrados': prospecto.metros_cuadrados,
-                    'desea_ser_contactado': prospecto.desea_ser_contactado,
+                    'uf_por_metro_cuadrado': prospecto.uf_por_metro_cuadrado,
+                    'porcentaje_depreciacion': prospecto.porcentaje_depreciacion,
+                    'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
                     'id': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-                if prospecto.evaluacion_riesgo is None:
-                    return
-
-                # Datos tecnicos para evaluacion
-                query = '''
-                    insert into EvaluacionRiesgo (uf_por_metro_cuadrado, porcentaje_depreciacion, porcentaje_espacios_comunes, id_prospecto)
-                    values (%(uf_por_metro_cuadrado)s, %(porcentaje_depreciacion)s, %(porcentaje_espacios_comunes)s, %(id_prospecto)s)
-                    on conflict (id_prospecto)
-                    do update set
-                        uf_por_metro_cuadrado = excluded.uf_por_metro_cuadrado,
-                        porcentaje_depreciacion = excluded.porcentaje_depreciacion,
-                        porcentaje_espacios_comunes = excluded.porcentaje_espacios_comunes
-                '''
-
-                params = {
-                    'uf_por_metro_cuadrado': prospecto.evaluacion_riesgo.uf_por_metro_cuadrado,
-                    'porcentaje_depreciacion': prospecto.evaluacion_riesgo.porcentaje_depreciacion,
-                    'porcentaje_espacios_comunes': prospecto.evaluacion_riesgo.porcentaje_espacios_comunes,
-                    'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
@@ -302,224 +293,39 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
     def buscar(self, id: int) -> Prospecto | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                query = '''
-                    select LN.nombre as linea_negocio
-                    from Prospecto P
-                    inner join LineaNegocio LN
-                    on P.id_linea_negocio = LN.id
-                    where P.id = %(id)s
-                '''
-
-                params = {
-                    'id': id
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    return None
-                
-                linea_negocio = row['linea_negocio']
-
-                if linea_negocio.lower() != 'condominio':
-                    return None
                 
                 query = '''
                     select P.id as id_prospecto,
+                    CL.id as id_cliente,
                     P.rut_riesgo, P.nombre_riesgo,
                     P.telefono_contacto, P.direccion,
-                    P.nombre_contacto,
-                    P.correo_contacto, P.observaciones,
-                    LN.nombre as linea_negocio,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
-                    COM.nombre as comuna,
-                    SER.id as id_solicitud_evaluacion,
-                    SER.fecha_solicitud as fecha_solicitud_evaluacion,
-                    SER.prioridad as prioridad_solicitud,
-                    ER.id as id_evaluacion,
-                    ER.observaciones as observaciones_evaluacion,
-                    ER.uf_por_metro_cuadrado as evaluacion_uf_por_metro_cuadrado,
-                    ER.porcentaje_depreciacion as evaluacion_porcentaje_depreciacion,
-                    ER.porcentaje_espacios_comunes as evaluacion_porcentaje_espacios_comunes,
-                    U_EJ_COM.rut as rut_ej_comercial, 
-                    U_EJ_COM.nombre as nombre_ej_comercial,
-                    U_EJ_EV.rut as rut_ej_evaluacion, 
-                    U_EJ_EV.nombre as nombre_ej_evaluacion,
-                    EB.nombre as nombre_estado_actual,
-                    EB.codigo as codigo_estado_actual,
-                    EB.color as color_estado_actual,
-                    HE.fecha_registro as fecha_registro_estado,
-                    HE.motivo_cambio as motivo_cambio_estado,
-                    U_ESTADO.rut as rut_estado_cambiado_por,
-                    U_ESTADO.nombre as nombre_estado_cambiado_por,
-                    EP.dias_limite_particular, 
-                    EB.dias_limite as dias_limite_base,
-                    EB_SIG.codigo as codigo_siguiente_estado_esperado,
-                    EB_SIG.nombre as nombre_siguiente_estado_esperado,
-                    EB_SIG.accion as proxima_accion_esperada,
-                    EB2.nombre as nombre_estado_anterior,
-                    EB2.codigo as codigo_estado_anterior,
-                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos
-                    from Prospecto P
-                    inner join Usuario U
-                    on P.rut_registrado_por = U.rut
-                    inner join Comuna COM
-                    on P.id_comuna = COM.id
-                    inner join LineaNegocio LN
-                    on P.id_linea_negocio = LN.id
-                    inner join ProcesoComercial PC
-                    on P.id = PC.id_prospecto
-                    left join Usuario U_EJ_COM
-                    on PC.rut_ej_comercial = U_EJ_COM.rut
-                    left join Usuario U_EJ_EV
-                    on PC.rut_ej_evaluacion = U_EJ_EV.rut
-                    left join SolicitudEvaluacionRiesgo SER
-                    on PC.id = SER.id_proceso_comercial
-                    left join EvaluacionRiesgo ER
-                    on SER.id = ER.id_solicitud
-                    inner join HistorialEstado HE
-                    on PC.id = HE.id_proceso_comercial
-                    inner join Usuario U_ESTADO
-                    on HE.rut_cambiado_por = U_ESTADO.rut
-                    inner join EstadoParticular EP
-                    on HE.id_estado_particular_actual = EP.id
-                    inner join EstadoBase EB
-                    on EP.codigo_estado_base = EB.codigo
-                    left join EstadoParticular EP2
-                    on HE.id_estado_particular_anterior = EP2.id
-                    left join EstadoBase EB2
-                    on EP2.codigo_estado_base = EB2.codigo
-                    left join EstadoBase EB_SIG
-                    on EB.codigo_siguiente_estado = EB_SIG.codigo
-                    where P.id = %(id)s
-                    order by HE.fecha_registro asc
-                '''
-
-                params = {
-                    'id': id
-                }
-
-                cur.execute(query, params)
-                rows = cur.fetchall()
-
-                if rows is None or len(rows) == 0:
-                    return None
-
-                return TupleRowsProspectoAdapter(rows).to_prospecto()
-            
-    def buscar_prospecto_condominio(self, id) -> ProspectoCondominio | None:
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    select LN.nombre as linea_negocio
-                    from Prospecto P
-                    inner join LineaNegocio LN
-                    on P.id_linea_negocio = LN.id
-                    where P.id = %(id)s
-                '''
-
-                params = {
-                    'id': id
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    return None
-                
-                linea_negocio = row['linea_negocio']
-
-                if linea_negocio.lower() != 'condominio':
-                    return None
-                
-                query = '''
-                    select P.id as id_prospecto,
-                    P.rut_riesgo, P.nombre_riesgo,
-                    P.telefono_contacto, P.direccion,
-                    P.nombre_contacto, PCO.cargo_contacto,
+                    P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
-                    PCO.updated_at as condominio_updated_at,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
-                    P.rut_registrado_por, U.nombre as nombre_registrado_por,
-                    P.region, P.comuna,
-                    PCO.tiene_locales_comerciales,
-                    PCO.uso_del_condominio,
-                    PCO.numero_pisos, PCO.numero_torres,
-                    PCO.cantidad_departamentos, 
-                    PCO.cantidad_subterraneos, PCO.tiene_piscina,
-                    PCO.year_construccion, PCO.metros_cuadrados,
-                    PCO.desea_ser_contactado,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
                     PP.termino_vigencia as termino_vigencia_planificacion,
                     PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
-                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
-                    PC.id as id_proceso_comercial,
-                    ER.id as id_evaluacion,
-                    ER.observaciones as observaciones_evaluacion,
-                    ER.uf_por_metro_cuadrado as evaluacion_uf_por_metro_cuadrado,
-                    ER.porcentaje_depreciacion as evaluacion_porcentaje_depreciacion,
-                    ER.porcentaje_espacios_comunes as evaluacion_porcentaje_espacios_comunes,
-                    U_EJ_COM.rut as rut_ej_comercial, 
-                    U_EJ_COM.nombre as nombre_ej_comercial,
-                    U_EJ_EV.rut as rut_ej_evaluacion, 
-                    U_EJ_EV.nombre as nombre_ej_evaluacion,
-                    SC.id as id_solicitud_cotizacion,
-                    SC.fecha as fecha_solicitud_cotizacion,
-                    SC.prioridad as prioridad_cotizacion,
-                    C.id as id_cotizacion,
-                    C.monto_total_asegurado as cotizacion_monto_total_asegurado,
-                    C.tasa_afecta as cotizacion_tasa_afecta,
-                    C.tasa_excenta as cotizacion_tasa_excenta,
-                    C.tasa_politica as cotizacion_tasa_politica,
-                    C.prima_adicional_asistencia as cotizacion_prima_adicional_asistencia,
-                    C.fecha_emision as cotizacion_fecha_emision, 
-                    C.fecha_vencimiento as cotizacion_fecha_vencimiento,
-                    C.id_company, CS.nombre as nombre_company,
-                    ECC.id as id_estudio_comercial,
-                    ECC.cantidad_cuotas, ECC.valor_uf,
-                    DECC.porcentaje_infraseguro,
-                    DECC.iva_prima_afecta,
-                    DECC.prima_neta as detalle_prima_neta,
-                    DECC.prima_bruta as detalle_prima_bruta
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
                     from Prospecto P
+                    left join Cliente CL
+                    on P.id = CL.id_prospecto
                     inner join Usuario U
                     on P.rut_registrado_por = U.rut
+                    left join Usuario EJ_COM
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
-                    inner join ProcesoComercial PC
-                    on P.id = PC.id_prospecto
-                    left join Usuario U_EJ_COM
-                    on PC.rut_ej_comercial = U_EJ_COM.rut
-                    left join Usuario U_EJ_EV
-                    on PC.rut_ej_evaluacion = U_EJ_EV.rut
                     left join PlanificacionProspecto PP
                     on P.id = PP.id_prospecto
                     left join CompanySeguros CS_PLAN
                     on PP.id_company = CS_PLAN.id
-                    left join SolicitudCotizacion SC
-                    on PC.id = SC.id_proceso_comercial
-                    left join Cotizacion C
-                    on SC.id = C.id_solicitud
-                    left join CompanySeguros CS
-                    on C.id_company = CS.id
-                    left join DetalleEstudioComercialCondominio DECC
-                    on C.id = DECC.id_cotizacion
-                    left join EstudioComercialCondominio ECC
-                    on DECC.id_estudio_comercial = ECC.id
-                    inner join ProspectoCondominio PCO
-                    on P.id = PCO.id
-                    left join EvaluacionRiesgo ER
-                    on PCO.id = ER.id_prospecto
                     where P.id = %(id)s
-                    order by SC.id
                 '''
 
                 params = {
@@ -527,12 +333,168 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 }
 
                 cur.execute(query, params)
-                rows = cur.fetchall()
+                row = cur.fetchone()
 
-                if rows is None or len(rows) == 0:
+                if row is None:
                     return None
 
-                return TupleRowsProspectoCondominioAdapter(rows).to_prospecto_condominio()
+                return DictRowProspectoAdapter(row).to_prospecto()
+            
+    def buscar_prospecto_condominio(self, id: int, rut_usuario: str) -> ProspectoCondominio | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                es_propio = False
+                puede_ver_propios = False
+                puede_ver_todos = False
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    left join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    left join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut)s
+                '''
+
+                params = {
+                    'rut': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_TODOS':
+                        puede_ver_todos = True
+                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_PROPIOS':
+                        puede_ver_propios = True
+
+                if not puede_ver_propios and not puede_ver_todos:
+                    raise UsuarioNoAutorizadoException
+
+                query = '''
+                    select rut_ej_comercial, rut_ej_evaluacion
+                    from ProcesoComercial
+                    where id_prospecto = %(id_prospecto)s
+                '''
+
+                params = {
+                    'id_prospecto': id
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                for row in rows:
+                    rut_ej_comercial = row['rut_ej_comercial']
+                    rut_ej_evaluacion = row['rut_ej_evaluacion']
+
+                    if rut_usuario == rut_ej_comercial or rut_usuario == rut_ej_evaluacion:
+                        es_propio = True
+
+                query = '''
+                    select LN.nombre as linea_negocio
+                    from Prospecto P
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    where P.id = %(id)s
+                '''
+
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+                
+                linea_negocio = row['linea_negocio']
+
+                if linea_negocio.lower() != 'condominio':
+                    return None
+                
+                query = '''
+                    select P.id as id_prospecto,
+                    CL.id as id_cliente,
+                    P.rut_riesgo, P.nombre_riesgo,
+                    P.telefono_contacto, P.direccion,
+                    P.rut_registrado_por, U.nombre as nombre_registrado_por,
+                    P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.region, P.comuna,
+                    P.correo_contacto, P.observaciones,
+                    P.updated_at as prospecto_updated_at,
+                    PCO.updated_at as condominio_updated_at,
+                    LN.id as id_linea_negocio,
+                    LN.nombre as linea_negocio,
+                    PCO.id_administrador,
+                    AC.nombre_administrador,
+                    AC.nombre_contacto,
+                    AC.telefono as telefono_administrador,
+                    AC.correo as correo_administrador,
+                    PCO.tiene_locales_comerciales,
+                    PCO.uso_del_condominio,
+                    PCO.materialidad,
+                    PCO.clasificacion_preliminar_incendio,
+                    PCO.procesos_productivos,
+                    PCO.numero_pisos, PCO.numero_torres,
+                    PCO.cantidad_departamentos, 
+                    PCO.cantidad_subterraneos, PCO.tiene_piscina,
+                    PCO.ubicacion_piscina,
+                    PCO.tiene_alarma_incendio,
+                    PCO.tiene_sprinklers,
+                    PCO.year_construccion, PCO.metros_cuadrados,
+                    PCO.uf_por_metro_cuadrado,
+                    PCO.porcentaje_depreciacion,
+                    PCO.porcentaje_espacios_comunes,
+                    CS_PLAN.id as id_company_planificacion,
+                    CS_PLAN.nombre as nombre_company_planificacion,
+                    PP.prima_vigente as prima_vigente_planificacion,
+                    PP.termino_vigencia as termino_vigencia_planificacion,
+                    PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
+                    from Prospecto P
+                    inner join ProspectoCondominio PCO
+                    on P.id = PCO.id
+                    left join Cliente CL
+                    on P.id = CL.id_prospecto
+                    inner join Usuario U
+                    on P.rut_registrado_por = U.rut
+                    left join Usuario EJ_COM
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    left join AdministradorCondominio AC
+                    on PCO.id_administrador = AC.id
+                    left join PlanificacionProspecto PP
+                    on P.id = PP.id_prospecto
+                    left join CompanySeguros CS_PLAN
+                    on PP.id_company = CS_PLAN.id
+                    where P.id = %(id)s
+                '''
+
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+                
+                rut_registrado_por = row['rut_registrado_por']
+
+                if rut_usuario == rut_registrado_por:
+                    es_propio = True
+
+                if not puede_ver_todos and not es_propio:
+                    raise UsuarioNoAutorizadoException
+
+                return DictRowProspectoCondominioAdapter(row).to_prospecto_condominio()
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:

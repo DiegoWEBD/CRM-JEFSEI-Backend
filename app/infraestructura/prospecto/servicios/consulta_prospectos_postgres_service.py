@@ -3,7 +3,7 @@ from typing import Optional
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.prospecto.adaptadores.tuplerow_prospecto_resumen_adapter import TupleRowProspectoResumenAdapter
+from app.infraestructura.prospecto.adaptadores.dictrows_prospectos_resumen_adapter import DictRowsProspectoResumenAdapter
 
 
 class ConsultaProspectosPostgresService(ConsultaProspectosService):
@@ -14,27 +14,36 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 base_query = '''
-                    select distinct on (P.id)
+                    select distinct on (PC.id) 
                     P.id,
+                    PC.id as id_proceso_comercial,
+                    C.id as id_cliente,
                     P.nombre_riesgo,
-                    P.nombre_contacto,
+                    AC.nombre_administrador,
                     LN.nombre as linea_negocio,
-                    EB.codigo as codigo_estado,
-                    EB.nombre as nombre_estado,
-                    EB.dias_limite as dias_limite_base,
-                    EP.dias_limite_particular,
-                    HE.fecha_registro as fecha_ultima_accion,
-                    extract(day from (now() - HE.fecha_registro)) AS dias_transcurridos,
-                    EB2.accion as proxima_accion
+                    EJ_COM.nombre as ejecutivo_comercial,
+                    EI.codigo as codigo_estado,
+                    EI.nombre as nombre_estado,
+                    HE.fecha_registro as fecha_ultima_accion
                     from Prospecto P
-                    inner join LineaNegocio LN on P.id_linea_negocio = LN.id
-                    inner join ProcesoComercial PC on P.id = PC.id_prospecto
-                    inner join HistorialEstado HE on PC.id = HE.id_proceso_comercial
-                    inner join EstadoParticular EP on HE.id_estado_particular_actual = EP.id
-                    inner join EstadoBase EB on EP.codigo_estado_base = EB.codigo
-                    left join EstadoBase EB2 on EB.codigo_siguiente_estado = EB2.codigo
+                    left join Cliente C
+                    on P.id = C.id_prospecto
+                    left join ProspectoCondominio PCO
+                    on P.id = PCO.id
+                    left join AdministradorCondominio AC
+                    on PCO.id_administrador = AC.id
+                    inner join LineaNegocio LN 
+                    on P.id_linea_negocio = LN.id
+                    left join ProcesoComercial PC
+                    on P.id = PC.id_prospecto
+                    left join HistorialEstadoInformativoProcesoComercial HE
+                    on PC.id = HE.id_proceso_comercial
+                    left join EstadoInformativoProcesoComercial EI
+                    on HE.codigo_estado = EI.codigo
+                    left join Usuario EJ_COM
+                    on PC.rut_ej_comercial = EJ_COM.rut
                     {where_clause}
-                    order by P.id, HE.fecha_registro desc
+                    order by PC.id, HE.fecha_registro desc
                 '''
 
                 params = {}
@@ -60,5 +69,5 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 if not rows:
                     return []
 
-                return [TupleRowProspectoResumenAdapter(row) for row in rows]
+                return DictRowsProspectoResumenAdapter(rows).to_prospectos_resumen()
         
