@@ -9,7 +9,7 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
-    def buscar(self, id_cliente: int) -> list[Poliza]:
+    def buscar(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
         pass
 
     @abstractmethod

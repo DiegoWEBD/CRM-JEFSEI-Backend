@@ -7,5 +7,5 @@ class ObtenerPolizasUseCase:
     def __init__(self, repositorio_polizas: RepositorioPolizas):
         self.repositorio_polizas = repositorio_polizas
 
-    def ejecutar(self, id_cliente: int) -> list[Poliza]:
-        return self.repositorio_polizas.buscar(id_cliente)
+    def ejecutar(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
+        return self.repositorio_polizas.buscar(id_cliente, rut_usuario)
