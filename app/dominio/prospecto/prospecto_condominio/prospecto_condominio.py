@@ -28,6 +28,7 @@ class ProspectoCondominio(Prospecto):
         porcentaje_depreciacion: float | None,
         porcentaje_espacios_comunes: float | None,
         id_cliente: int | None,
+        informacion_completa: bool,
         planificacion_prospecto: PlanificacionProspecto | None,
         tiene_locales_comerciales: bool | None,
         uso_del_condominio: str | None,
@@ -62,7 +63,8 @@ class ProspectoCondominio(Prospecto):
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
             planificacion_prospecto=planificacion_prospecto,
-            ultima_actualizacion=ultima_actualizacion
+            ultima_actualizacion=ultima_actualizacion,
+            informacion_completa=informacion_completa
         )
         
         self.tiene_locales_comerciales = tiene_locales_comerciales

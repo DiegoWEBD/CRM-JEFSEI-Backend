@@ -24,6 +24,7 @@ class ProspectoEmpresa(Prospecto):
         nombre_contacto: str,
         actividad: str,
         proceso_comercial: ProcesoComercial,
+        informacion_completa: bool,
         ma_rc: float | None,
         ma_edificio: float | None,
         cantidad_trabajadores: int | None,
@@ -37,7 +38,6 @@ class ProspectoEmpresa(Prospecto):
             id_cliente=id_cliente,
             rut_riesgo=rut_riesgo,
             nombre_riesgo=nombre_riesgo,
-            nombre_contacto=nombre_contacto,
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
@@ -46,10 +46,9 @@ class ProspectoEmpresa(Prospecto):
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
-            companies_sugeridas=companies_sugeridas,
             planificacion_prospecto=planificacion_prospecto,
-            proceso_comercial=proceso_comercial,
-            ultima_actualizacion=ultima_actualizacion
+            ultima_actualizacion=ultima_actualizacion,
+            informacion_completa=informacion_completa
         )
 
         self.actividad = actividad

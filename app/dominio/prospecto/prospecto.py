@@ -18,6 +18,7 @@ class Prospecto:
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
         ejecutivo_comercial_asignado: Usuario | None,
+        informacion_completa: bool,
         #companies_sugeridas: list[CompanySeguros],
         #proceso_comercial: ProcesoComercial,
         ultima_actualizacion: datetime = datetime.now(),
@@ -40,3 +41,4 @@ class Prospecto:
         self.id_cliente = id_cliente
         self.planificacion_prospecto = planificacion_prospecto
         self.ultima_actualizacion = ultima_actualizacion
+        self.informacion_completa = informacion_completa

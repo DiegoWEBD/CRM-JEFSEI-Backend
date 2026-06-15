@@ -9,7 +9,7 @@ class ProcesoComercial:
         ejecutivo_comercial: Usuario | None,
         ejecutivo_evaluacion: Usuario | None,
         producto: Producto,
-        codigo_etapa_actual: str,
+        codigo_estado_actual: str,
         cerrado: bool,
         id: int | None = None
     ):
@@ -18,5 +18,5 @@ class ProcesoComercial:
         self.ejecutivo_evaluacion = ejecutivo_evaluacion
         self.historial_estados = historial_estados
         self.producto = producto
-        self.codigo_etapa_actual = codigo_etapa_actual
+        self.codigo_estado_actual = codigo_estado_actual
         self.cerrado = cerrado

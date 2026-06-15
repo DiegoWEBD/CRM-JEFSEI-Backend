@@ -2,6 +2,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion_activas import ObtenerSolicitudesCotizacionActivasUseCase
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
+from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
 
 
 def get_obtener_solicitudes_cotizacion_activas_use_case():
@@ -11,3 +12,6 @@ def get_obtener_solicitudes_cotizacion_activas_use_case():
 def get_obtener_procesos_comerciales_use_case():
     repositorio = RepositorioProcesosComercialesPostgres()
     return ObtenerProcesosComercialesUseCase(repositorio)
+
+def get_consulta_solicitudes_cotizacion_service():
+    return ConsultaSolicitudesCotizacionPostgresService()

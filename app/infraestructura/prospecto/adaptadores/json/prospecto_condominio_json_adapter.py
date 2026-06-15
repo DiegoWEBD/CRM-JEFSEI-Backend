@@ -14,45 +14,6 @@ class ProspectoCondominioJsonAdapter:
     def to_prospecto_json(self) -> ProspectoCondominioJson:
         if not self.prospecto.id:
             raise Exception('Prospecto inválido, hace falta el id')
-
-        datos_completos_planificacion = True
-
-        if self.prospecto.planificacion_prospecto:
-            datos_completos_planificacion = all([
-                self.prospecto.planificacion_prospecto.prima_vigente is not None,
-                self.prospecto.planificacion_prospecto.company_poliza is not None,
-                self.prospecto.planificacion_prospecto.monto_asegurado_vigente is not None
-            ])
-
-        informacion_completa = all([
-            self.prospecto.rut_riesgo is not None,
-            self.prospecto.nombre_riesgo is not None,
-            self.prospecto.telefono_contacto is not None,
-            self.prospecto.correo_contacto is not None,
-            self.prospecto.direccion is not None,
-            self.prospecto.region is not None,
-            self.prospecto.comuna is not None,
-            self.prospecto.linea_negocio is not None,
-            self.prospecto.tiene_locales_comerciales is not None,
-            self.prospecto.uso_del_condominio is not None,
-            self.prospecto.materialidad is not None,
-            self.prospecto.clasificacion_preliminar_incendio is not None,
-            self.prospecto.procesos_productivos is not None,
-            self.prospecto.numero_pisos is not None,
-            self.prospecto.numero_torres is not None,
-            self.prospecto.cantidad_departamentos is not None,
-            self.prospecto.cantidad_subterraneos is not None,
-            self.prospecto.tiene_piscina is not None,
-            self.prospecto.ubicacion_piscina is not None,
-            self.prospecto.tiene_alarma_incendio is not None,
-            self.prospecto.tiene_sprinklers is not None,
-            self.prospecto.year_construccion is not None,
-            self.prospecto.metros_cuadrados is not None,
-            self.prospecto.uf_por_metro_cuadrado is not None,
-            self.prospecto.porcentaje_depreciacion is not None,
-            self.prospecto.porcentaje_espacios_comunes is not None,
-            datos_completos_planificacion
-        ])
         
         return ProspectoCondominioJson(
             id=self.prospecto.id,
@@ -89,5 +50,5 @@ class ProspectoCondominioJsonAdapter:
             year_construccion=self.prospecto.year_construccion,
             metros_cuadrados=self.prospecto.metros_cuadrados,
             ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
-            informacion_completa=informacion_completa
+            informacion_completa=self.prospecto.informacion_completa
         )

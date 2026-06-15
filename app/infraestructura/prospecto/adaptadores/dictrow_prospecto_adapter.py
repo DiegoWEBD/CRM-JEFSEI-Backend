@@ -30,6 +30,7 @@ class DictRowProspectoAdapter:
         id_linea_negocio = self.row['id_linea_negocio']  
         region = self.row['region']  
         comuna = self.row['comuna']  
+        informacion_completa = self.row['informacion_completa']  
         prospecto_updated_at = self.row['prospecto_updated_at']
 
         id_company_planificacion = self.row['id_company_planificacion']
@@ -93,5 +94,6 @@ class DictRowProspectoAdapter:
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=ejecutivo_comercial,
             planificacion_prospecto=planificacion,
-            ultima_actualizacion=prospecto_updated_at
+            ultima_actualizacion=prospecto_updated_at,
+            informacion_completa=informacion_completa
         )

@@ -41,6 +41,7 @@ class DictRowProspectoCondominioAdapter:
         id_linea_negocio = self.row['id_linea_negocio']  
         region = self.row['region']  
         comuna = self.row['comuna']  
+        informacion_completa = self.row['informacion_completa']
         tiene_locales_comerciales = self.row['tiene_locales_comerciales']
         uso_del_condominio = self.row['uso_del_condominio']
         numero_pisos = self.row['numero_pisos']
@@ -150,5 +151,6 @@ class DictRowProspectoCondominioAdapter:
             uf_por_metro_cuadrado=uf_por_metro_cuadrado,
             porcentaje_depreciacion=porcentaje_depreciacion,
             porcentaje_espacios_comunes=porcentaje_espacios_comunes,
-            ultima_actualizacion=ultima_actualizacion
+            ultima_actualizacion=ultima_actualizacion,
+            informacion_completa=informacion_completa
         )

@@ -12,7 +12,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 query = '''
                     select PC.id,
-                    PC.codigo_etapa_actual,
+                    PC.codigo_estado_actual,
                     PC.cerrado,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre as nombre_ej_comercial,

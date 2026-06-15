@@ -102,14 +102,6 @@ def obtener_prospecto_por_id(
             rut_usuario=usuario.rut
         )
 
-        #autorizado = tiene_permisos_prospecto(usuario=usuario, prospecto=prospecto)  
-
-        #if not autorizado:
-        #    raise HTTPException(
-        #        status_code=status.HTTP_403_FORBIDDEN,
-        #        detail='Usuario no autorizado'
-        #    ) 
-
         adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio.nombre)  
 
         return {

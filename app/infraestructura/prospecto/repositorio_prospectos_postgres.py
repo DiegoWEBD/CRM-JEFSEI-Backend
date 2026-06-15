@@ -7,6 +7,7 @@ from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
 from app.infraestructura.prospecto.adaptadores.tuplerows_prospecto_condominio_adapter import TupleRowsProspectoCondominioAdapter
+from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto_condominio
 
 
 class RepositorioProspectosPostgres(RepositorioProspectos):
@@ -222,7 +223,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     region = %(region)s,
                     comuna = %(comuna)s,
                     observaciones = %(observaciones)s,
-                    id_linea_negocio = %(id_linea_negocio)s
+                    id_linea_negocio = %(id_linea_negocio)s,
+                    informacion_completa = %(informacion_completa)s
                     where id = %(id)s
                 '''
 
@@ -236,6 +238,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'comuna': prospecto.comuna,
                     'observaciones': prospecto.observaciones,
                     'id_linea_negocio': prospecto.linea_negocio.id,
+                    'informacion_completa': informacion_completa_prospecto_condominio(prospecto),
                     'id': prospecto.id
                 }
 
@@ -304,6 +307,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
+                    P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
@@ -426,6 +430,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
+                    P.informacion_completa,
                     P.updated_at as prospecto_updated_at,
                     PCO.updated_at as condominio_updated_at,
                     LN.id as id_linea_negocio,

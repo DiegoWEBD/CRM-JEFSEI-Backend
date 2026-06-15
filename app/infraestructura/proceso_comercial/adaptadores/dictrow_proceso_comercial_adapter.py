@@ -13,7 +13,7 @@ class DictRowProcesoComercialAdapter:
     def to_proceso_comercial(self) -> ProcesoComercial:
         
         id = self.row['id']
-        codigo_etapa_actual = self.row['codigo_etapa_actual']
+        codigo_estado_actual = self.row['codigo_estado_actual']
         cerrado = self.row['cerrado']
         rut_ej_comercial = self.row['rut_ej_comercial']
         nombre_ej_comercial = self.row['nombre_ej_comercial']
@@ -45,7 +45,7 @@ class DictRowProcesoComercialAdapter:
         return ProcesoComercial(
             id=id,
             historial_estados=[],
-            codigo_etapa_actual=codigo_etapa_actual,
+            codigo_estado_actual=codigo_estado_actual,
             cerrado=cerrado,
             ejecutivo_comercial=ejecutivo_comercial,
             ejecutivo_evaluacion=ejecutivo_evaluacion,
