@@ -11,3 +11,7 @@ class RepositorioPolizas(ABC):
     @abstractmethod
     def buscar(self, id_cliente: int) -> list[Poliza]:
         pass
+
+    @abstractmethod
+    def polizas_gestionadas_ej_comercial_mes_actual(self, rut_ejecutivo: str) -> list[Poliza]:
+        pass

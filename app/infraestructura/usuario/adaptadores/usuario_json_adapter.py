@@ -17,5 +17,7 @@ class UsuarioJsonAdapter:
             roles=[RolJson(codigo=rol.codigo, nombre=rol.nombre) for rol in usuario.roles],
             fecha_registro=usuario.fecha_registro.isoformat(),
             eliminado=usuario.eliminado,
-            habilitado=usuario.habilitado
+            habilitado=usuario.habilitado,
+            porcentaje_comision=usuario.porcentaje_comision,
+            junior=usuario.junior
         )
