@@ -65,4 +65,4 @@ class RegistrarCotizacionASolicitudUseCase:
             fecha_vencimiento=fecha_vencimiento
         )
 
-        self.repositorio_cotizaciones.registrar_cotizacion_a_solicitud(id_solicitud, cotizacion)
+        self.repositorio_cotizaciones.registrar_cotizacion_a_solicitud(id_solicitud, cotizacion, rut_usuario)

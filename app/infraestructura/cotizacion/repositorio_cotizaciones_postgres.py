@@ -36,9 +36,13 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
 
                 return [DictRowCotizacionAdapter(row).to_cotizacion() for row in rows]
             
-    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion):
+    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str):
+        ESTADO_COTIZACION_CARGADA = 'ESTUDIO_EN_DESARROLLO'
+
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+
+                # Registro de la cotización
 
                 query = '''
                     insert into Cotizacion(
@@ -78,3 +82,72 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 }
 
                 cur.execute(query, params)
+
+                # Registro del estado
+
+                query = '''
+                    select PC.id as id_proceso_comercial
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return
+
+                id_proceso_comercial: int = row['id_proceso_comercial']
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (
+                        id_proceso_comercial,
+                        codigo_estado,
+                        rut_registrado_por
+                    )
+                    select
+                        %(id_proceso_comercial)s,
+                        %(codigo_estado)s,
+                        %(rut_registrado_por)s
+                    where coalesce(
+                        (
+                            select codigo_estado
+                            from HistorialEstadoInformativoProcesoComercial
+                            where id_proceso_comercial = %(id_proceso_comercial)s
+                            order by fecha_registro desc
+                            limit 1
+                        ),
+                        ''
+                    ) <> %(codigo_estado)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_COTIZACION_CARGADA,
+                    'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_COTIZACION_CARGADA
+                }
+
+                cur.execute(query, params)
+
+
+    def registrar_cotizacion_sin_solicitud(self, cotizacion: Cotizacion):
+        return super().registrar_cotizacion_sin_solicitud(cotizacion)

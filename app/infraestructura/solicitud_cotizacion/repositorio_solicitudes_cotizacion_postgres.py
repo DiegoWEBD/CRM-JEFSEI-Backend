@@ -360,6 +360,19 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 }
 
                 cur.execute(query, params)
+
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_COTIZACION_SOLICITADA
+                }
+
+                cur.execute(query, params)
                 
     def existe_solicitud(self, id) -> bool:
         with obtener_conexion() as conn:
