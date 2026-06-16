@@ -8,6 +8,10 @@ class CotizacionJsonAdapter:
         self.cotizacion = cotizacion
 
     def to_cotizacion_json(self) -> CotizacionJson:
+
+        if self.cotizacion.id is None:
+            raise Exception('Cotización inválida, indique id')
+
         return CotizacionJson(
             id=self.cotizacion.id,
             monto_total_asegurado=self.cotizacion.monto_total_asegurado,
