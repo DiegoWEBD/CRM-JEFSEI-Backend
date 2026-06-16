@@ -1,14 +1,16 @@
 from datetime import datetime
 
 
+
 class SolicitudCotizacion:
     def __init__(
         self, 
         id: int | None,
         fecha: datetime, 
         nombre_riesgo: str,
-        informacion_completa: str,
-        ejecutivo_comercial: str,
+        informacion_completa: bool,
+        rut_ejecutivo_comercial: str,
+        nombre_ejecutivo_comercial: str,
         prioridad: str, 
         observaciones: str | None,
         tipo: str,
@@ -23,5 +25,6 @@ class SolicitudCotizacion:
         self.recotizacion = recotizacion
         self.nombre_riesgo = nombre_riesgo
         self.informacion_completa = informacion_completa
-        self.ejecutivo_comercial = ejecutivo_comercial
+        self.rut_ejecutivo_comercial = rut_ejecutivo_comercial
+        self.nombre_ejecutivo_comercial = nombre_ejecutivo_comercial
         self.producto = producto

@@ -9,8 +9,9 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
         id: int | None,
         fecha: datetime, 
         nombre_riesgo: str,
-        informacion_completa: str,
-        ejecutivo_comercial: str,
+        informacion_completa: bool,
+        rut_ejecutivo_comercial: str,
+        nombre_ejecutivo_comercial: str,
         prioridad: str, 
         observaciones: str | None,
         tipo: str,
@@ -27,7 +28,8 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
             recotizacion=recotizacion,
             nombre_riesgo=nombre_riesgo,
             informacion_completa=informacion_completa,
-            ejecutivo_comercial=ejecutivo_comercial,
+            rut_ejecutivo_comercial=rut_ejecutivo_comercial,
+            nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
             producto=producto
         )
 
