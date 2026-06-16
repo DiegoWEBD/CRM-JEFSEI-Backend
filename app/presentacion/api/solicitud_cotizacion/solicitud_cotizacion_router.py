@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
+from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_service import ConsultaSolicitudesCotizacionService
@@ -11,9 +12,10 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud
+from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud_use_case, get_registrar_cotizacion_a_solicitud_use_case
 from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_procesos_comerciales_use_case, get_obtener_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case
+from app.presentacion.api.solicitud_cotizacion.dto.requests.registrar_cotizacion_a_solicitud_request import RegistrarCotizacionASolicitudRequest
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
@@ -87,10 +89,10 @@ def solicitar_cotizacion(
     }
     
 @router.get('/{id}/cotizaciones', status_code=status.HTTP_200_OK)
-def obtener_cotizaciones(
+def obtener_cotizaciones_por_solicitud(
     id: int,
     usuario: Usuario = Depends(permisos_requeridos('VER_COTIZACIONES_GLOBAL', 'VER_COTIZACIONES_PROPIAS')),
-    use_case: ObtenerCotizacionesPorSolicitudUseCase = Depends(get_obtener_cotizaciones_por_solicitud)
+    use_case: ObtenerCotizacionesPorSolicitudUseCase = Depends(get_obtener_cotizaciones_por_solicitud_use_case)
 ):
     rut_usuario = usuario.rut if not usuario_tiene_permiso('VER_COTIZACIONES_GLOBAL', usuario) else None
     cotizaciones = use_case.ejecutar(id, rut_usuario)
@@ -101,5 +103,25 @@ def obtener_cotizaciones(
 
 
 @router.post('/{id}/cotizaciones', status_code=status.HTTP_201_CREATED)
-def registrar_cotizacion():
-    pass
+def registrar_cotizacion_a_solicitud(
+    id: int,
+    request: RegistrarCotizacionASolicitudRequest,
+    usuario: Usuario = Depends(permisos_requeridos('CARGAR_COTIZACIONES')),
+    use_case: RegistrarCotizacionASolicitudUseCase = Depends(get_registrar_cotizacion_a_solicitud_use_case)
+):
+    use_case.ejecutar(
+        rut_usuario=usuario.rut,
+        id_solicitud=id,
+        monto_total_asegurado=request.monto_total_asegurado,
+        tasa_afecta=request.tasa_afecta,
+        tasa_excenta=request.tasa_excenta,
+        tasa_politica=request.tasa_politica,
+        prima_adicional_asistencia=request.prima_adicional_asistencia,
+        id_company=request.id_company,
+        fecha_emision=request.fecha_emision,
+        fecha_vencimiento=request.fecha_vencimiento
+    )
+
+    return {
+        'message': 'Cotización registrada'
+    }

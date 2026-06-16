@@ -5,7 +5,7 @@ from datetime import datetime
 class Cotizacion:
     def __init__(
         self, 
-        id: int,
+        id: int | None,
         monto_total_asegurado: float, 
         tasa_afecta: float, 
         tasa_excenta: float, 
