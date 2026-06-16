@@ -7,9 +7,9 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
 from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+router = APIRouter(prefix='/usuarios', tags=['Usuarios'])
 
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get('/', status_code=status.HTTP_200_OK)
 def obtener_usuarios(
     _ = Depends(permisos_requeridos('OBTENER_USUARIOS')),
     use_case: ObtenerUsuariosUseCase = Depends(get_obtener_usuarios_use_case)
@@ -18,7 +18,7 @@ def obtener_usuarios(
         usuarios = use_case.ejecutar()
 
         return {
-            "data": [UsuarioJsonAdapter.Adapt(usuario) for usuario in usuarios]
+            'data': [UsuarioJsonAdapter.Adapt(usuario) for usuario in usuarios]
         }
 
     except Exception as exc:
@@ -27,7 +27,7 @@ def obtener_usuarios(
             detail=str(exc)
         )
 
-@router.get("/{rut}", status_code = status.HTTP_200_OK)
+@router.get('/{rut}', status_code = status.HTTP_200_OK)
 def obtener_usuario(
     rut: str,
     use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case)
@@ -46,7 +46,7 @@ def obtener_usuario(
         )
     
 
-@router.post("/", status_code = status.HTTP_201_CREATED)
+@router.post('/', status_code = status.HTTP_201_CREATED)
 def registrar_usuario(
     request: RegistrarUsuarioRequest,
     _ = Depends(permisos_requeridos('REGISTRAR_USUARIOS')),
@@ -67,11 +67,11 @@ def registrar_usuario(
         if not registrado:
             raise HTTPException(
                 status_code=400,
-                detail="Error al registrar el usuario"
+                detail='Error al registrar el usuario'
             )
 
         return {
-            "message": "Usuario registrado correctamente"
+            'message': 'Usuario registrado correctamente'
         }
 
     except HTTPException:

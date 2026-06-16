@@ -13,4 +13,6 @@ class UsuarioJson(BaseModel):
     habilitado: bool
     eliminado: bool
     meta_mensual_uf: int | None
+    porcentaje_comision: float | None
+    junior: bool
     roles: list[RolJson]

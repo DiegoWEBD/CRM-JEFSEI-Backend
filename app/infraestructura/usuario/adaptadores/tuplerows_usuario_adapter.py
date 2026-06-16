@@ -27,6 +27,8 @@ class TupleRowsUsuarioAdapter:
         fecha_registro=self.rows[0]['fecha_registro']
         habilitado=self.rows[0]['habilitado']
         eliminado=self.rows[0]['eliminado']
+        porcentaje_comision=self.rows[0]['porcentaje_comision']
+        junior=self.rows[0]['junior']
 
         sucursal = Sucursal(
             id=id_sucursal, 
@@ -71,4 +73,6 @@ class TupleRowsUsuarioAdapter:
             fecha_registro=fecha_registro,
             habilitado=habilitado,
             eliminado=eliminado,
+            porcentaje_comision=porcentaje_comision,
+            junior=junior
         )

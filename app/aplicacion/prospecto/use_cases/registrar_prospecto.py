@@ -52,11 +52,10 @@ class RegistrarProspectoUseCase:
         proceso_comercial = ProcesoComercial(
             ejecutivo_comercial=None,
             ejecutivo_evaluacion=None,
+            ejecutivo_renovacion=None,
+            asistente_renovacion=None,
             historial_estados=[],
-            solicitudes_cotizacion=[],
-            estudio=None,
-            poliza=None,
-            plan_pago=None
+            cerrado=False,
         )
 
         prospecto = ProspectoCondominio(

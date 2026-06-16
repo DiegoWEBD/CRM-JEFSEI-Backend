@@ -1,15 +1,14 @@
 from dataclasses import dataclass
 
+from app.aplicacion.proceso_comercial.dto.proceso_comercial_resumen import ProcesoComercialResumen
+
 
 @dataclass
 class ProspectoResumen:
     id: int
     nombre_riesgo: str
-    nombre_contacto: str
+    nombre_administrador: str | None
     linea_negocio: str
-    codigo_estado: str
-    nombre_estado: str
-    dias_limite: int
-    dias_transcurridos: int
-    fecha_ultima_accion: str
-    proxima_accion: str
+    ejecutivo_comercial: str | None
+    id_cliente: int | None
+    procesos_comerciales: list[ProcesoComercialResumen]

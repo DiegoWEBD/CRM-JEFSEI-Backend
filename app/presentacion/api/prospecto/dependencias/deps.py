@@ -3,6 +3,7 @@ from app.aplicacion.prospecto.servicios.consulta_prospectos_service import Consu
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
+from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
 from app.infraestructura.historial_estado.repositorio_historial_estado_postgres import RepositorioHistorialEstadoPostgres
@@ -15,6 +16,10 @@ from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory impor
 
 def get_consulta_prospectos_service() -> ConsultaProspectosService:
     return ConsultaProspectosPostgresService()
+
+def get_obtener_prospecto_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    return ObtenerProspectoUseCase(repositorio_prospectos)
 
 def get_obtener_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()

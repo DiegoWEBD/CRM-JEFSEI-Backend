@@ -11,12 +11,12 @@ class ProspectoEmpresa(Prospecto):
     def __init__(
         self,
         rut_riesgo: str | None, 
-        nombre_riesgo: str, 
-        telefono_contacto: str, 
+        nombre_riesgo: str | None, 
+        telefono_contacto: str | None, 
         correo_contacto: str | None, 
-        direccion: str,
-        region: str, 
-        comuna: str, 
+        direccion: str | None,
+        region: str | None, 
+        comuna: str | None, 
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
@@ -24,18 +24,20 @@ class ProspectoEmpresa(Prospecto):
         nombre_contacto: str,
         actividad: str,
         proceso_comercial: ProcesoComercial,
+        informacion_completa: bool,
         ma_rc: float | None,
         ma_edificio: float | None,
         cantidad_trabajadores: int | None,
         ultima_actualizacion: datetime,
         id: int | None = None, 
+        id_cliente: int | None = None,
         planificacion_prospecto: PlanificacionProspecto | None = None
     ):
         super().__init__(
             id=id,
+            id_cliente=id_cliente,
             rut_riesgo=rut_riesgo,
             nombre_riesgo=nombre_riesgo,
-            nombre_contacto=nombre_contacto,
             telefono_contacto=telefono_contacto,
             correo_contacto=correo_contacto,
             direccion=direccion,
@@ -44,10 +46,9 @@ class ProspectoEmpresa(Prospecto):
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
-            companies_sugeridas=companies_sugeridas,
             planificacion_prospecto=planificacion_prospecto,
-            proceso_comercial=proceso_comercial,
-            ultima_actualizacion=ultima_actualizacion
+            ultima_actualizacion=ultima_actualizacion,
+            informacion_completa=informacion_completa
         )
 
         self.actividad = actividad

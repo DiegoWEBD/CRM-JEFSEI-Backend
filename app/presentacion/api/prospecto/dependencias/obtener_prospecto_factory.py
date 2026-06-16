@@ -46,11 +46,12 @@ class ObtenerProspectoFactory:
     def obtener(
         self,
         linea_negocio: str,
-        id_prospecto: int
+        id_prospecto: int,
+        rut_usuario: str | None
     ):
 
         use_case = self.obtener_use_case(
             linea_negocio
         )
 
-        return use_case.ejecutar(id_prospecto)
+        return use_case.ejecutar(id_prospecto, rut_usuario)

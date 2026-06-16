@@ -1,30 +1,30 @@
 from datetime import datetime
 
-from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
-from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.usuario.usuario import Usuario
 
 class Prospecto:
     def __init__(
         self, 
         rut_riesgo: str | None, 
-        nombre_riesgo: str, 
-        nombre_contacto: str,
-        telefono_contacto: str, 
+        nombre_riesgo: str | None, 
+        telefono_contacto: str | None, 
         correo_contacto: str | None, 
-        direccion: str, 
-        region: str,
-        comuna: str,    
+        direccion: str | None, 
+        region: str | None,
+        comuna: str | None,    
         observaciones: str | None, 
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
-        companies_sugeridas: list[CompanySeguros],
-        proceso_comercial: ProcesoComercial,
+        ejecutivo_comercial_asignado: Usuario | None,
+        informacion_completa: bool,
+        #companies_sugeridas: list[CompanySeguros],
+        #proceso_comercial: ProcesoComercial,
         ultima_actualizacion: datetime = datetime.now(),
         planificacion_prospecto: PlanificacionProspecto | None = None,
-        id: int | None = None
+        id: int | None = None,
+        id_cliente: int | None = None
     ):
         self.rut_riesgo = rut_riesgo
         self.nombre_riesgo = nombre_riesgo
@@ -36,9 +36,9 @@ class Prospecto:
         self.observaciones = observaciones
         self.linea_negocio = linea_negocio
         self.registrado_por = registrado_por
-        self.companies_sugeridas = companies_sugeridas
+        self.ejecutivo_comercial_asignado = ejecutivo_comercial_asignado
         self.id = id
-        self.nombre_contacto = nombre_contacto
+        self.id_cliente = id_cliente
         self.planificacion_prospecto = planificacion_prospecto
-        self.proceso_comercial = proceso_comercial
         self.ultima_actualizacion = ultima_actualizacion
+        self.informacion_completa = informacion_completa

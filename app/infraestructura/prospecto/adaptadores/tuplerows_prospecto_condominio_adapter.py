@@ -25,6 +25,7 @@ class TupleRowsProspectoCondominioAdapter:
     def to_prospecto_condominio(self) -> ProspectoCondominio:
 
         id = self.rows[0]['id_prospecto']
+        id_cliente = self.rows[0]['id_cliente']
         rut_riesgo = self.rows[0]['rut_riesgo']
         nombre_riesgo = self.rows[0]['nombre_riesgo']
         telefono_contacto = self.rows[0]['telefono_contacto']
@@ -224,15 +225,12 @@ class TupleRowsProspectoCondominioAdapter:
             id=id_proceso_comercial,
             ejecutivo_comercial=ej_comercial,
             ejecutivo_evaluacion=ej_evaluacion,
-            solicitudes_cotizacion=list(solicitudes_cotizacion.values()),
-            estudio=estudio,
-            poliza=None,
-            plan_pago=None,
             historial_estados=[]
         )
 
         prospecto = ProspectoCondominio(
             id = id,
+            id_cliente=id_cliente,
             proceso_comercial=proceso_comercial,
             rut_riesgo = rut_riesgo,
             nombre_riesgo = nombre_riesgo,
