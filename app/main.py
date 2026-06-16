@@ -1,4 +1,7 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.auth import auth_router
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.comuna import comuna_router
@@ -14,22 +17,54 @@ from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="CRM JEFSEI API",
-    version="1.0.0"
+    title='CRM JEFSEI API',
+    version='1.0.0'
 )
 
 origins = [
-    "http://localhost:3000",
-    "http://localhost:3001"
+    'http://localhost:3000',
+    'http://localhost:3001'
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
+
+@app.exception_handler(RecursoNoEncontradoException)
+async def recurso_no_encontrado_handler(
+    _: Request,
+    exc: RecursoNoEncontradoException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={'detail': str(exc)},
+    )
+
+
+@app.exception_handler(UsuarioNoAutorizadoException)
+async def usuario_no_autorizado_handler(
+    _: Request,
+    exc: UsuarioNoAutorizadoException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={'detail': str(exc)},
+    )
+
+
+@app.exception_handler(Exception)
+async def internal_server_error_handler(
+    _: Request,
+    exc: Exception,
+):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={'detail': 'Ha ocurrido un error interno en el servidor'},
+    )
 
 app.include_router(auth_router.router)
 

@@ -361,3 +361,23 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 cur.execute(query, params)
                 
+    def existe_solicitud(self, id) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Búsqueda del producto seleccionado
+
+                query = '''
+                    select id
+                    from SolicitudCotizacion
+                    where id = %(id)s
+                '''
+                
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row is not None

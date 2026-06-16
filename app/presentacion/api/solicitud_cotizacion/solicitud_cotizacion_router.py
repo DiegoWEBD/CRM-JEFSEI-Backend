@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_service import ConsultaSolicitudesCotizacionService
@@ -10,6 +11,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
+from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud
 from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_procesos_comerciales_use_case, get_obtener_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
@@ -27,58 +29,39 @@ def obtener_solicitudes(
     solicitudes_activas_use_case: ObtenerSolicitudesCotizacionActivasUseCase = Depends(get_obtener_solicitudes_cotizacion_activas_use_case),
     consulta_solicitudes_service: ConsultaSolicitudesCotizacionService = Depends(get_consulta_solicitudes_cotizacion_service)
 ):
-    try:
-        puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
-        solicitudes = []
+    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
+    solicitudes = []
 
-        if id_prospecto is not None:
+    if id_prospecto is not None:
 
-            autorizado = False
-            prospecto = obtener_prospecto_use_case.ejecutar(id_prospecto)
-            
-            if prospecto.registrado_por.rut == usuario.rut:
+        autorizado = False
+        prospecto = obtener_prospecto_use_case.ejecutar(id_prospecto)
+        
+        if prospecto.registrado_por.rut == usuario.rut:
+            autorizado = True
+        if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
+            autorizado = True
+
+        procesos_comerciales = obtener_procesos_comerciales_use_case.ejecutar(id_prospecto)
+
+        for proceso in procesos_comerciales:
+            if proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut:
                 autorizado = True
-            if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
+            if proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut:
                 autorizado = True
 
-            procesos_comerciales = obtener_procesos_comerciales_use_case.ejecutar(id_prospecto)
+        if not autorizado and not puede_ver_todas:
+            raise UsuarioNoAutorizadoException
 
-            for proceso in procesos_comerciales:
-                if proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut:
-                    autorizado = True
-                if proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut:
-                    autorizado = True
+        solicitudes = solicitudes_activas_use_case.ejecutar(id_prospecto)
 
-            if not autorizado and not puede_ver_todas:
-                raise UsuarioNoAutorizadoException
+    else:
+        rut_usuario = None if puede_ver_todas else usuario.rut
+        solicitudes = consulta_solicitudes_service.obtener_todas(rut_usuario)
 
-            solicitudes = solicitudes_activas_use_case.ejecutar(id_prospecto)
-
-        else:
-            rut_usuario = None if puede_ver_todas else usuario.rut
-            solicitudes = consulta_solicitudes_service.obtener_todas(rut_usuario)
-
-        return {
-            'solicitudes': solicitudes
-        }
-    
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-    
-    except UsuarioNoAutorizadoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc)
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc)
-        )
+    return {
+        'solicitudes': solicitudes
+    }
     
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
@@ -88,43 +71,35 @@ def solicitar_cotizacion(
     obtener_prospecto_use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case),
     solicitar_cotizacion_use_case: SolicitarCotizacionUseCase = Depends(get_solicitar_cotizacion_use_case)
 ):
-    try:
-        print(request)
-        autorizado = False
-        prospecto = obtener_prospecto_use_case.ejecutar(request.id_prospecto)
-        
-        if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
-            autorizado = True
-
-        if not autorizado:
-            raise UsuarioNoAutorizadoException
-
-        solicitar_cotizacion_use_case.ejecutar(request, usuario)
-
-        return {
-            'message': 'Solicitud de cotización registrada'
-        }
+    autorizado = False
+    prospecto = obtener_prospecto_use_case.ejecutar(request.id_prospecto)
     
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-    
-    except RecursoNoEncontradoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-    
-    except UsuarioNoAutorizadoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc)
-        )
+    if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
+        autorizado = True
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc)
-        )
+    if not autorizado:
+        raise UsuarioNoAutorizadoException
+
+    solicitar_cotizacion_use_case.ejecutar(request, usuario)
+
+    return {
+        'message': 'Solicitud de cotización registrada'
+    }
+    
+@router.get('/{id}/cotizaciones', status_code=status.HTTP_200_OK)
+def obtener_cotizaciones(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_COTIZACIONES_GLOBAL', 'VER_COTIZACIONES_PROPIAS')),
+    use_case: ObtenerCotizacionesPorSolicitudUseCase = Depends(get_obtener_cotizaciones_por_solicitud)
+):
+    rut_usuario = usuario.rut if not usuario_tiene_permiso('VER_COTIZACIONES_GLOBAL', usuario) else None
+    cotizaciones = use_case.ejecutar(id, rut_usuario)
+
+    return {
+        'cotizaciones': cotizaciones
+    } 
+
+
+@router.post('/{id}/cotizaciones', status_code=status.HTTP_201_CREATED)
+def registrar_cotizacion():
+    pass

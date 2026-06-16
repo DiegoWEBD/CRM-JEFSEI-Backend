@@ -16,7 +16,6 @@ class TupleRowsCompanySegurosAdapter:
         
         id = self.rows[0]['id']
         nombre = self.rows[0]['nombre']
-        nombre_logo = self.rows[0]['nombre_logo']
 
         factores: list[FactorCuotasCompany] = []
 
@@ -34,7 +33,6 @@ class TupleRowsCompanySegurosAdapter:
         return CompanySeguros(
             id=id,
             nombre=nombre,
-            nombre_logo=nombre_logo,
             factores_cuotas=factores,
             coberturas=[]
         )

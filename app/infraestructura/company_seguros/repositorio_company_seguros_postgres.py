@@ -13,7 +13,7 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
             with conn.cursor() as cur:
 
                 query = '''
-                    select CS.id, CS.nombre, CS.nombre_logo, FCC.numero_cuotas, FCC.factor
+                    select CS.id, CS.nombre, FCC.numero_cuotas, FCC.factor
                     from CompanySeguros CS
                     left join FactorCuotasCompany FCC
                     on CS.id = FCC.id_company
