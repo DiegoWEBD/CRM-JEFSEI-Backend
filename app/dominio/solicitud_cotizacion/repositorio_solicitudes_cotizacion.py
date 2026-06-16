@@ -12,3 +12,7 @@ class RepositorioSolicitudesCotizacion(ABC):
     @abstractmethod
     def registrar_nueva_solicitud(self, solicitud: SolicitudCotizacion, id_prospecto: int, registrado_por: Usuario):
         pass
+
+    @abstractmethod
+    def existe_solicitud(self, id) -> bool:
+        pass

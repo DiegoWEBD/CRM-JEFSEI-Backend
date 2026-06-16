@@ -1,0 +1,10 @@
+from abc import ABC, abstractmethod
+
+from app.dominio.cotizacion.cotizacion import Cotizacion
+
+
+class RepositorioCotizaciones(ABC):
+
+    @abstractmethod
+    def obtener_por_solicitud(self, id_solicitud: int) -> list[Cotizacion]:
+        pass

@@ -74,7 +74,6 @@ class DictRowProspectoCondominioAdapter:
             company_poliza_vigente = CompanySeguros(
                 id=id_company_planificacion,
                 nombre=nombre_company_planificacion,
-                nombre_logo='',
                 factores_cuotas=[],
                 coberturas=[]
             )

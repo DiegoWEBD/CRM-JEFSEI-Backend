@@ -1,3 +1,4 @@
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
@@ -10,6 +11,6 @@ class ObtenerProspectoUseCase:
         prospecto = self.repositorio_prospectos.buscar(id)
 
         if prospecto is None or prospecto.id is None:
-            raise ValueError('No se encontró el prospecto')
+            raise RecursoNoEncontradoException('No se encontró el prospecto')
         
         return prospecto
