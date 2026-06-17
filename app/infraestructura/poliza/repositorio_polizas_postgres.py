@@ -8,7 +8,44 @@ from app.infraestructura.poliza.adapadores.dictrow_poliza_adapter import DictRow
 
 class RepositorioPolizasPostgres(RepositorioPolizas):
 
-    def buscar(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
+    def buscar(self, numero_poliza: str) -> Poliza | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                
+                query = '''
+                    select P.numero_poliza, 
+                    TP.tipo, P.prima_neta, 
+                    P.comision_corredora_pct,
+                    CS.nombre as company,
+                    PR.nombre as nombre_producto,
+                    P.fecha_emision,
+                    P.inicio_vigencia,
+                    P.fin_vigencia,
+                    P.id_company,
+                    P.cancelada,
+                    P.renovacion_cotizada
+                    from Poliza P
+                    inner join TipoPoliza TP
+                    on P.id_tipo_poliza = TP.id
+                    inner join ProcesoComercial PC
+                    on P.id_proceso_comercial = PC.id
+                    inner join Producto PR
+                    on PC.id_producto = PR.id
+                    left join CompanySeguros CS
+                    on P.id_company = CS.id
+                    where P.numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowPolizaAdapter(row).to_poliza() if row else None
+
+    def obtener_polizas_cliente(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 
@@ -66,15 +103,16 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 query = '''
                     select P.numero_poliza, 
-                    P.id_cliente, TP.tipo,
-                    P.prima_neta, P.comision_corredora_pct,
+                    TP.tipo, P.prima_neta, 
+                    P.comision_corredora_pct,
                     CS.nombre as company,
                     PR.nombre as nombre_producto,
                     P.fecha_emision,
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada
+                    P.cancelada,
+                    P.renovacion_cotizada
                     from Poliza P
                     inner join TipoPoliza TP
                     on P.id_tipo_poliza = TP.id
@@ -110,7 +148,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada
+                    P.cancelada,
+                    P.renovacion_cotizada
                     from Poliza P
                     inner join TipoPoliza TP
                     on P.id_tipo_poliza = TP.id

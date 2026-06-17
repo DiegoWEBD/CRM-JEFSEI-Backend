@@ -15,7 +15,8 @@ class Poliza:
         fecha_emision: datetime | None,
         inicio_vigencia: datetime | None,
         fin_vigencia: datetime | None,
-        estado: EstadoPoliza
+        estado: EstadoPoliza,
+        renovacion_cotizada: bool
     ):
         self.numero_poliza = numero_poliza
         self.tipo = tipo
@@ -27,3 +28,4 @@ class Poliza:
         self.comision_corredora_pct = comision_corredora_pct
         self.nombre_producto = nombre_producto
         self.estado = estado
+        self.renovacion_cotizada = renovacion_cotizada

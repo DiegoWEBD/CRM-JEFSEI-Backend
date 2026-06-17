@@ -42,11 +42,11 @@ class RegistrarCotizacionASolicitudUseCase:
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
         
-        if self.repositorio_companies.buscar(id_company) is None:
-            raise RecursoNoEncontradoException('Compañía no encontrada')
-
         if not self.authorization_service.usuario_puede_ver_solicitud_cotizacion(rut_usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
+        
+        if self.repositorio_companies.buscar(id_company) is None:
+            raise RecursoNoEncontradoException('Compañía no encontrada')
         
         company = CompanySeguros(
             id=id_company,
@@ -65,4 +65,4 @@ class RegistrarCotizacionASolicitudUseCase:
             fecha_vencimiento=fecha_vencimiento
         )
 
-        self.repositorio_cotizaciones.registrar_cotizacion_a_solicitud(id_solicitud, cotizacion)
+        self.repositorio_cotizaciones.registrar_cotizacion_a_solicitud(id_solicitud, cotizacion, rut_usuario)

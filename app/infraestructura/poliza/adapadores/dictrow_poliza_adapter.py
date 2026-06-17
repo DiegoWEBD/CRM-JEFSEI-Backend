@@ -12,6 +12,7 @@ class DictRowPolizaAdapter:
         self.row = row
 
     def to_poliza(self) -> Poliza:
+        RANGO_DIAS_POR_VENCER = 60 # 2 meses
 
         cancelada: bool | None = self.row['cancelada']
         fin_vigencia: datetime | None = self.row['fin_vigencia']
@@ -27,7 +28,7 @@ class DictRowPolizaAdapter:
 
             diferencia_dias = (fin_vigencia - datetime_actual).days
 
-            if diferencia_dias <= 10:
+            if diferencia_dias <= RANGO_DIAS_POR_VENCER:
                 estado = EstadoPoliza.POR_VENCER
             else:
                 estado = EstadoPoliza.VIGENTE
@@ -43,5 +44,6 @@ class DictRowPolizaAdapter:
             fecha_emision=self.row['fecha_emision'],
             inicio_vigencia=self.row['inicio_vigencia'],
             fin_vigencia=fin_vigencia,
-            estado=estado
+            estado=estado,
+            renovacion_cotizada=self.row['renovacion_cotizada']
         )

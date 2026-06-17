@@ -17,6 +17,7 @@ class SolicitudCotizacionResponsabilidadCivil(SolicitudCotizacion):
         tipo: str,
         producto: str,
         recotizacion: bool,
+        motivo_recotizacion: str | None,
         actividad_del_condominio: str,
         limite: float
     ):
@@ -27,6 +28,7 @@ class SolicitudCotizacionResponsabilidadCivil(SolicitudCotizacion):
             observaciones=observaciones,
             tipo=tipo,
             recotizacion=recotizacion,
+            motivo_recotizacion=motivo_recotizacion,
             nombre_riesgo=nombre_riesgo,
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,

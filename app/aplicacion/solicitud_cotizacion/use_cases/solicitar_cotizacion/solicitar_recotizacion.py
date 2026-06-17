@@ -6,6 +6,7 @@ from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.soli
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_responsabilidad_civil_request import SolicitudCotizacionResponsabilidadCivilRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_unidades_request import SolicitudCotizacionUnidadesRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_vida_guardia_request import SolicitudCotizacionVidaGuardiaRequest
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.actividad_accidentes_personales.actividad_accidentes_personales import ActividadAccidentesPersonales
@@ -16,13 +17,15 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitu
 from app.dominio.usuario.usuario import Usuario
 
 
-
-class SolicitarCotizacionUseCase:
+class SolicitarRecotizacionUseCase:
 
     def __init__(self, repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion) -> None:
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
 
-    def ejecutar(self, request: SolicitudCotizacionRequest, usuario: Usuario):
+    def ejecutar(self, request: SolicitudCotizacionRequest, id_solicitud_original: int, usuario: Usuario):
+
+        if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud_original):
+            raise RecursoNoEncontradoException('Solicitud original no encontrada')
 
         solicitud: SolicitudCotizacion
 
@@ -48,8 +51,8 @@ class SolicitarCotizacionUseCase:
                 observaciones=request.observaciones,
                 tipo=request.tipo,
                 producto='',
-                recotizacion=False,
-                motivo_recotizacion=None,
+                recotizacion=True,
+                motivo_recotizacion=request.motivo_recotizacion,
                 actividades=actividades
             )
 
@@ -67,8 +70,8 @@ class SolicitarCotizacionUseCase:
                 observaciones=request.observaciones,
                 tipo=request.tipo,
                 producto='',
-                recotizacion=False,
-                motivo_recotizacion=None,
+                recotizacion=True,
+                motivo_recotizacion=request.motivo_recotizacion,
                 monto_asegurado_total=request.monto_asegurado_total,
                 nombre_excel=request.nombre_excel
             )
@@ -89,8 +92,8 @@ class SolicitarCotizacionUseCase:
                 observaciones=request.observaciones,
                 tipo=request.tipo,
                 producto='',
-                recotizacion=False,
-                motivo_recotizacion=None,
+                recotizacion=True,
+                motivo_recotizacion=request.motivo_recotizacion,
                 numero_guardias=request.numero_guardias
             )
 
@@ -108,8 +111,8 @@ class SolicitarCotizacionUseCase:
                 observaciones=request.observaciones,
                 tipo=request.tipo,
                 producto='',
-                recotizacion=False,
-                motivo_recotizacion=None,
+                recotizacion=True,
+                motivo_recotizacion=request.motivo_recotizacion,
                 actividad_del_condominio=request.actividad_del_condominio,
                 limite=request.limite
             )
@@ -126,12 +129,12 @@ class SolicitarCotizacionUseCase:
                 observaciones=request.observaciones,
                 tipo=request.tipo,
                 producto='',
-                recotizacion=False,
-                motivo_recotizacion=None
+                recotizacion=True,
+                motivo_recotizacion=request.motivo_recotizacion
             )
             
-        self.repositorio_solicitudes_cotizacion.registrar_nueva_solicitud(
+        self.repositorio_solicitudes_cotizacion.registrar_solicitud_recotizacion(
             solicitud=solicitud,
-            id_prospecto=request.id_prospecto,
+            id_solicitud_original=id_solicitud_original,
             registrado_por=usuario
         )

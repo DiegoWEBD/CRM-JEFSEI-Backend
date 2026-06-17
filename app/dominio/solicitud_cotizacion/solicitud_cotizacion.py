@@ -1,7 +1,6 @@
 from datetime import datetime
 
 
-
 class SolicitudCotizacion:
     def __init__(
         self, 
@@ -15,7 +14,8 @@ class SolicitudCotizacion:
         observaciones: str | None,
         tipo: str,
         producto: str,
-        recotizacion: bool
+        recotizacion: bool,
+        motivo_recotizacion: str | None
     ):
         self.id = id
         self.fecha = fecha
@@ -23,6 +23,7 @@ class SolicitudCotizacion:
         self.observaciones = observaciones
         self.tipo = tipo
         self.recotizacion = recotizacion
+        self.motivo_recotizacion = motivo_recotizacion
         self.nombre_riesgo = nombre_riesgo
         self.informacion_completa = informacion_completa
         self.rut_ejecutivo_comercial = rut_ejecutivo_comercial

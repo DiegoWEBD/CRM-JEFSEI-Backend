@@ -129,61 +129,43 @@ def obtener_prospecto_por_id(
 def registrar_prospecto(
     request: RegistrarProspectoRequest,
     usuario: Usuario = Depends(permisos_requeridos('REGISTRAR_PROSPECTO')),
-    registrar_prospecto: RegistrarProspectoUseCase = Depends(get_registrar_prospecto_use_case),
-    asignar_ejecutivo_comercial: AsignarEjecutivoComercialUseCase = Depends(get_asignar_ejecutivo_comercial_use_case)
+    registrar_prospecto: RegistrarProspectoUseCase = Depends(get_registrar_prospecto_use_case)
 ):
-    try:
-        ROL_EJECUTIVO_COMERCIAL = 'EJECUTIVO_COMERCIAL'
+    registrar_prospecto.ejecutar(
+        rut_usuario=usuario.rut,
+        rut_riesgo=request.rut_riesgo,
+        nombre_riesgo=request.nombre_riesgo,
+        id_administrador=request.id_administrador,
+        telefono_contacto=request.telefono_contacto,
+        correo_contacto=request.correo_contacto,
+        direccion=request.direccion,
+        region=request.region,
+        comuna=request.comuna,
+        observaciones=request.observaciones,
+        id_linea_negocio=request.id_linea_negocio,
+        tiene_locales_comerciales=request.tiene_locales_comerciales,
+        uso_del_condominio=request.uso_del_condominio,
+        numero_pisos=request.numero_pisos,
+        numero_torres=request.numero_torres,
+        cantidad_departamentos=request.cantidad_departamentos,
+        cantidad_subterraneos=request.cantidad_subterraneos,
+        tiene_piscina=request.tiene_piscina,
+        year_construccion=request.year_construccion,
+        metros_cuadrados=request.metros_cuadrados,
+        uf_por_metro_cuadrado=request.uf_por_metro_cuadrado,
+        porcentaje_depreciacion=request.porcentaje_depreciacion,
+        porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
+        clasificacion_preliminar_incendio=request.clasificacion_preliminar_incendio,
+        materialidad=request.materialidad,
+        procesos_productivos=request.procesos_productivos,
+        ubicacion_piscina=request.ubicacion_piscina,
+        tiene_alarma_incendio=request.tiene_alarma_incendio,
+        tiene_sprinklers=request.tiene_sprinklers
+    )
 
-        id_prospecto = registrar_prospecto.ejecutar(
-            rut_usuario=usuario.rut,
-            rut_riesgo=request.rut_riesgo,
-            nombre_riesgo=request.nombre_riesgo,
-            nombre_contacto=request.nombre_contacto,
-            telefono_contacto=request.telefono_contacto,
-            correo_contacto=request.correo_contacto,
-            direccion=request.direccion,
-            id_comuna=request.id_comuna,
-            observaciones=request.observaciones,
-            id_linea_negocio=request.id_linea_negocio,
-            cargo_contacto=request.cargo_contacto,
-            tiene_locales_comerciales=request.tiene_locales_comerciales,
-            uso_del_condominio=request.uso_del_condominio,
-            numero_pisos=request.numero_pisos,
-            numero_torres=request.numero_torres,
-            cantidad_departamentos=request.cantidad_departamentos,
-            cantidad_subterraneos=request.cantidad_subterraneos,
-            tiene_piscina=request.tiene_piscina,
-            year_construccion=request.year_construccion,
-            metros_cuadrados=request.metros_cuadrados,
-            desea_ser_contactado=request.desea_ser_contactado
-        )
-
-        es_ejecutivo_comercial = False
-
-        for rol in usuario.roles:
-            if rol.nombre == ROL_EJECUTIVO_COMERCIAL:
-                es_ejecutivo_comercial = True
-
-        if es_ejecutivo_comercial:
-            asignar_ejecutivo_comercial.ejecutar(
-                id_prospecto=id_prospecto,
-                rut_ej_comercial=usuario.rut,
-                asignado_por=usuario
-            )
-
-        return {
-            'message': 'Prospecto registrado correctamente'
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
-        )
+    return {
+        'message': 'Prospecto registrado correctamente'
+    }
     
 
 @router.post('/{id}/asignar-ej-comercial', status_code=status.HTTP_200_OK)
