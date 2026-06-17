@@ -18,6 +18,7 @@ class SolicitudCotizacionUnidades(SolicitudCotizacion):
         tipo: str,
         producto: str,
         recotizacion: bool,
+        motivo_recotizacion: str | None,
         monto_asegurado_total: float,
         nombre_excel: str
     ):
@@ -28,6 +29,7 @@ class SolicitudCotizacionUnidades(SolicitudCotizacion):
             observaciones=observaciones,
             tipo=tipo,
             recotizacion=recotizacion,
+            motivo_recotizacion=motivo_recotizacion,
             nombre_riesgo=nombre_riesgo,
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,

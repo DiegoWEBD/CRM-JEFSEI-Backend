@@ -17,6 +17,7 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
         tipo: str,
         producto: str,
         recotizacion: bool,
+        motivo_recotizacion: str | None,
         numero_guardias: int
     ):
         super().__init__(
@@ -26,6 +27,7 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
             observaciones=observaciones,
             tipo=tipo,
             recotizacion=recotizacion,
+            motivo_recotizacion=motivo_recotizacion,
             nombre_riesgo=nombre_riesgo,
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,

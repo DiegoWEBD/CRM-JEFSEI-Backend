@@ -19,6 +19,7 @@ class SolicitudCotizacionAccidentesPersonales(SolicitudCotizacion):
         tipo: str,
         producto: str,
         recotizacion: bool,
+        motivo_recotizacion: str | None,
         actividades: list[ActividadAccidentesPersonales]
     ):
         super().__init__(
@@ -28,6 +29,7 @@ class SolicitudCotizacionAccidentesPersonales(SolicitudCotizacion):
             observaciones=observaciones,
             tipo=tipo,
             recotizacion=recotizacion,
+            motivo_recotizacion=motivo_recotizacion,
             nombre_riesgo=nombre_riesgo,
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,

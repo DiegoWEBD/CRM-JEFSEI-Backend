@@ -14,5 +14,9 @@ class RepositorioSolicitudesCotizacion(ABC):
         pass
 
     @abstractmethod
+    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_solicitud_original: int, registrado_por: Usuario):
+        pass
+
+    @abstractmethod
     def existe_solicitud(self, id) -> bool:
         pass

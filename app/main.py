@@ -7,6 +7,7 @@ from app.presentacion.api.auth.dependencias.get_current_user import get_current_
 from app.presentacion.api.comuna import comuna_router
 from app.presentacion.api.comunicado_gerencia import comunicado_gerencia_router
 from app.presentacion.api.estudio_comercial import estudio_comercial_router
+from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.linea_negocio import linea_negocio_router
 from app.presentacion.api.metricas import metricas_router
 from app.presentacion.api.poliza import poliza_router
@@ -56,6 +57,17 @@ async def usuario_no_autorizado_handler(
     )
 
 
+@app.exception_handler(BadRequestException)
+async def bad_request_handler(
+    _: Request,
+    exc: BadRequestException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={'detail': str(exc)},
+    )
+
+
 @app.exception_handler(Exception)
 async def internal_server_error_handler(
     _: Request,
@@ -65,6 +77,7 @@ async def internal_server_error_handler(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={'detail': 'Ha ocurrido un error interno en el servidor'},
     )
+
 
 app.include_router(auth_router.router)
 

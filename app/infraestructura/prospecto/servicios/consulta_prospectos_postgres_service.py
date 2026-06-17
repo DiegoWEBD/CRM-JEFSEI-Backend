@@ -14,7 +14,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 base_query = '''
-                    select distinct on (PC.id) 
+                    select distinct on (P.nombre_riesgo, PC.id) 
                     P.id,
                     PC.id as id_proceso_comercial,
                     C.id as id_cliente,
@@ -43,7 +43,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     left join Usuario EJ_COM
                     on PC.rut_ej_comercial = EJ_COM.rut
                     {where_clause}
-                    order by PC.id, HE.fecha_registro desc
+                    order by P.nombre_riesgo, PC.id, HE.fecha_registro desc
                 '''
 
                 params = {}

@@ -23,6 +23,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     SC.prioridad, SC.fecha,
                     SC.observaciones,
                     SC.recotizacion,
+                    SC.motivo_recotizacion,
                     P.nombre_riesgo,
                     P.informacion_completa,
                     PC.rut_ej_comercial,
@@ -53,6 +54,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     fecha = row['fecha']
                     observaciones = row['observaciones']
                     recotizacion = row['recotizacion']
+                    motivo_recotizacion = row['motivo_recotizacion']
                     nombre_riesgo = row['nombre_riesgo']
                     informacion_completa = row['informacion_completa']
                     rut_ej_comercial = row['rut_ej_comercial']
@@ -83,6 +85,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             observaciones=observaciones,
                             fecha=fecha,
                             recotizacion=recotizacion,
+                            motivo_recotizacion=motivo_recotizacion,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -119,6 +122,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             observaciones=observaciones,
                             fecha=fecha,
                             recotizacion=recotizacion,
+                            motivo_recotizacion=motivo_recotizacion,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -151,6 +155,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             observaciones=observaciones,
                             fecha=fecha,
                             recotizacion=recotizacion,
+                            motivo_recotizacion=motivo_recotizacion,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -184,6 +189,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             observaciones=observaciones,
                             fecha=fecha,
                             recotizacion=recotizacion,
+                            motivo_recotizacion=motivo_recotizacion,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -201,6 +207,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             observaciones=observaciones,
                             fecha=fecha,
                             recotizacion=recotizacion,
+                            motivo_recotizacion=motivo_recotizacion,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -370,6 +377,147 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
                     'codigo_estado': ESTADO_COTIZACION_SOLICITADA
+                }
+
+                cur.execute(query, params)
+
+    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_solicitud_original: int, registrado_por: Usuario):
+        ESTADO_RECOTIZACION_SOLICITADA = 'RECOTIZACION_SOLICITADA'
+        
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Búsqueda del proceso comercial asociado
+
+                query = '''
+                    select id_proceso_comercial, tipo
+                    from  SolicitudCotizacion
+                    where id = %(id_solicitud_original)s
+                '''
+                
+                params = {
+                    'id_solicitud_original': id_solicitud_original
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return
+                
+                id_proceso_comercial: int = row['id_proceso_comercial']
+                tipo = row['tipo']
+
+                # Creación de solicitud base
+
+                query = '''
+                    insert into SolicitudCotizacion (fecha, prioridad, id_proceso_comercial, observaciones, tipo, recotizacion, motivo_recotizacion)
+                    values (%(fecha)s, %(prioridad)s, %(id_proceso_comercial)s, %(observaciones)s, %(tipo)s, %(recotizacion)s, %(motivo_recotizacion)s)
+                    returning id
+                '''
+                
+                params = {
+                    'fecha': solicitud.fecha,
+                    'prioridad': solicitud.prioridad,
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'observaciones': solicitud.observaciones,
+                    'tipo': tipo,
+                    'recotizacion': True,
+                    'motivo_recotizacion': solicitud.motivo_recotizacion
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return
+                
+                id_solicitud: int = row['id']
+                
+                # Creación de solicitud específica
+
+                if isinstance(solicitud, SolicitudCotizacionUnidades):
+                    query = '''
+                        insert into SolicitudCotizacionProductoUnidades (id, monto_asegurado_total, nombre_excel)
+                        values (%(id_solicitud)s, %(monto_asegurado_total)s, %(nombre_excel)s)
+                    '''
+                    
+                    params = {
+                        'id_solicitud': id_solicitud,
+                        'monto_asegurado_total': solicitud.monto_asegurado_total,
+                        'nombre_excel': solicitud.nombre_excel
+                    }
+
+                    cur.execute(query, params)
+
+                elif isinstance(solicitud, SolicitudCotizacionVidaGuardia):
+                    query = '''
+                        insert into SolicitudCotizacionProductoVidaGuardia (id, numero_guardias)
+                        values (%(id_solicitud)s, %(numero_guardias)s)
+                    '''
+                    
+                    params = {
+                        'id_solicitud': id_solicitud,
+                        'numero_guardias': solicitud.numero_guardias
+                    }
+
+                    cur.execute(query, params)
+
+                elif isinstance(solicitud, SolicitudCotizacionResponsabilidadCivil):
+                    query = '''
+                        insert into SolicitudCotizacionProductoResponsabilidadCivil (id, limite_responsabilidad_civil, actividad_del_condominio)
+                        values (%(id_solicitud)s, %(limite_responsabilidad_civil)s, %(actividad_del_condominio)s)
+                    '''
+                    
+                    params = {
+                        'id_solicitud': id_solicitud,
+                        'limite_responsabilidad_civil': solicitud.limite,
+                        'actividad_del_condominio': solicitud.actividad_del_condominio
+                    }
+
+                    cur.execute(query, params)
+
+                elif isinstance(solicitud, SolicitudCotizacionAccidentesPersonales):
+                    
+                    for actividad_ap in solicitud.actividades:
+                        query = '''
+                            insert into SolicitudCotizacionProductoAccidentesPersonales (id, actividad, numero_asegurados)
+                            values (%(id_solicitud)s, %(actividad)s, %(numero_asegurados)s)
+                        '''
+                        
+                        params = {
+                            'id_solicitud': id_solicitud,
+                            'actividad': actividad_ap.actividad,
+                            'numero_asegurados': actividad_ap.numero_asegurados
+                        }
+
+                        cur.execute(query, params)
+                    
+                # Registro de historial
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
+                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
+                '''
+                
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_RECOTIZACION_SOLICITADA,
+                    'fecha_registro': solicitud.fecha,
+                    'rut_registrado_por': registrado_por.rut
+                }
+
+                cur.execute(query, params)
+
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_RECOTIZACION_SOLICITADA
                 }
 
                 cur.execute(query, params)
