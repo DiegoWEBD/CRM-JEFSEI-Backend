@@ -21,26 +21,30 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     insert into Prospecto(
                         rut_riesgo,
                         nombre_riesgo,
-                        nombre_contacto,
                         telefono_contacto,
                         correo_contacto,
                         direccion,
-                        id_comuna,
+                        region,
+                        comuna,
                         observaciones,
                         id_linea_negocio,
-                        rut_registrado_por
+                        rut_registrado_por,
+                        rut_ej_comercial_asignado,
+                        informacion_completa
                     )
                     values(
                         %(rut_riesgo)s,
                         %(nombre_riesgo)s,
-                        %(nombre_contacto)s,
                         %(telefono_contacto)s,
                         %(correo_contacto)s,
                         %(direccion)s,
-                        %(id_comuna)s,
+                        %(region)s,
+                        %(comuna)s,
                         %(observaciones)s,
                         %(id_linea_negocio)s,
-                        %(rut_registrado_por)s
+                        %(rut_registrado_por)s,
+                        %(rut_ej_comercial_asignado)s,
+                        %(informacion_completa)s
                     )
                     returning id
                 '''
@@ -48,14 +52,16 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 params = {
                     'rut_riesgo': prospecto.rut_riesgo,
                     'nombre_riesgo': prospecto.nombre_riesgo,
-                    'nombre_contacto': prospecto.nombre_contacto,
                     'telefono_contacto': prospecto.telefono_contacto,
                     'correo_contacto': prospecto.correo_contacto,
                     'direccion': prospecto.direccion,
-                    'id_comuna': prospecto.comuna.id,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
                     'observaciones': prospecto.observaciones,
                     'id_linea_negocio': prospecto.linea_negocio.id,
                     'rut_registrado_por': prospecto.registrado_por.rut,
+                    'rut_ej_comercial_asignado': prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None,
+                    'informacion_completa': informacion_completa_prospecto_condominio(prospecto)
                 }
 
                 cur.execute(query, params)
@@ -70,135 +76,72 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 query = '''
                     insert into ProspectoCondominio(
                         id,
-                        cargo_contacto,
+                        id_administrador,
                         tiene_locales_comerciales,
                         uso_del_condominio,
+                        materialidad,
+                        clasificacion_preliminar_incendio,
+                        procesos_productivos,
                         numero_pisos,
                         numero_torres,
                         cantidad_departamentos,
                         cantidad_subterraneos,
                         tiene_piscina,
+                        ubicacion_piscina,
+                        tiene_alarma_incendio,
+                        tiene_sprinklers,
                         year_construccion,
                         metros_cuadrados,
-                        desea_ser_contactado,
-                        cantidad_unidades
+                        uf_por_metro_cuadrado,
+                        porcentaje_depreciacion,
+                        porcentaje_espacios_comunes
                     )
                     values(
                         %(id)s,
-                        %(cargo_contacto)s,
+                        %(id_administrador)s,
                         %(tiene_locales_comerciales)s,
                         %(uso_del_condominio)s,
+                        %(materialidad)s,
+                        %(clasificacion_preliminar_incendio)s,
+                        %(procesos_productivos)s,
                         %(numero_pisos)s,
                         %(numero_torres)s,
                         %(cantidad_departamentos)s,
                         %(cantidad_subterraneos)s,
                         %(tiene_piscina)s,
+                        %(ubicacion_piscina)s,
+                        %(tiene_alarma_incendio)s,
+                        %(tiene_sprinklers)s,
                         %(year_construccion)s,
                         %(metros_cuadrados)s,
-                        %(desea_ser_contactado)s,
-                        %(cantidad_unidades)s
+                        %(uf_por_metro_cuadrado)s,
+                        %(porcentaje_depreciacion)s,
+                        %(porcentaje_espacios_comunes)s
                     )
                 '''
 
                 params = {
                     'id': id_prospecto,
-                    'cargo_contacto': prospecto.cargo_contacto,
+                    'id_administrador': prospecto.administrador.id if prospecto.administrador else None,
                     'tiene_locales_comerciales': prospecto.tiene_locales_comerciales,
                     'uso_del_condominio': prospecto.uso_del_condominio,
+                    'materialidad': prospecto.materialidad,
+                    'clasificacion_preliminar_incendio': prospecto.clasificacion_preliminar_incendio,
+                    'procesos_productivos': prospecto.procesos_productivos,
                     'numero_pisos': prospecto.numero_pisos,
                     'numero_torres': prospecto.numero_torres,
                     'cantidad_departamentos': prospecto.cantidad_departamentos,
                     'cantidad_subterraneos': prospecto.cantidad_subterraneos,
                     'tiene_piscina': prospecto.tiene_piscina,
+                    'ubicacion_piscina': prospecto.ubicacion_piscina,
+                    'tiene_alarma_incendio': prospecto.tiene_alarma_incendio,
+                    'tiene_sprinklers': prospecto.tiene_sprinklers,
                     'year_construccion': prospecto.year_construccion,
                     'metros_cuadrados': prospecto.metros_cuadrados,
-                    'desea_ser_contactado': prospecto.desea_ser_contactado,
-                    'cantidad_unidades': prospecto.cantidad_unidades
+                    'uf_por_metro_cuadrado': prospecto.uf_por_metro_cuadrado,
+                    'porcentaje_depreciacion': prospecto.porcentaje_depreciacion,
+                    'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
                 }
-
-                cur.execute(query, params)
-
-                rut_ejecutivo_comercial = prospecto.proceso_comercial.ejecutivo_comercial.rut if prospecto.proceso_comercial.ejecutivo_comercial else None
-
-                # Proceso comercial
-                query = '''
-                    insert into ProcesoComercial(id_prospecto, rut_ej_comercial)
-                    values (%(id_prospecto)s, %(rut_ej_comercial)s)
-                    returning id
-                '''           
-
-                params = {
-                    'id_prospecto': id_prospecto,
-                    'rut_ej_comercial': rut_ejecutivo_comercial
-                }     
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_proceso_comercial: int = row['id']
-
-                # Estado inicial
-                query = '''
-                    insert into EstadoParticular(codigo_estado_base)
-                    values ('PROSPECTO_CARGADO')
-                    returning id
-                '''               
-
-                cur.execute(query)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_estado_particular_registro: int = row['id']
-
-                # Registro histórico del estado
-                query = '''
-                    insert into HistorialEstado(id_proceso_comercial, id_estado_particular_actual, rut_cambiado_por)
-                    values(%(id_proceso_comercial)s, %(id_estado_particular_actual)s, %(rut_cambiado_por)s)
-                '''           
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular_actual': id_estado_particular_registro,
-                    'rut_cambiado_por': prospecto.registrado_por.rut
-                }     
-
-                cur.execute(query, params)
-
-                if rut_ejecutivo_comercial is None:
-                    return id_prospecto
-
-                # Estado ejecutivo comercial asignado
-                query = '''
-                    insert into EstadoParticular(codigo_estado_base)
-                    values ('EJECUTIVO_COMERCIAL')
-                    returning id
-                '''               
-
-                cur.execute(query)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_estado_particular_ejecutivo: int = row['id']
-
-                # Registro histórico del estado
-                query = '''
-                    insert into HistorialEstado(id_proceso_comercial, id_estado_particular_anterior, id_estado_particular_actual, rut_cambiado_por)
-                    values(%(id_proceso_comercial)s, %(id_estado_particular_anterior)s, %(id_estado_particular_actual)s, %(rut_cambiado_por)s)
-                '''           
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular_anterior': id_estado_particular_registro,
-                    'id_estado_particular_actual': id_estado_particular_ejecutivo,
-                    'rut_cambiado_por': rut_ejecutivo_comercial
-                }     
 
                 cur.execute(query, params)
 
