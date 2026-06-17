@@ -149,5 +149,20 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 cur.execute(query, params)
 
 
-    def registrar_cotizacion_sin_solicitud(self, cotizacion: Cotizacion):
-        return super().registrar_cotizacion_sin_solicitud(cotizacion)
+    def registrar_renovacion_cotizada(self, numero_poliza_renovacion: str):
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Registro de la cotización
+
+                query = '''
+                    update Poliza
+                    set renovacion_cotizada = true
+                    where numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza_renovacion
+                }
+
+                cur.execute(query, params)

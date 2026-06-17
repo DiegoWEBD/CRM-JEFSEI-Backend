@@ -40,3 +40,34 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     rut_ej_renovacion == rut_usuario,
                     rut_as_renovacion == rut_usuario
                 ])
+            
+    def usuario_puede_gestionar_renovacion(self, rut_usuario: str, numero_poliza: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select C.rut_ej_renovacion_asignado,
+                    C.rut_as_renovacion_asignado
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    where P.numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+                
+                rut_ej_renovacion_asignado = row['rut_ej_renovacion_asignado']
+                rut_as_renovacion_asignado = row['rut_as_renovacion_asignado']
+
+                return any([
+                    rut_ej_renovacion_asignado == rut_usuario,
+                    rut_as_renovacion_asignado == rut_usuario
+                ])

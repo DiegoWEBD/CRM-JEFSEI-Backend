@@ -5,11 +5,15 @@ from app.dominio.poliza.poliza import Poliza
 class RepositorioPolizas(ABC):
     
     @abstractmethod
+    def buscar(self, numero_poliza: str) -> Poliza | None:
+        pass
+
+    @abstractmethod
     def registrar(self, poliza: Poliza) -> None:
         pass
 
     @abstractmethod
-    def buscar(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
+    def obtener_polizas_cliente(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
         pass
 
     @abstractmethod

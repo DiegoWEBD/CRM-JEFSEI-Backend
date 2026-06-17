@@ -14,5 +14,5 @@ class RepositorioCotizaciones(ABC):
         pass
 
     @abstractmethod
-    def registrar_cotizacion_sin_solicitud(self, cotizacion: Cotizacion):
+    def registrar_renovacion_cotizada(self, numero_poliza_renovacion: str):
         pass
