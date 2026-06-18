@@ -1,22 +1,19 @@
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, status
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
-from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_service import ConsultaSolicitudesCotizacionService
-from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion_activas import ObtenerSolicitudesCotizacionActivasUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
-from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.cotizacion.adaptadores.cotizacion_json_adapter import CotizacionJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud_use_case, get_registrar_cotizacion_a_solicitud_use_case
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_procesos_comerciales_use_case, get_obtener_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_resumen_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 from app.presentacion.api.solicitud_cotizacion.dto.requests.registrar_cotizacion_a_solicitud_request import RegistrarCotizacionASolicitudRequest
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
@@ -26,42 +23,14 @@ router = APIRouter(prefix='/solicitudes-cotizacion', tags=['SolicitudesCotizacio
 
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_solicitudes(
-    id_prospecto: Optional[int] = Query(None),
     usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
-    obtener_prospecto_use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case),
-    obtener_procesos_comerciales_use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case),
-    solicitudes_activas_use_case: ObtenerSolicitudesCotizacionActivasUseCase = Depends(get_obtener_solicitudes_cotizacion_activas_use_case),
-    consulta_solicitudes_service: ConsultaSolicitudesCotizacionService = Depends(get_consulta_solicitudes_cotizacion_service)
+    use_case: ObtenerResumenSolicitudesCotizacionActivasUseCase = Depends(get_obtener_resumen_solicitudes_cotizacion_activas_use_case)
 ):
     puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
     solicitudes = []
 
-    if id_prospecto is not None:
-
-        autorizado = False
-        prospecto = obtener_prospecto_use_case.ejecutar(id_prospecto)
-        
-        if prospecto.registrado_por.rut == usuario.rut:
-            autorizado = True
-        if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
-            autorizado = True
-
-        procesos_comerciales = obtener_procesos_comerciales_use_case.ejecutar(id_prospecto)
-
-        for proceso in procesos_comerciales:
-            if proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut:
-                autorizado = True
-            if proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut:
-                autorizado = True
-
-        if not autorizado and not puede_ver_todas:
-            raise UsuarioNoAutorizadoException
-
-        solicitudes = solicitudes_activas_use_case.ejecutar(id_prospecto)
-
-    else:
-        rut_usuario = None if puede_ver_todas else usuario.rut
-        solicitudes = consulta_solicitudes_service.obtener_todas(rut_usuario)
+    rut_usuario = None if puede_ver_todas else usuario.rut
+    solicitudes = use_case.ejecutar(rut_usuario)
 
     return {
         'solicitudes': solicitudes
@@ -130,7 +99,7 @@ def obtener_cotizaciones_por_solicitud(
     cotizaciones = use_case.ejecutar(id, rut_usuario)
 
     return {
-        'cotizaciones': cotizaciones
+        'cotizaciones': [CotizacionJsonAdapter(cotizacion).to_cotizacion_json() for cotizacion in cotizaciones]
     } 
 
 

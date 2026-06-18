@@ -13,6 +13,7 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                 query = '''
                     select SC.id,
                     P.nombre_riesgo,
+                    PC.id_prospecto,
                     P.informacion_completa,
                     EJ_COM.nombre as ejecutivo_comercial,
                     SC.tipo,
@@ -39,6 +40,7 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                     group by
                         SC.id,
                         P.nombre_riesgo,
+                        PC.id_prospecto,
                         P.informacion_completa,
                         EJ_COM.nombre,
                         PR.nombre,

@@ -286,59 +286,64 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return DictRowProspectoAdapter(row).to_prospecto()
             
-    def buscar_prospecto_condominio(self, id: int, rut_usuario: str) -> ProspectoCondominio | None:
+    def buscar_prospecto_condominio(self, id: int, rut_usuario: str | None) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                es_propio = False
-                puede_ver_propios = False
-                puede_ver_todos = False
+                es_propio = True
+                puede_ver_propios = True
+                puede_ver_todos = True
 
-                query = '''
-                    select PR.codigo_permiso
-                    from Usuario U
-                    left join RolUsuario RU
-                    on U.rut = RU.rut_usuario
-                    left join PermisoRol PR
-                    on RU.codigo_rol = PR.codigo_rol
-                    where U.rut = %(rut)s
-                '''
+                if rut_usuario is not None:
+                    es_propio = False
+                    puede_ver_propios = False
+                    puede_ver_todos = False
 
-                params = {
-                    'rut': rut_usuario
-                }
+                    query = '''
+                        select PR.codigo_permiso
+                        from Usuario U
+                        left join RolUsuario RU
+                        on U.rut = RU.rut_usuario
+                        left join PermisoRol PR
+                        on RU.codigo_rol = PR.codigo_rol
+                        where U.rut = %(rut)s
+                    '''
 
-                cur.execute(query, params)
-                rows = cur.fetchall()
+                    params = {
+                        'rut': rut_usuario
+                    }
 
-                for row in rows:
-                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_TODOS':
-                        puede_ver_todos = True
-                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_PROPIOS':
-                        puede_ver_propios = True
+                    cur.execute(query, params)
+                    rows = cur.fetchall()
 
-                if not puede_ver_propios and not puede_ver_todos:
-                    raise UsuarioNoAutorizadoException
+                    for row in rows:
+                        if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_TODOS':
+                            puede_ver_todos = True
+                        if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_PROPIOS':
+                            puede_ver_propios = True
 
-                query = '''
-                    select rut_ej_comercial, rut_ej_evaluacion
-                    from ProcesoComercial
-                    where id_prospecto = %(id_prospecto)s
-                '''
+                    if not puede_ver_propios and not puede_ver_todos:
+                        raise UsuarioNoAutorizadoException
 
-                params = {
-                    'id_prospecto': id
-                }
+                    query = '''
+                        select rut_ej_comercial, rut_ej_evaluacion
+                        from ProcesoComercial
+                        where id_prospecto = %(id_prospecto)s
+                    '''
 
-                cur.execute(query, params)
-                rows = cur.fetchall()
+                    params = {
+                        'id_prospecto': id
+                    }
 
-                for row in rows:
-                    rut_ej_comercial = row['rut_ej_comercial']
-                    rut_ej_evaluacion = row['rut_ej_evaluacion']
+                    cur.execute(query, params)
+                    rows = cur.fetchall()
 
-                    if rut_usuario == rut_ej_comercial or rut_usuario == rut_ej_evaluacion:
-                        es_propio = True
+                    for row in rows:
+                        rut_ej_comercial = row['rut_ej_comercial']
+                        rut_ej_evaluacion = row['rut_ej_evaluacion']
+
+                        if rut_usuario == rut_ej_comercial or rut_usuario == rut_ej_evaluacion:
+                            es_propio = True
 
                 query = '''
                     select LN.nombre as linea_negocio
@@ -435,7 +440,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 
                 rut_registrado_por = row['rut_registrado_por']
 
-                if rut_usuario == rut_registrado_por:
+                if rut_usuario is not None and rut_usuario == rut_registrado_por:
                     es_propio = True
 
                 if not puede_ver_todos and not es_propio:

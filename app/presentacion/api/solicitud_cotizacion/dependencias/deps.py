@@ -1,8 +1,10 @@
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion_activas import ObtenerSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
+from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
 
@@ -25,3 +27,9 @@ def get_solicitar_cotizacion_use_case():
 def get_solicitar_recotizacion_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
     return SolicitarRecotizacionUseCase(repositorio)
+
+def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
+    service = ConsultaSolicitudesCotizacionPostgresService()
+    repositorio = RepositorioProspectosPostgres()
+
+    return ObtenerResumenSolicitudesCotizacionActivasUseCase(service, repositorio)

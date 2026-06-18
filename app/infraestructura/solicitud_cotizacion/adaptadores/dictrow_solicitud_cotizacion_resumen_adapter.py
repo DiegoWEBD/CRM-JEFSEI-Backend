@@ -11,6 +11,7 @@ class DictRowSolicitudCotizacionResumenAdapter:
     def to_solicitud_cotizacion_resumen(self) -> SolicitudCotizacionResumen:
         return SolicitudCotizacionResumen(
             id=self.row['id'],
+            id_prospecto=self.row['id_prospecto'],
             nombre_riesgo=self.row['nombre_riesgo'],
             informacion_completa=self.row['informacion_completa'],
             ejecutivo_comercial=self.row['ejecutivo_comercial'],
@@ -18,5 +19,6 @@ class DictRowSolicitudCotizacionResumenAdapter:
             producto=self.row['producto'],
             prioridad=self.row['prioridad'],
             fecha=self.row['fecha'],
-            cantidad_cotizaciones=self.row['cantidad_cotizaciones']
+            cantidad_cotizaciones=self.row['cantidad_cotizaciones'],
+            campos_faltantes=[]
         )
