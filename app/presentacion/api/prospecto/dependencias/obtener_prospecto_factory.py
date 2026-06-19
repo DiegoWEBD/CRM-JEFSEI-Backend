@@ -1,20 +1,26 @@
+from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales import ObtenerProspectoLineasPersonalesUseCase
 from app.infraestructura.prospecto.adaptadores.json.prospecto_condominio_json_adapter import ProspectoCondominioJsonAdapter
+from app.infraestructura.prospecto.adaptadores.json.prospecto_json_adapter import ProspectoJsonAdapter
 
 
 class ObtenerProspectoFactory:
 
     def __init__(
         self,
-        obtener_prospecto_condominio: ObtenerProspectoCondominioUseCase
+        obtener_prospecto_condominio: ObtenerProspectoCondominioUseCase,
+        obtener_prospecto_linea_personal: ObtenerProspectoLineasPersonalesUseCase
     ):
 
         self.use_cases = {
-            'condominio': obtener_prospecto_condominio
+            'condominio': obtener_prospecto_condominio,
+            'lineas_personales': obtener_prospecto_linea_personal
         }
 
         self.adapters = {
-            'condominio': ProspectoCondominioJsonAdapter
+            'condominio': ProspectoCondominioJsonAdapter,
+            'lineas_personales': ProspectoJsonAdapter
         }
 
     def obtener_use_case(self, linea_negocio: str):

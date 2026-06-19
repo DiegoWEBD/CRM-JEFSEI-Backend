@@ -10,6 +10,8 @@ class SolicitudCotizacionResumen:
     informacion_completa: bool
     ejecutivo_comercial: str
     tipo: str
+    recotizacion: bool
+    motivo_recotizacion: str | None
     producto: str
     prioridad: str
     fecha: datetime

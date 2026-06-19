@@ -4,7 +4,10 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotiz
 
 class ObtenerSolicitudesCotizacionActivasUseCase:
     
-    def __init__(self, repositorio_solicitudes: RepositorioSolicitudesCotizacion):
+    def __init__(
+        self, 
+        repositorio_solicitudes: RepositorioSolicitudesCotizacion
+    ):
         self.repositorio_solicitudes = repositorio_solicitudes
 
     def ejecutar(self, id_prospecto: int) -> list[SolicitudCotizacion]:

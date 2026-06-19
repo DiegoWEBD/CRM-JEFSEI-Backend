@@ -4,7 +4,10 @@ from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
 
 class ObtenerProspectoUseCase:
-    def __init__(self, repositorio_prospectos: RepositorioProspectos):
+    def __init__(
+        self, 
+        repositorio_prospectos: RepositorioProspectos
+    ):
         self.repositorio_prospectos = repositorio_prospectos
 
     def ejecutar(self, id: int) -> Prospecto:
@@ -12,5 +15,5 @@ class ObtenerProspectoUseCase:
 
         if prospecto is None or prospecto.id is None:
             raise RecursoNoEncontradoException('No se encontró el prospecto')
-        
+
         return prospecto

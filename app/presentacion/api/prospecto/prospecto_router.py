@@ -9,6 +9,7 @@ from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import A
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion_activas import ObtenerSolicitudesCotizacionActivasUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.infraestructura.lib.normalizar_texto import normalizar_texto
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -97,36 +98,21 @@ def obtener_prospecto_por_id(
     obtener_linea_negocio_prospecto: ObtenerLineaNegocioProspectoUseCase = Depends(get_obtener_linea_negocio_prospecto_use_case),
     obtener_prospecto_factory: ObtenerProspectoFactory = Depends(get_obtener_prospecto_factory)
 ):
-    try:
-        linea_negocio = obtener_linea_negocio_prospecto.ejecutar(id)
+    linea_negocio = normalizar_texto(obtener_linea_negocio_prospecto.ejecutar(id).nombre)
 
-        prospecto = obtener_prospecto_factory.obtener(
-            linea_negocio=linea_negocio.nombre,
-            id_prospecto=id,
-            rut_usuario=usuario.rut
-        )
+    puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
 
-        adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio.nombre)  
+    prospecto = obtener_prospecto_factory.obtener(
+        linea_negocio=linea_negocio,
+        id_prospecto=id,
+        rut_usuario=usuario.rut if not puede_ver_todos else None
+    )
 
-        return {
-            'prospecto': adapter(prospecto).to_prospecto_json()
-        }
-        
+    adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio)  
 
-    except HTTPException:
-        raise
-
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Prospecto no encontrado'
-        )
-    
-    except UsuarioNoAutorizadoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc)
-        )
+    return {
+        'prospecto': adapter(prospecto).to_prospecto_json()
+    }
 
     
 @router.post('/', status_code=status.HTTP_201_CREATED)

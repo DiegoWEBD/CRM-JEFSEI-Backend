@@ -1,5 +1,7 @@
 from psycopg.rows import DictRow
 
+from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso_comercial import EstadoInformativoProcesoComercial
+from app.dominio.etapa_proceso_comercial.etapa_proceso_comercial import EtapaProcesoComercial
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.producto.producto import Producto
 from app.dominio.usuario.usuario import Usuario
@@ -13,7 +15,14 @@ class DictRowProcesoComercialAdapter:
     def to_proceso_comercial(self) -> ProcesoComercial:
         
         id = self.row['id']
-        codigo_estado_actual = self.row['codigo_estado_actual']
+        id_prospecto = self.row['id_prospecto']
+        nombre_cliente = self.row['nombre_cliente']
+        codigo_estado = self.row['codigo_estado']
+        nombre_estado = self.row['nombre_estado']
+        fecha_registro_estado = self.row['fecha_registro_estado']
+        codigo_etapa = self.row['codigo_etapa']
+        nombre_etapa = self.row['nombre_etapa']
+        dias_limite_etapa = self.row['dias_limite_etapa']
         cerrado = self.row['cerrado']
         rut_ej_comercial = self.row['rut_ej_comercial']
         nombre_ej_comercial = self.row['nombre_ej_comercial']
@@ -42,12 +51,27 @@ class DictRowProcesoComercialAdapter:
             nombre=nombre_producto
         )
 
+        etapa = EtapaProcesoComercial(
+            codigo=codigo_etapa,
+            nombre=nombre_etapa,
+            sigiuente_etapa=None,
+            dias_limite=dias_limite_etapa
+        )
+
+        estado = EstadoInformativoProcesoComercial(
+            codigo=codigo_estado,
+            etapa=etapa,
+            nombre=nombre_estado,
+            fecha_registro=fecha_registro_estado
+        )
+
         return ProcesoComercial(
             id=id,
-            historial_estados=[],
-            codigo_estado_actual=codigo_estado_actual,
+            estado_actual=estado,
             cerrado=cerrado,
             ejecutivo_comercial=ejecutivo_comercial,
             ejecutivo_evaluacion=ejecutivo_evaluacion,
-            producto=producto
+            producto=producto,
+            id_prospecto=id_prospecto,
+            nombre_cliente=nombre_cliente
         )

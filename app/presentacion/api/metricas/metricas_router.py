@@ -1,13 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.aplicacion.metricas.use_cases.obtener_metricas_dashboard_gerente import ObtenerMetricasDashboardGerenteUseCase
 from app.aplicacion.metricas.use_cases.obtener_prima_vendida_mensual_ej_comercial import ObtenerPrimaVendidaMensualEjComercialUseCase
 from app.aplicacion.metricas.use_cases.obtener_progreso_comision_mensual_ej_comercial import ObtenerProgresoComisionMensualEjComercialUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
-from app.presentacion.api.metricas.dependencias.deps import get_obtener_prima_vendida_mensual_ej_comercial_use_case, get_obtener_progreso_comision_mensual_ej_comercial_use_case
+from app.presentacion.api.metricas.dependencias.deps import get_obtener_metricas_dashboard_gerente_use_case, get_obtener_prima_vendida_mensual_ej_comercial_use_case, get_obtener_progreso_comision_mensual_ej_comercial_use_case
 
 
 router = APIRouter(prefix='/metricas', tags=['Metricas'])
+
+
+@router.get('/dashboard-gerente', status_code=status.HTTP_200_OK)
+def obtener_metricas_dashboard_gerente(
+    use_case: ObtenerMetricasDashboardGerenteUseCase = Depends(
+        get_obtener_metricas_dashboard_gerente_use_case
+    ),
+):
+    return use_case.ejecutar()
 
 @router.get('/ejecutivos-comerciales', status_code=status.HTTP_200_OK)
 def obtener_usuarios(

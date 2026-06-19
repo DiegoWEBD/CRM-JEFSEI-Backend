@@ -1,0 +1,7 @@
+from app.aplicacion.company_seguros.use_cases.obtener_todas_las_companies_seguros import ObtenerTodasLasCompaniesSegurosUseCase
+from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
+
+
+def get_obtener_todas_las_companies_seguros_use_case():
+    repositorio = RepositorioCompanySegurosPostgres()
+    return ObtenerTodasLasCompaniesSegurosUseCase(repositorio)

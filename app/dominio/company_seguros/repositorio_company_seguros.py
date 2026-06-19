@@ -11,5 +11,9 @@ class RepositorioCompanySeguros(ABC):
         pass
 
     @abstractmethod
+    def obtener_todas(self) -> list[CompanySeguros]:
+        pass
+
+    @abstractmethod
     def obtener_factores_cuotas(self, id_company: int) -> list[FactorCuotasCompany]:
         pass

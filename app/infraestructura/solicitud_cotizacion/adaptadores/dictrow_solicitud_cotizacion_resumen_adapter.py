@@ -16,6 +16,8 @@ class DictRowSolicitudCotizacionResumenAdapter:
             informacion_completa=self.row['informacion_completa'],
             ejecutivo_comercial=self.row['ejecutivo_comercial'],
             tipo=self.row['tipo'],
+            recotizacion=self.row['recotizacion'],
+            motivo_recotizacion=self.row['motivo_recotizacion'],
             producto=self.row['producto'],
             prioridad=self.row['prioridad'],
             fecha=self.row['fecha'],

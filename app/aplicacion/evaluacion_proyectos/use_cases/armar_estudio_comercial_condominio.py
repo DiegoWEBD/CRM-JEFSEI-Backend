@@ -5,8 +5,11 @@ from datetime import datetime
 
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
+from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
+from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
+from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
 
@@ -17,10 +20,14 @@ class ArmarEstudioComercialCondominioUseCase:
     def __init__(
         self,
         repositorio_prospectos: RepositorioProspectos,
-        repositorio_company_seguros: RepositorioCompanySeguros
+        repositorio_company_seguros: RepositorioCompanySeguros,
+        repositorio_cotizaciones: RepositorioCotizaciones,
+        repositorio_estudios: RepositorioEstudiosComerciales
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_company_seguros = repositorio_company_seguros
+        self.repositorio_cotizaciones = repositorio_cotizaciones
+        self.repositorio_estudios = repositorio_estudios
         self.datos_plantilla: dict[str, object] = {}
         self.doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
 
@@ -29,23 +36,25 @@ class ArmarEstudioComercialCondominioUseCase:
         id_prospecto: int,
         infraseguro_primer_ejemplo: float,
         infraseguro_segundo_ejemplo: float,
-        cantidad_cuotas: int
-    ) -> EstudioComercialCondominio:
+        cantidad_cuotas: int,
+        ids_cotizacion: list[int],
+        usuario: Usuario
+    ) -> tuple[EstudioComercialCondominio, int, str]:
 
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
+        if len(ids_cotizacion) == 0:
+            raise Exception('No se puede armar el estudio del condominio sin cotizaciones')
+
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto, rut_usuario=None)
 
         if not prospecto or prospecto.id is None:
             raise ValueError('Prospecto no encontrado')
         
         monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         
-        if not prospecto.evaluacion_riesgo:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la evaluacion de riesgo')
-        
         if not prospecto.year_construccion:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
 
-        if not prospecto.evaluacion_riesgo.uf_por_metro_cuadrado:
+        if not prospecto.uf_por_metro_cuadrado:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la uf por metro cuadrado')
         
         if not prospecto.metros_cuadrados:
@@ -54,45 +63,52 @@ class ArmarEstudioComercialCondominioUseCase:
         if not prospecto.cantidad_departamentos:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la cantidad de unidades')
         
-        if prospecto.evaluacion_riesgo.porcentaje_depreciacion is None:
+        if prospecto.porcentaje_depreciacion is None:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
         
-        if not prospecto.evaluacion_riesgo.porcentaje_espacios_comunes:
+        if not prospecto.porcentaje_espacios_comunes:
             raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
         
-        if len(prospecto.evaluacion_riesgo.cotizaciones) == 0:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, debe tener al menos una cotización')
-        
+        if not prospecto.administrador:
+            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
+
+        cotizaciones = [
+            self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
+            for id_cotizacion in ids_cotizacion
+        ]
+
         self.datos_plantilla = {
-            'nombre_administrador': prospecto.nombre_contacto,
+            'nombre_administrador': prospecto.administrador.nombre_administrador,
             'nombre_condominio': prospecto.nombre_riesgo,
             'metros_cuadrados': convertir_numero_a_formato_chileno(prospecto.metros_cuadrados),
             'year_construccion': prospecto.year_construccion,
             'cantidad_unidades': 120, # Falta implementar el campo cantidad_unidades en la tabla Prospecto y sus relacionadas
             'direccion': prospecto.direccion,
-            'comuna': prospecto.comuna.nombre,
-            'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.evaluacion_riesgo.uf_por_metro_cuadrado),
-            'porcentaje_depreciacion': round(prospecto.evaluacion_riesgo.porcentaje_depreciacion * 100),
-            'porcentaje_espacios_comunes': round(prospecto.evaluacion_riesgo.porcentaje_espacios_comunes * 100),
+            'comuna': prospecto.comuna,
+            'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.uf_por_metro_cuadrado),
+            'porcentaje_depreciacion': round(prospecto.porcentaje_depreciacion * 100),
+            'porcentaje_espacios_comunes': round(prospecto.porcentaje_espacios_comunes * 100),
             'cantidad_cuotas': cantidad_cuotas,
             'year_actual': datetime.now().year
         }
 
-        estudio = self.__armar_estudio(
+        estudio, ruta_docx = self.__armar_estudio(
             id_prospecto=prospecto.id,
             monto_asegurado_actual=monto_asegurado_actual,
             infraseguro_primer_ejemplo=infraseguro_primer_ejemplo,
             infraseguro_segundo_ejemplo=infraseguro_segundo_ejemplo,
             metros_cuadrados_construidos=prospecto.metros_cuadrados,
-            valor_uf_por_metro_cuadrado=prospecto.evaluacion_riesgo.uf_por_metro_cuadrado,
-            porcentaje_depreciacion=prospecto.evaluacion_riesgo.porcentaje_depreciacion,
+            valor_uf_por_metro_cuadrado=prospecto.uf_por_metro_cuadrado,
+            porcentaje_depreciacion=prospecto.porcentaje_depreciacion,
             cantidad_cuotas=cantidad_cuotas,
             cantidad_unidades=120,
-            porcentaje_bienes_espacios_comunes=prospecto.evaluacion_riesgo.porcentaje_espacios_comunes,
-            cotizaciones=prospecto.evaluacion_riesgo.cotizaciones
+            porcentaje_bienes_espacios_comunes=prospecto.porcentaje_espacios_comunes,
+            cotizaciones=cotizaciones
         )
 
-        return estudio
+        id_estudio = self.repositorio_estudios.registrar(estudio, ids_cotizacion, usuario.rut)
+
+        return estudio, id_estudio, str(ruta_docx)
     
 
     def __armar_estudio(
@@ -109,7 +125,7 @@ class ArmarEstudioComercialCondominioUseCase:
         porcentaje_bienes_espacios_comunes: float,
         cotizaciones: list[Cotizacion]
 
-    ) -> EstudioComercialCondominio:
+    ) -> tuple[EstudioComercialCondominio, str]:
         
         valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
         valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
@@ -202,7 +218,7 @@ class ArmarEstudioComercialCondominioUseCase:
             cantidad_cuotas=cantidad_cuotas,
             valor_uf=40000,
             monto_asegurado_actual=monto_asegurado_actual,
-            porcentaje_infrasegurdo=infraseguro_actual,
+            porcentaje_infraseguro=infraseguro_actual,
             detalles_monto_asegurado_actual=detalles_monto_asegurado_actual,
             detalles_monto_asegurado_primer_ejemplo=detalles_monto_asegurado_primer_ejemplo,
             detalles_monto_asegurado_segundo_ejemplo=detalles_monto_asegurado_segundo_ejemplo,
@@ -227,7 +243,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
         self.doc.save(ruta_docx)
 
-        return estudio
+        return estudio, str(ruta_docx)
     
     
     def __detalle_estudio(

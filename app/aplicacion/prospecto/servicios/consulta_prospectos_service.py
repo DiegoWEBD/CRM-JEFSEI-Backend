@@ -8,3 +8,9 @@ class ConsultaProspectosService(ABC):
     @abstractmethod
     def obtener_todos(self, rut_usuario: str | None = None) -> list[ProspectoResumen]:
         pass
+
+    @abstractmethod
+    def obtener_por_administrador(
+        self, id_administrador: int, rut_usuario: str | None = None
+    ) -> list[ProspectoResumen]:
+        pass
