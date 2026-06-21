@@ -286,6 +286,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return DictRowProspectoAdapter(row).to_prospecto()
             
+            
     def buscar_prospecto_condominio(self, id: int, rut_usuario: str | None) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

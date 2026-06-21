@@ -1,12 +1,15 @@
 from datetime import datetime
 from typing import cast
 
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_accidentes_personales_request.solicitud_cotizacion_accidentes_personales_request import SolicitudCotizacionAccidentesPersonalesRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_responsabilidad_civil_request import SolicitudCotizacionResponsabilidadCivilRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_unidades_request import SolicitudCotizacionUnidadesRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_vida_guardia_request import SolicitudCotizacionVidaGuardiaRequest
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.actividad_accidentes_personales.actividad_accidentes_personales import ActividadAccidentesPersonales
@@ -19,13 +22,27 @@ from app.dominio.usuario.usuario import Usuario
 
 class SolicitarRecotizacionUseCase:
 
-    def __init__(self, repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion) -> None:
+    def __init__(
+        self, 
+        repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion,
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales,
+        authorization_service: AuthorizationService
+    ) -> None:
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
+        self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
+        self.authorization_service = authorization_service
 
-    def ejecutar(self, request: SolicitudCotizacionRequest, id_solicitud_original: int, usuario: Usuario):
+    def ejecutar(self, request: SolicitudCotizacionRequest, id_proceso_comercial: int, usuario: Usuario):
 
-        if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud_original):
-            raise RecursoNoEncontradoException('Solicitud original no encontrada')
+        proceso_comercial = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
+
+        if not proceso_comercial:
+            raise RecursoNoEncontradoException('Proceso comercial no encontrado')
+        
+        if not self.authorization_service.usuario_puede_solicitar_cotizacion(usuario, proceso_comercial.id):
+            raise UsuarioNoAutorizadoException    
+
+        solicitud: SolicitudCotizacion
 
         solicitud: SolicitudCotizacion
 
@@ -135,6 +152,6 @@ class SolicitarRecotizacionUseCase:
             
         self.repositorio_solicitudes_cotizacion.registrar_solicitud_recotizacion(
             solicitud=solicitud,
-            id_solicitud_original=id_solicitud_original,
+            id_proceso_comercial=proceso_comercial.id,
             registrado_por=usuario
         )

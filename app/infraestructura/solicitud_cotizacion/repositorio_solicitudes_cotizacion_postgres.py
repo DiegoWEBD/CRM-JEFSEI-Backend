@@ -217,22 +217,24 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
             return cotizaciones 
          
-    def registrar_nueva_solicitud(self, solicitud: SolicitudCotizacion, id_prospecto: int, registrado_por: Usuario):
+    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         ESTADO_COTIZACION_SOLICITADA = 'COTIZACION_SOLICITADA_COMPANY'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                # Búsqueda del producto seleccionado
+                # Verificar que el tipo de solicitud coincida con el producto del proceso comercial
 
                 query = '''
-                    select id
-                    from Producto
-                    where codigo = %(tipo_solicitud)s
+                    select P.codigo
+                    from ProcesoComercial PC
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    where PC.id = %(id_proceso_comercial)s
                 '''
                 
                 params = {
-                    'tipo_solicitud': solicitud.tipo
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -241,32 +243,10 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 if row is None:
                     raise RecursoNoEncontradoException(f'Producto con código {solicitud.tipo} no encontrado')
                 
-                id_producto: int = row['id']
+                codigo_producto = row['codigo']
 
-                # Creación de nuevo proceso comercial
-
-                query = '''
-                    insert into ProcesoComercial (id_prospecto, rut_ej_comercial, rut_ej_evaluacion, id_producto, codigo_estado_actual, renovacion)
-                    values (%(id_prospecto)s, %(rut_ej_comercial)s, %(rut_ej_evaluacion)s, %(id_producto)s, %(codigo_estado_actual)s, %(renovacion)s)
-                    returning id
-                '''
-                
-                params = {
-                    'id_prospecto': id_prospecto,
-                    'rut_ej_comercial': solicitud.rut_ejecutivo_comercial,
-                    'rut_ej_evaluacion': '15326481-0', # MODIFICAR POST PROYECTO
-                    'codigo_estado_actual': ESTADO_COTIZACION_SOLICITADA,
-                    'id_producto': id_producto,
-                    'renovacion': False
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise Exception('Error al crear un nuevo proceso comercial')
-                
-                id_proceso_comercial: int = row['id']
+                if codigo_producto != solicitud.tipo:
+                    raise Exception('El tipo de solicitud no coincide con el de la oporunidad comercial')
 
                 # Creación de solicitud base
 
@@ -380,8 +360,9 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 }
 
                 cur.execute(query, params)
+         
 
-    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_solicitud_original: int, registrado_por: Usuario):
+    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         ESTADO_RECOTIZACION_SOLICITADA = 'RECOTIZACION_SOLICITADA'
         
         with obtener_conexion() as conn:
@@ -390,13 +371,15 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 # Búsqueda del proceso comercial asociado
 
                 query = '''
-                    select id_proceso_comercial, tipo
-                    from  SolicitudCotizacion
-                    where id = %(id_solicitud_original)s
+                    select P.codigo
+                    from ProcesoComercial PC
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    where PC.id = %(id_proceso_comercial)s
                 '''
                 
                 params = {
-                    'id_solicitud_original': id_solicitud_original
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -405,8 +388,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 if row is None:
                     return
                 
-                id_proceso_comercial: int = row['id_proceso_comercial']
-                tipo = row['tipo']
+                tipo = row['codigo']
 
                 # Creación de solicitud base
 

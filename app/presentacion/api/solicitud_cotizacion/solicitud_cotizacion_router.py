@@ -35,60 +35,8 @@ def obtener_solicitudes(
     return {
         'solicitudes': solicitudes
     }
-    
 
-@router.post('/', status_code=status.HTTP_201_CREATED)
-def solicitar_cotizacion(
-    request: SolicitudCotizacionRequestUnion,
-    usuario: Usuario = Depends(permisos_requeridos('SOLICITAR_COTIZACION')),
-    obtener_prospecto_use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case),
-    solicitar_cotizacion_use_case: SolicitarCotizacionUseCase = Depends(get_solicitar_cotizacion_use_case)
-):
-    autorizado = False
-    prospecto = obtener_prospecto_use_case.ejecutar(request.id_prospecto)
-    
-    if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
-        autorizado = True
-
-    if not autorizado:
-        raise UsuarioNoAutorizadoException
-
-    solicitar_cotizacion_use_case.ejecutar(request, usuario)
-
-    return {
-        'message': 'Solicitud de cotización registrada'
-    }
-
-@router.post('/{id}/recotizacion', status_code=status.HTTP_201_CREATED)
-def solicitar_recotizacion(
-    id: int,
-    request: SolicitudCotizacionRequestUnion,
-    usuario: Usuario = Depends(permisos_requeridos('SOLICITAR_COTIZACION')),
-    obtener_prospecto_use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case),
-    solicitar_cotizacion_use_case: SolicitarRecotizacionUseCase = Depends(get_solicitar_recotizacion_use_case)
-):
-    if request.motivo_recotizacion is None:
-        raise BadRequestException('Debe indicar motivo_recotizacion')
-
-    autorizado = False
-    prospecto = obtener_prospecto_use_case.ejecutar(request.id_prospecto)
-    
-    if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
-        autorizado = True
-
-    if not autorizado:
-        raise UsuarioNoAutorizadoException
-
-    solicitar_cotizacion_use_case.ejecutar(
-        request=request,
-        id_solicitud_original=id,
-        usuario=usuario
-    )
-
-    return {
-        'message': 'Recotización solicitada'
-    }
-    
+      
 @router.get('/{id}/cotizaciones', status_code=status.HTTP_200_OK)
 def obtener_cotizaciones_por_solicitud(
     id: int,
