@@ -16,6 +16,7 @@ class ProcesoComercialJsonAdapter:
             ejecutivo_comercial=UsuarioJsonResumenAdapter(self.proceso.ejecutivo_comercial).to_usuario_json_resumen() if self.proceso.ejecutivo_comercial else None,
             ejecutivo_evaluacion=UsuarioJsonResumenAdapter(self.proceso.ejecutivo_evaluacion).to_usuario_json_resumen() if self.proceso.ejecutivo_evaluacion else None,
             id_prospecto=self.proceso.id_prospecto,
+            tipo_producto=self.proceso.producto.codigo,
             producto=self.proceso.producto.nombre,
             estado_actual=EstadoInformativoJsonAdapter(self.proceso.estado_actual).to_json(),
             etapa_actual=EtapaProcesoComercialJsonAdapter(self.proceso.estado_actual.etapa).to_json(),

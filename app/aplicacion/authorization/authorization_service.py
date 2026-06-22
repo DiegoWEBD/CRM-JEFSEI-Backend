@@ -18,3 +18,6 @@ class AuthorizationService:
     
     def usuario_puede_solicitar_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
         return self.authorization_repository.usuario_puede_solicitar_cotizacion(usuario.rut, id_proceso_comercial)
+    
+    def usuario_puede_ver_procesos_comerciales(self, rut_usuario: str, id_prospecto: int) -> bool:
+        return self.authorization_repository.usuario_puede_ver_procesos_comerciales(rut_usuario, id_prospecto)

@@ -6,6 +6,7 @@ from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import 
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.dominio.usuario.usuario import Usuario
@@ -20,8 +21,9 @@ from app.presentacion.api.proceso_comercial.dto.reportes_proceso_comercial_cerra
 from app.presentacion.api.proceso_comercial.dto.requests.cerrar_proceso_comercial_request import CerrarProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.crear_proceso_comercial_request import CrearProcesoComercialRequest
 from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_solicitudes_cotizacion_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
+from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 router = APIRouter(prefix='/procesos-comerciales', tags=['ProcesosComerciales'])
 
@@ -169,4 +171,16 @@ def solicitar_recotizacion(
 
     return {
         'message': 'Recotización solicitada'
+    }
+
+@router.get('/{id}/solicitudes-cotizacion', status_code=status.HTTP_200_OK)
+def obtener_solicitudes(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerSolicitudesCotizacionUseCase = Depends(get_obtener_solicitudes_cotizacion_use_case)
+):
+    solicitudes = use_case.ejecutar(id, usuario)
+
+    return {
+        'solicitudes': solicitudes
     }

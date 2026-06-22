@@ -29,6 +29,7 @@ class DictRowProcesoComercialAdapter:
         rut_ej_evaluacion = self.row['rut_ej_evaluacion']
         nombre_ej_evaluacion = self.row['nombre_ej_evaluacion']
         id_producto = self.row['id_producto']
+        codigo_producto = self.row['codigo_producto']
         nombre_producto = self.row['nombre_producto']
 
         ejecutivo_comercial = None
@@ -48,7 +49,8 @@ class DictRowProcesoComercialAdapter:
 
         producto = Producto(
             id=id_producto,
-            nombre=nombre_producto
+            nombre=nombre_producto,
+            codigo=codigo_producto
         )
 
         etapa = EtapaProcesoComercial(

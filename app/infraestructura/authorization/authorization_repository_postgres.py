@@ -173,7 +173,61 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
 
                 if row is None:
                     return False
-                
-                rut_ej_comercial_asignado = row['rut_ej_comercial_asignado']
+            
+                return row['rut_ej_comercial_asignado'] == rut_usuario
+            
+    def usuario_puede_ver_procesos_comerciales(self, rut_usuario: str, id_prospecto: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
 
-                return rut_ej_comercial_asignado == rut_usuario
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'ADMINISTRAR_PROCESOS_COMERCIALES':
+                        return True
+                    if row['codigo_permiso'] == 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS':
+                        tiene_permisos = True
+                        break
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado
+                    from ProcesoComercial PC
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where P.id = %(id_prospecto)s
+                '''
+
+                params = {
+                    'id_prospecto': id_prospecto
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                ])

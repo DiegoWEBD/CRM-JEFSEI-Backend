@@ -6,7 +6,11 @@ from app.dominio.usuario.usuario import Usuario
 class RepositorioSolicitudesCotizacion(ABC):
     
     @abstractmethod
-    def obtener_solicitudes_activas(self, id_prospecto: int) -> list[SolicitudCotizacion]:
+    def buscar(self, id: int) -> SolicitudCotizacion | None:
+        pass
+
+    @abstractmethod
+    def obtener_solicitudes(self, id_proceso_comercial: int) -> list[SolicitudCotizacion]:
         pass
 
     @abstractmethod

@@ -12,6 +12,7 @@ class ProcesoComercialJson(BaseModel):
     id_prospecto: int
     nombre_cliente: str
     producto: str
+    tipo_producto: str
     estado_actual: EstadoInformativoJson
     etapa_actual: EtapaProcesoComercialJson
     cerrado: bool

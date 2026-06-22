@@ -29,7 +29,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre as nombre_ej_evaluacion,
                     PC.id_producto,
-                    P.nombre as nombre_producto
+                    P.nombre as nombre_producto,
+                    P.codigo as codigo_producto
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -82,7 +83,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre as nombre_ej_evaluacion,
                     PC.id_producto,
-                    P.nombre as nombre_producto
+                    P.nombre as nombre_producto,
+                    P.codigo as codigo_producto
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -145,7 +147,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                         PC.rut_ej_evaluacion,
                         EJ_EV.nombre as nombre_ej_evaluacion,
                         PC.id_producto,
-                        P.nombre as nombre_producto
+                        P.nombre as nombre_producto,
+                        P.codigo as codigo_producto
                     from ProcesoComercial PC
                     inner join Prospecto PR
                         on PC.id_prospecto = PR.id

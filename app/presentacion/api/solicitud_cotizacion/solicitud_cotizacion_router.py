@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
-from app.aplicacion.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_service import ConsultaSolicitudesCotizacionService
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
@@ -13,7 +13,7 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud_use_case, get_registrar_cotizacion_a_solicitud_use_case
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_resumen_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_consulta_solicitudes_cotizacion_service, get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 from app.presentacion.api.solicitud_cotizacion.dto.requests.registrar_cotizacion_a_solicitud_request import RegistrarCotizacionASolicitudRequest
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
@@ -34,6 +34,20 @@ def obtener_solicitudes(
 
     return {
         'solicitudes': solicitudes
+    }
+
+@router.get('/{id}', status_code=status.HTTP_200_OK)
+def obtener_detalle_solicitud(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerDetalleSolicitudUseCase = Depends(get_obtener_detalle_solicitud_use_case)
+):
+    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
+
+    solicitud = use_case.ejecutar(id, usuario)
+
+    return {
+        'solicitud': solicitud
     }
 
       

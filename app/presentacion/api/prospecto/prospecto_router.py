@@ -6,10 +6,9 @@ from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto impo
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
-from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
-from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion_activas import ObtenerSolicitudesCotizacionActivasUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.lib.normalizar_texto import normalizar_texto
+from app.infraestructura.proceso_comercial.adaptadores.proceso_comercial_json_adapter import ProcesoComercialJsonAdapter
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -22,7 +21,7 @@ from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_procesos_comerciales_use_case, get_obtener_solicitudes_cotizacion_activas_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_procesos_comerciales_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 
@@ -112,6 +111,23 @@ def obtener_prospecto_por_id(
 
     return {
         'prospecto': adapter(prospecto).to_prospecto_json()
+    }
+
+@router.get('/{id}/procesos-comerciales', status_code=status.HTTP_200_OK)
+def obtener_procesos_comerciales_prospecto(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES', 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
+    use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case)
+):
+    puede_ver_todos = usuario_tiene_permiso('ADMINISTRAR_PROCESOS_COMERCIALES', usuario)
+
+    procesos = use_case.ejecutar(
+        id_prospecto=id,
+        rut_usuario=usuario.rut if not puede_ver_todos else None
+    )
+
+    return {
+        'oportunidades': [ProcesoComercialJsonAdapter(proceso).to_json() for proceso in procesos]
     }
 
     
@@ -291,38 +307,3 @@ def actualizar_prospecto_condominio(
             detail=str(exc)
         )
     
-
-@router.get('/{id}/solicitudes-cotizacion', status_code=status.HTTP_200_OK)
-def obtener_solicitudes(
-    id: int,
-    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
-    obtener_prospecto_use_case: ObtenerProspectoUseCase = Depends(get_obtener_prospecto_use_case),
-    obtener_procesos_comerciales_use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case),
-    solicitudes_activas_use_case: ObtenerSolicitudesCotizacionActivasUseCase = Depends(get_obtener_solicitudes_cotizacion_activas_use_case)
-):
-    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
-
-    autorizado = False
-    prospecto = obtener_prospecto_use_case.ejecutar(id)
-    
-    if prospecto.registrado_por.rut == usuario.rut:
-        autorizado = True
-    if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
-        autorizado = True
-
-    procesos_comerciales = obtener_procesos_comerciales_use_case.ejecutar(id)
-
-    for proceso in procesos_comerciales:
-        if proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut:
-            autorizado = True
-        if proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut:
-            autorizado = True
-
-    if not autorizado and not puede_ver_todas:
-        raise UsuarioNoAutorizadoException
-
-    solicitudes = solicitudes_activas_use_case.ejecutar(id)
-
-    return {
-        'solicitudes': solicitudes
-    }
