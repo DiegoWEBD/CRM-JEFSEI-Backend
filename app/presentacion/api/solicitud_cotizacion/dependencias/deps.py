@@ -1,5 +1,6 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
+from app.aplicacion.proceso_comercial.use_cases.registrar_aceptacion_cliente import RegistrarAceptacionClienteUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
@@ -68,5 +69,8 @@ def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
 
 def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
-
     return ObtenerDetalleSolicitudUseCase(repositorio)
+
+def get_registrar_aceptacion_cliente_use_case():
+    repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
+    return RegistrarAceptacionClienteUseCase(repositorio_procesos_comerciales)

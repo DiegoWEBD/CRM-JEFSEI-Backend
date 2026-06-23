@@ -14,6 +14,9 @@ class CerrarProcesoComercialUseCase:
         if not proceso:
             raise RecursoNoEncontradoException(f'No se encontró la oportunidad comercial {id}')
         
+        if proceso.cerrado:
+            raise Exception('La oportunidad ya se encuentra cerrada')
+
         self.repositorio_procesos_comerciales.cerrar(
             id=id,
             ganado=ganado,

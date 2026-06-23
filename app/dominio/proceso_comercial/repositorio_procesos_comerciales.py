@@ -32,3 +32,7 @@ class RepositorioProcesosComerciales(ABC):
     @abstractmethod
     def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
         pass
+
+    @abstractmethod
+    def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
+        pass

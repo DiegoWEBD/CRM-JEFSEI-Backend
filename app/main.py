@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.administrador_condominio import administrador_condominio_router
 from app.presentacion.api.auth import auth_router
@@ -67,6 +68,17 @@ async def bad_request_handler(
 ):
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
+        content={'detail': str(exc)},
+    )
+
+
+@app.exception_handler(BadRequestException)
+async def recurso_ya_existe_handler(
+    _: Request,
+    exc: RecursoYaExisteException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
         content={'detail': str(exc)},
     )
 

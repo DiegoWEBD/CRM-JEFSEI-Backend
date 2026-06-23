@@ -343,3 +343,38 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 cur.execute(query, params)
 
                 return id_proceso_comercial
+            
+    def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
+        ESTADO_ACEPTACION_CLIENTE = 'PROPUESTA_ACEPTADA'
+        
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                    
+                # Registro de historial
+
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id)s
+                '''
+                
+                params = {
+                    'id': id,
+                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE
+                }
+
+                cur.execute(query, params)
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
+                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
+                '''
+                
+                params = {
+                    'id_proceso_comercial': id,
+                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
+                    'fecha_registro': datetime.now(),
+                    'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
