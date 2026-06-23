@@ -1,3 +1,4 @@
+from dateutil.relativedelta import relativedelta
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.poliza.poliza import Poliza
@@ -262,6 +263,76 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     'id_proceso_comercial': id_proceso_comercial,
                     'cancelada': False,
                     'renovacion_cotizada': False
+                }
+
+                cur.execute(query, params)
+
+                if not poliza.fin_vigencia:
+                    return
+                
+                fecha_recordatorio_cotizacion = poliza.fin_vigencia - relativedelta(months=2)
+                fecha_recordatorio_contacto = poliza.fin_vigencia - relativedelta(days=20)
+
+                # Registrar recordatorio para comenzar a cotizar renovación
+
+                query = '''
+                    insert into RecordatorioPostVentaPoliza (
+                        numero_poliza,
+                        titulo,
+                        detalle,
+                        completado,
+                        tipo_gestion,
+                        fecha_recordatorio
+                    )
+                    values (
+                        %(numero_poliza)s,
+                        %(titulo)s,
+                        %(detalle)s,
+                        %(completado)s,
+                        %(tipo_gestion)s,
+                        %(fecha_recordatorio)s
+                    )
+                '''
+
+                params = {
+                    'numero_poliza': poliza.numero_poliza,
+                    'titulo': 'Iniciar cotización para renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza} ({poliza.nombre_producto}), por lo que debe comenzar a cotizar para su renovación',
+                    'completado': False,
+                    'tipo_gestion': 'renovacion_cotizacion',
+                    'fecha_recordatorio': fecha_recordatorio_cotizacion
+                }
+
+                cur.execute(query, params)
+
+                # Registrar recordatorio para comenzar la gestión de la renovación
+
+                query = '''
+                    insert into RecordatorioPostVentaPoliza (
+                        numero_poliza,
+                        titulo,
+                        detalle,
+                        completado,
+                        tipo_gestion,
+                        fecha_recordatorio
+                    )
+                    values (
+                        %(numero_poliza)s,
+                        %(titulo)s,
+                        %(detalle)s,
+                        %(completado)s,
+                        %(tipo_gestion)s,
+                        %(fecha_recordatorio)s
+                    )
+                '''
+
+                params = {
+                    'numero_poliza': poliza.numero_poliza,
+                    'titulo': 'Iniciar cotización para renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza} ({poliza.nombre_producto}), por lo que debe comenzar a gestionar su renovación',
+                    'completado': False,
+                    'tipo_gestion': 'renovacion_cotizacion',
+                    'fecha_recordatorio': fecha_recordatorio_contacto
                 }
 
                 cur.execute(query, params)
