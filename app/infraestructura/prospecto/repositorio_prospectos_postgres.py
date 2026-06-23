@@ -281,70 +281,12 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 cur.execute(query, params)
                 row = cur.fetchone()
 
-                if row is None:
-                    return None
-
-                return DictRowProspectoAdapter(row).to_prospecto()
+                return DictRowProspectoAdapter(row).to_prospecto() if row else None
             
             
-    def buscar_prospecto_condominio(self, id: int, rut_usuario: str | None) -> ProspectoCondominio | None:
+    def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                es_propio = True
-                puede_ver_propios = True
-                puede_ver_todos = True
-
-                if rut_usuario is not None:
-                    es_propio = False
-                    puede_ver_propios = False
-                    puede_ver_todos = False
-
-                    query = '''
-                        select PR.codigo_permiso
-                        from Usuario U
-                        left join RolUsuario RU
-                        on U.rut = RU.rut_usuario
-                        left join PermisoRol PR
-                        on RU.codigo_rol = PR.codigo_rol
-                        where U.rut = %(rut)s
-                    '''
-
-                    params = {
-                        'rut': rut_usuario
-                    }
-
-                    cur.execute(query, params)
-                    rows = cur.fetchall()
-
-                    for row in rows:
-                        if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_TODOS':
-                            puede_ver_todos = True
-                        if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_PROPIOS':
-                            puede_ver_propios = True
-
-                    if not puede_ver_propios and not puede_ver_todos:
-                        raise UsuarioNoAutorizadoException
-
-                    query = '''
-                        select rut_ej_comercial, rut_ej_evaluacion
-                        from ProcesoComercial
-                        where id_prospecto = %(id_prospecto)s
-                    '''
-
-                    params = {
-                        'id_prospecto': id
-                    }
-
-                    cur.execute(query, params)
-                    rows = cur.fetchall()
-
-                    for row in rows:
-                        rut_ej_comercial = row['rut_ej_comercial']
-                        rut_ej_evaluacion = row['rut_ej_evaluacion']
-
-                        if rut_usuario == rut_ej_comercial or rut_usuario == rut_ej_evaluacion:
-                            es_propio = True
 
                 query = '''
                     select LN.nombre as linea_negocio
@@ -436,18 +378,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 cur.execute(query, params)
                 row = cur.fetchone()
 
-                if row is None:
-                    return None
-                
-                rut_registrado_por = row['rut_registrado_por']
-
-                if rut_usuario is not None and rut_usuario == rut_registrado_por:
-                    es_propio = True
-
-                if not puede_ver_todos and not es_propio:
-                    raise UsuarioNoAutorizadoException
-
-                return DictRowProspectoCondominioAdapter(row).to_prospecto_condominio()
+                return DictRowProspectoCondominioAdapter(row).to_prospecto_condominio() if row else None
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:

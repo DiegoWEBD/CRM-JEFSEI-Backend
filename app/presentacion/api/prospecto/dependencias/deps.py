@@ -1,3 +1,4 @@
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
@@ -7,6 +8,7 @@ from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspect
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales import ObtenerProspectoLineasPersonalesUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
+from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.linea_negocio.repositorio_lineas_negocio_postgres import RepositorioLineasNegocioPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
@@ -24,14 +26,23 @@ def get_obtener_prospecto_use_case():
 
 def get_obtener_prospecto_lineas_personales_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
-    repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
+    authorization_repository = AuthorizationRepositoryPostgres()
+    authorization_service = AuthorizationService(authorization_repository)
 
-    return ObtenerProspectoLineasPersonalesUseCase(repositorio_prospectos, repositorio_procesos_comerciales)
+    return ObtenerProspectoLineasPersonalesUseCase(
+        authorization_service=authorization_service,
+        repositorio_prospectos=repositorio_prospectos
+    )
 
 def get_obtener_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
+    authorization_repository = AuthorizationRepositoryPostgres()
+    authorization_service = AuthorizationService(authorization_repository)
 
-    return ObtenerProspectoCondominioUseCase(repositorio_prospectos)
+    return ObtenerProspectoCondominioUseCase(
+        authorization_service=authorization_service,
+        repositorio_prospectos=repositorio_prospectos
+    )
 
 def get_registrar_prospecto_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()

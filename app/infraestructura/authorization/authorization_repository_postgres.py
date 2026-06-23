@@ -4,6 +4,60 @@ from app.infraestructura.db.conexion import obtener_conexion
 
 class AuthorizationRepositoryPostgres(AuthorizationRepository):
 
+    def usuario_puede_ver_prospecto(self, rut_usuario: str, id_prospecto) -> bool:
+         with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select rut_registrado_por,
+                    rut_ej_comercial_asignado,
+                    rut_ej_evaluacion_asignado
+                    from Prospecto
+                    where id = %(id_prospecto)s
+                '''
+
+                params = {
+                    'id_prospecto': id_prospecto
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                autorizado = any([
+                    row['rut_registrado_por'] == rut_usuario,
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                ])
+
+                if autorizado:
+                    return True
+                
+                query = '''
+                    select id,
+                    rut_ej_renovacion_asignado, 
+                    rut_as_renovacion_asignado
+                    from Cliente
+                    where id_prospecto = %(id_prospecto)s
+                '''
+
+                params = {
+                    'id_prospecto': id_prospecto
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_renovacion_asignado'] == rut_usuario,
+                    row['rut_as_renovacion_asignado'] == rut_usuario
+                ])
+
     def usuario_puede_ver_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
