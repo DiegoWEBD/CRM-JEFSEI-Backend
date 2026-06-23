@@ -15,7 +15,7 @@ class ObtenerProspectoCondominioUseCase:
         self.repositorio_prospectos = repositorio_prospectos
 
     def ejecutar(self, id: int, rut_usuario: str | None) -> ProspectoCondominio:
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id, rut_usuario)
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id)
 
         if prospecto is None or prospecto.id is None:
             raise RecursoNoEncontradoException('No se encontró el prospecto')
