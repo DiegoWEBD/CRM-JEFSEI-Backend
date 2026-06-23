@@ -12,7 +12,7 @@ from app.infraestructura.db.conexion import obtener_conexion
 
 class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion):
 
-    def obtener_solicitudes_activas(self, id_prospecto: int) -> list[SolicitudCotizacion]:
+    def buscar(self, id: int) -> SolicitudCotizacion | None:
          with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cotizaciones: list[SolicitudCotizacion] = []
@@ -37,11 +37,216 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     on PC.id_producto = PR.id
                     left join Usuario EJ_COM
                     on PC.rut_ej_comercial = EJ_COM.rut
-                    where not PC.cerrado and PC.id_prospecto = %(id_prospecto)s
+                    where SC.id = %(id)s
                 '''
 
                 params = {
-                    'id_prospecto': id_prospecto
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                id_solicitud = row['id']
+                tipo = row['tipo']
+                prioridad = row['prioridad']
+                fecha = row['fecha']
+                observaciones = row['observaciones']
+                recotizacion = row['recotizacion']
+                motivo_recotizacion = row['motivo_recotizacion']
+                nombre_riesgo = row['nombre_riesgo']
+                informacion_completa = row['informacion_completa']
+                rut_ej_comercial = row['rut_ej_comercial']
+                nombre_ejecutivo_comercial = row['nombre_ejecutivo_comercial']
+                producto = row['producto']
+
+                if tipo == 'vida_guardia':
+                    query = '''
+                        select numero_guardias
+                        from SolicitudCotizacionProductoVidaGuardia
+                        where id = %(id_solicitud)s
+                    '''
+
+                    params = {
+                        'id_solicitud': id_solicitud
+                    }
+
+                    cur.execute(query, params)
+                    row_solicitud = cur.fetchone()
+
+                    if row_solicitud is None:
+                        return None
+
+                    return SolicitudCotizacionVidaGuardia(
+                        id=id_solicitud,
+                        tipo=tipo,
+                        prioridad=prioridad,
+                        observaciones=observaciones,
+                        fecha=fecha,
+                        recotizacion=recotizacion,
+                        motivo_recotizacion=motivo_recotizacion,
+                        nombre_riesgo=nombre_riesgo,
+                        informacion_completa=informacion_completa,
+                        rut_ejecutivo_comercial=rut_ej_comercial,
+                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
+                        producto=producto,
+                        numero_guardias=row_solicitud['numero_guardias']
+                    )
+
+                elif tipo == 'accidentes_personales':
+                    query = '''
+                        select actividad, numero_asegurados
+                        from SolicitudCotizacionProductoAccidentesPersonales
+                        where id = %(id_solicitud)s
+                    '''
+
+                    params = {
+                        'id_solicitud': id_solicitud
+                    }
+
+                    cur.execute(query, params)
+                    rows_solicitud = cur.fetchall()
+                    actividades: list[ActividadAccidentesPersonales] = []
+
+                    for row_solicitud in rows_solicitud:
+                        actividades.append(ActividadAccidentesPersonales(
+                            actividad=row_solicitud['actividad'],
+                            numero_asegurados=row_solicitud['numero_asegurados']
+                        ))
+
+                    return SolicitudCotizacionAccidentesPersonales(
+                        id=id_solicitud,
+                        tipo=tipo,
+                        prioridad=prioridad,
+                        observaciones=observaciones,
+                        fecha=fecha,
+                        recotizacion=recotizacion,
+                        motivo_recotizacion=motivo_recotizacion,
+                        nombre_riesgo=nombre_riesgo,
+                        informacion_completa=informacion_completa,
+                        rut_ejecutivo_comercial=rut_ej_comercial,
+                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
+                        producto=producto,
+                        actividades=actividades
+                    )
+
+                elif tipo == 'unidades':
+                    query = '''
+                        select monto_asegurado_total, nombre_excel
+                        from SolicitudCotizacionProductoUnidades
+                        where id = %(id_solicitud)s
+                    '''
+
+                    params = {
+                        'id_solicitud': id_solicitud
+                    }
+
+                    cur.execute(query, params)
+                    row_solicitud = cur.fetchone()
+
+                    if row_solicitud is None:
+                        return None
+
+                    return SolicitudCotizacionUnidades(
+                        id=id_solicitud,
+                        tipo=tipo,
+                        prioridad=prioridad,
+                        observaciones=observaciones,
+                        fecha=fecha,
+                        recotizacion=recotizacion,
+                        motivo_recotizacion=motivo_recotizacion,
+                        nombre_riesgo=nombre_riesgo,
+                        informacion_completa=informacion_completa,
+                        rut_ejecutivo_comercial=rut_ej_comercial,
+                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
+                        producto=producto,
+                        monto_asegurado_total=row_solicitud['monto_asegurado_total'],
+                        nombre_excel=row_solicitud['nombre_excel']
+                    )
+
+                elif tipo == 'rc_condominio':
+                    query = '''
+                        select limite_responsabilidad_civil, actividad_del_condominio
+                        from SolicitudCotizacionProductoResponsabilidadCivil
+                        where id = %(id_solicitud)s
+                    '''
+
+                    params = {
+                        'id_solicitud': id_solicitud
+                    }
+
+                    cur.execute(query, params)
+                    row_solicitud = cur.fetchone()
+
+                    if row_solicitud is None:
+                        return None
+
+                    return SolicitudCotizacionResponsabilidadCivil(
+                        id=id_solicitud,
+                        tipo=tipo,
+                        prioridad=prioridad,
+                        observaciones=observaciones,
+                        fecha=fecha,
+                        recotizacion=recotizacion,
+                        motivo_recotizacion=motivo_recotizacion,
+                        nombre_riesgo=nombre_riesgo,
+                        informacion_completa=informacion_completa,
+                        rut_ejecutivo_comercial=rut_ej_comercial,
+                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
+                        producto=producto,
+                        limite=row_solicitud['limite_responsabilidad_civil'],
+                        actividad_del_condominio=row_solicitud['actividad_del_condominio']
+                    )
+
+                else:
+                    return SolicitudCotizacion(
+                        id=id_solicitud,
+                        tipo=tipo,
+                        prioridad=prioridad,
+                        observaciones=observaciones,
+                        fecha=fecha,
+                        recotizacion=recotizacion,
+                        motivo_recotizacion=motivo_recotizacion,
+                        nombre_riesgo=nombre_riesgo,
+                        informacion_completa=informacion_completa,
+                        rut_ejecutivo_comercial=rut_ej_comercial,
+                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
+                        producto=producto
+                    )
+
+    def obtener_solicitudes(self, id_proceso_comercial: int) -> list[SolicitudCotizacion]:
+         with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cotizaciones: list[SolicitudCotizacion] = []
+
+                query = '''
+                    select SC.id, SC.tipo, 
+                    PR.nombre as producto,
+                    SC.prioridad, SC.fecha,
+                    SC.observaciones,
+                    SC.recotizacion,
+                    SC.motivo_recotizacion,
+                    P.nombre_riesgo,
+                    P.informacion_completa,
+                    PC.rut_ej_comercial,
+                    EJ_COM.nombre as nombre_ejecutivo_comercial
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P 
+                    on PC.id_prospecto = P.id
+                    inner join Producto PR
+                    on PC.id_producto = PR.id
+                    left join Usuario EJ_COM
+                    on PC.rut_ej_comercial = EJ_COM.rut
+                    where PC.id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -217,22 +422,24 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
             return cotizaciones 
          
-    def registrar_nueva_solicitud(self, solicitud: SolicitudCotizacion, id_prospecto: int, registrado_por: Usuario):
+    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         ESTADO_COTIZACION_SOLICITADA = 'COTIZACION_SOLICITADA_COMPANY'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                # Búsqueda del producto seleccionado
+                # Verificar que el tipo de solicitud coincida con el producto del proceso comercial
 
                 query = '''
-                    select id
-                    from Producto
-                    where codigo = %(tipo_solicitud)s
+                    select P.codigo
+                    from ProcesoComercial PC
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    where PC.id = %(id_proceso_comercial)s
                 '''
                 
                 params = {
-                    'tipo_solicitud': solicitud.tipo
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -241,32 +448,10 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 if row is None:
                     raise RecursoNoEncontradoException(f'Producto con código {solicitud.tipo} no encontrado')
                 
-                id_producto: int = row['id']
+                codigo_producto = row['codigo']
 
-                # Creación de nuevo proceso comercial
-
-                query = '''
-                    insert into ProcesoComercial (id_prospecto, rut_ej_comercial, rut_ej_evaluacion, id_producto, codigo_estado_actual, renovacion)
-                    values (%(id_prospecto)s, %(rut_ej_comercial)s, %(rut_ej_evaluacion)s, %(id_producto)s, %(codigo_estado_actual)s, %(renovacion)s)
-                    returning id
-                '''
-                
-                params = {
-                    'id_prospecto': id_prospecto,
-                    'rut_ej_comercial': solicitud.rut_ejecutivo_comercial,
-                    'rut_ej_evaluacion': '15326481-0', # MODIFICAR POST PROYECTO
-                    'codigo_estado_actual': ESTADO_COTIZACION_SOLICITADA,
-                    'id_producto': id_producto,
-                    'renovacion': False
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise Exception('Error al crear un nuevo proceso comercial')
-                
-                id_proceso_comercial: int = row['id']
+                if codigo_producto != solicitud.tipo:
+                    raise Exception('El tipo de solicitud no coincide con el de la oporunidad comercial')
 
                 # Creación de solicitud base
 
@@ -380,8 +565,9 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 }
 
                 cur.execute(query, params)
+         
 
-    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_solicitud_original: int, registrado_por: Usuario):
+    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         ESTADO_RECOTIZACION_SOLICITADA = 'RECOTIZACION_SOLICITADA'
         
         with obtener_conexion() as conn:
@@ -390,13 +576,15 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 # Búsqueda del proceso comercial asociado
 
                 query = '''
-                    select id_proceso_comercial, tipo
-                    from  SolicitudCotizacion
-                    where id = %(id_solicitud_original)s
+                    select P.codigo
+                    from ProcesoComercial PC
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    where PC.id = %(id_proceso_comercial)s
                 '''
                 
                 params = {
-                    'id_solicitud_original': id_solicitud_original
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -405,8 +593,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 if row is None:
                     return
                 
-                id_proceso_comercial: int = row['id_proceso_comercial']
-                tipo = row['tipo']
+                tipo = row['codigo']
 
                 # Creación de solicitud base
 

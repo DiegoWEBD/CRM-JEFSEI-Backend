@@ -6,3 +6,4 @@ class ArmarEstudioComercialRequest(BaseModel):
     infraseguro_primer_ejemplo: float
     infraseguro_segundo_ejemplo: float
     cantidad_cuotas: int
+    ids_cotizacion: list[int]

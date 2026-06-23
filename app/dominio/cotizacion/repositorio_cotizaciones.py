@@ -10,6 +10,10 @@ class RepositorioCotizaciones(ABC):
         pass
 
     @abstractmethod
+    def obtener_por_id(self, id_cotizacion: int) -> Cotizacion:
+        pass
+
+    @abstractmethod
     def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str):
         pass
 

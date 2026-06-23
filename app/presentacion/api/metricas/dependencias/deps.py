@@ -1,5 +1,7 @@
+from app.aplicacion.metricas.use_cases.obtener_metricas_dashboard_gerente import ObtenerMetricasDashboardGerenteUseCase
 from app.aplicacion.metricas.use_cases.obtener_prima_vendida_mensual_ej_comercial import ObtenerPrimaVendidaMensualEjComercialUseCase
 from app.aplicacion.metricas.use_cases.obtener_progreso_comision_mensual_ej_comercial import ObtenerProgresoComisionMensualEjComercialUseCase
+from app.infraestructura.metricas.repositorio_metricas_dashboard_postgres import RepositorioMetricasDashboardPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 
 
@@ -7,6 +9,12 @@ def get_obtener_prima_vendida_mensual_ej_comercial_use_case():
     repositorio = RepositorioPolizasPostgres()
     return ObtenerPrimaVendidaMensualEjComercialUseCase(repositorio)
 
+
 def get_obtener_progreso_comision_mensual_ej_comercial_use_case():
     repositorio = RepositorioPolizasPostgres()
     return ObtenerProgresoComisionMensualEjComercialUseCase(repositorio)
+
+
+def get_obtener_metricas_dashboard_gerente_use_case():
+    repositorio = RepositorioMetricasDashboardPostgres()
+    return ObtenerMetricasDashboardGerenteUseCase(repositorio)

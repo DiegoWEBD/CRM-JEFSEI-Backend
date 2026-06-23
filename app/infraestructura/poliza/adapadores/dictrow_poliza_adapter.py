@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from psycopg.rows import DictRow
 
+from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.poliza.estado_poliza.estado_poliza import EstadoPoliza
 from app.dominio.poliza.poliza import Poliza
 
@@ -21,7 +22,7 @@ class DictRowPolizaAdapter:
         if cancelada:
             estado = EstadoPoliza.CANCELADA
         elif fin_vigencia is not None:
-            datetime_actual = datetime.now()
+            datetime_actual = datetime.now(timezone.utc)
 
             if fin_vigencia < datetime_actual:
                 estado = EstadoPoliza.VENCIDA
@@ -33,12 +34,16 @@ class DictRowPolizaAdapter:
             else:
                 estado = EstadoPoliza.VIGENTE
 
+        company = CompanySeguros(
+            id=self.row['id_company'],
+            nombre=self.row['company']
+        )
 
         return Poliza(
             numero_poliza=self.row['numero_poliza'],
             tipo=self.row['tipo'],
             nombre_producto=self.row['nombre_producto'],
-            company=self.row['company'],
+            company=company,
             prima_neta=self.row['prima_neta'],
             comision_corredora_pct=self.row['comision_corredora_pct'],
             fecha_emision=self.row['fecha_emision'],

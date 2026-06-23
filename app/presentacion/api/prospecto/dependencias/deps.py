@@ -5,9 +5,10 @@ from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import Asign
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales import ObtenerProspectoLineasPersonalesUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
-from app.infraestructura.historial_estado.repositorio_historial_estado_postgres import RepositorioHistorialEstadoPostgres
 from app.infraestructura.linea_negocio.repositorio_lineas_negocio_postgres import RepositorioLineasNegocioPostgres
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.prospecto.servicios.consulta_prospectos_postgres_service import ConsultaProspectosPostgresService
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
@@ -21,11 +22,16 @@ def get_obtener_prospecto_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     return ObtenerProspectoUseCase(repositorio_prospectos)
 
+def get_obtener_prospecto_lineas_personales_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
+
+    return ObtenerProspectoLineasPersonalesUseCase(repositorio_prospectos, repositorio_procesos_comerciales)
+
 def get_obtener_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
-    repositorio_historial_estado = RepositorioHistorialEstadoPostgres()
 
-    return ObtenerProspectoCondominioUseCase(repositorio_prospectos, repositorio_historial_estado)
+    return ObtenerProspectoCondominioUseCase(repositorio_prospectos)
 
 def get_registrar_prospecto_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
@@ -49,9 +55,11 @@ def get_obtener_linea_negocio_prospecto_use_case():
 
 def get_obtener_prospecto_factory():
     prospecto_condominio_use_case = get_obtener_prospecto_condominio_use_case()
+    prospecto_linea_personal_use_case = get_obtener_prospecto_lineas_personales_use_case()
     
     return ObtenerProspectoFactory(
-        obtener_prospecto_condominio=prospecto_condominio_use_case
+        obtener_prospecto_condominio=prospecto_condominio_use_case,
+        obtener_prospecto_linea_personal=prospecto_linea_personal_use_case
     )
 
 def get_actualizar_prospecto_condominio_use_case():

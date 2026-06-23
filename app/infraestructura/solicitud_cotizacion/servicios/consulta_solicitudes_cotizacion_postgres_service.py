@@ -13,9 +13,12 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                 query = '''
                     select SC.id,
                     P.nombre_riesgo,
+                    PC.id_prospecto,
                     P.informacion_completa,
                     EJ_COM.nombre as ejecutivo_comercial,
                     SC.tipo,
+                    SC.recotizacion,
+                    SC.motivo_recotizacion,
                     PR.nombre as producto, 
                     SC.prioridad, SC.fecha,
                     count(C.id) as cantidad_cotizaciones
@@ -39,11 +42,13 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                     group by
                         SC.id,
                         P.nombre_riesgo,
+                        PC.id_prospecto,
                         P.informacion_completa,
                         EJ_COM.nombre,
                         PR.nombre,
                         SC.prioridad,
                         SC.fecha
+                    order by SC.fecha desc
                 '''
 
                 params = {

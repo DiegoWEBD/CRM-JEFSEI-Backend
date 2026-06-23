@@ -1,4 +1,6 @@
 from app.dominio.prospecto.prospecto import Prospecto
+from app.infraestructura.linea_negocio.adaptadores.linea_negocio_json_adapter import LineaNegocioJsonAdapter
+from app.infraestructura.planificacion_prospecto.adaptadores.planificacion_prospecto_json_adapter import PlanificacionProspectoJsonAdapter
 from app.infraestructura.usuario.adaptadores.usuario_json_resumen_adapter import UsuarioJsonResumenAdapter
 from app.presentacion.api.prospecto.dto.prospecto_json import ProspectoJson
 
@@ -9,17 +11,24 @@ class ProspectoJsonAdapter:
         self.prospecto = prospecto
 
     def to_prospecto_json(self) -> ProspectoJson:
+        if self.prospecto.id is None:
+            raise Exception('Prospecto inválido')
+
         return ProspectoJson(
             id=self.prospecto.id,
+            id_cliente=self.prospecto.id_cliente,
             rut_riesgo=self.prospecto.rut_riesgo,
             nombre_riesgo=self.prospecto.nombre_riesgo,
-            nombre_contacto=self.prospecto.nombre_contacto,
             telefono_contacto=self.prospecto.telefono_contacto,
             correo_contacto=self.prospecto.correo_contacto,
             direccion=self.prospecto.direccion,
+            region=self.prospecto.region,
             comuna=self.prospecto.comuna,
             observaciones=self.prospecto.observaciones,
-            linea_negocio=self.prospecto.linea_negocio.nombre,
+            linea_negocio=LineaNegocioJsonAdapter(self.prospecto.linea_negocio).to_json(),
+            ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
+            informacion_completa=self.prospecto.informacion_completa,
+            planificacion_prospecto=PlanificacionProspectoJsonAdapter(self.prospecto.planificacion_prospecto).to_planificacion_prospecto_json() if self.prospecto.planificacion_prospecto else None,
             registrado_por=UsuarioJsonResumenAdapter(self.prospecto.registrado_por).to_usuario_json_resumen(),
-            companies_sugeridas=[company.nombre for company in self.prospecto.companies_sugeridas],
+            ejecutivo_comercial_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_comercial_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_comercial_asignado else None
         )

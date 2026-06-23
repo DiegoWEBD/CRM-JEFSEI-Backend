@@ -9,7 +9,7 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
-    def registrar(self, poliza: Poliza) -> None:
+    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int) -> None:
         pass
 
     @abstractmethod

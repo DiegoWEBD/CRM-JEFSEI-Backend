@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.poliza.estado_poliza.estado_poliza import EstadoPoliza
 
 
@@ -9,7 +10,7 @@ class Poliza:
         numero_poliza: str, 
         tipo: str, 
         nombre_producto: str,
-        company: str | None,
+        company: CompanySeguros | None,
         prima_neta: float,
         comision_corredora_pct: float,
         fecha_emision: datetime | None,

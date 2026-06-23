@@ -6,15 +6,19 @@ from app.dominio.usuario.usuario import Usuario
 class RepositorioSolicitudesCotizacion(ABC):
     
     @abstractmethod
-    def obtener_solicitudes_activas(self, id_prospecto: int) -> list[SolicitudCotizacion]:
+    def buscar(self, id: int) -> SolicitudCotizacion | None:
         pass
 
     @abstractmethod
-    def registrar_nueva_solicitud(self, solicitud: SolicitudCotizacion, id_prospecto: int, registrado_por: Usuario):
+    def obtener_solicitudes(self, id_proceso_comercial: int) -> list[SolicitudCotizacion]:
         pass
 
     @abstractmethod
-    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_solicitud_original: int, registrado_por: Usuario):
+    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
+        pass
+
+    @abstractmethod
+    def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         pass
 
     @abstractmethod

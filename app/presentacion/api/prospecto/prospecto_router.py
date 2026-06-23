@@ -3,9 +3,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.infraestructura.lib.normalizar_texto import normalizar_texto
+from app.infraestructura.proceso_comercial.adaptadores.proceso_comercial_json_adapter import ProcesoComercialJsonAdapter
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -13,11 +16,12 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_procesos_comerciales_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 
@@ -93,36 +97,38 @@ def obtener_prospecto_por_id(
     obtener_linea_negocio_prospecto: ObtenerLineaNegocioProspectoUseCase = Depends(get_obtener_linea_negocio_prospecto_use_case),
     obtener_prospecto_factory: ObtenerProspectoFactory = Depends(get_obtener_prospecto_factory)
 ):
-    try:
-        linea_negocio = obtener_linea_negocio_prospecto.ejecutar(id)
+    linea_negocio = normalizar_texto(obtener_linea_negocio_prospecto.ejecutar(id).nombre)
 
-        prospecto = obtener_prospecto_factory.obtener(
-            linea_negocio=linea_negocio.nombre,
-            id_prospecto=id,
-            rut_usuario=usuario.rut
-        )
+    puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
 
-        adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio.nombre)  
+    prospecto = obtener_prospecto_factory.obtener(
+        linea_negocio=linea_negocio,
+        id_prospecto=id,
+        rut_usuario=usuario.rut if not puede_ver_todos else None
+    )
 
-        return {
-            'prospecto': adapter(prospecto).to_prospecto_json()
-        }
-        
+    adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio)  
 
-    except HTTPException:
-        raise
+    return {
+        'prospecto': adapter(prospecto).to_prospecto_json()
+    }
 
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Prospecto no encontrado'
-        )
-    
-    except UsuarioNoAutorizadoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc)
-        )
+@router.get('/{id}/procesos-comerciales', status_code=status.HTTP_200_OK)
+def obtener_procesos_comerciales_prospecto(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES', 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
+    use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case)
+):
+    puede_ver_todos = usuario_tiene_permiso('ADMINISTRAR_PROCESOS_COMERCIALES', usuario)
+
+    procesos = use_case.ejecutar(
+        id_prospecto=id,
+        rut_usuario=usuario.rut if not puede_ver_todos else None
+    )
+
+    return {
+        'oportunidades': [ProcesoComercialJsonAdapter(proceso).to_json() for proceso in procesos]
+    }
 
     
 @router.post('/', status_code=status.HTTP_201_CREATED)
@@ -300,3 +306,4 @@ def actualizar_prospecto_condominio(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         )
+    

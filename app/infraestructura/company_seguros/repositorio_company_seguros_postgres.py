@@ -1,6 +1,7 @@
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
+from app.infraestructura.company_seguros.adaptadores.tuplerow_company_seguros_resumen_adapter import TupleRowCompanySegurosResumenAdapter
 from app.infraestructura.company_seguros.adaptadores.tuplerows_company_seguros_adapter import TupleRowsCompanySegurosAdapter
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.factor_cuotas_company.adaptadores.dictrow_factor_cuotas_company_adapter import DictRowFactorCuotasCompanyAdapter
@@ -8,6 +9,20 @@ from app.infraestructura.factor_cuotas_company.adaptadores.dictrow_factor_cuotas
 
 class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
     
+    def obtener_todas(self) -> list[CompanySeguros]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = 'select id, nombre from CompanySeguros order by nombre'
+
+                cur.execute(query)
+                rows = cur.fetchall()
+
+                if not rows:
+                    return []
+
+                return [TupleRowCompanySegurosResumenAdapter(row).to_company_seguros() for row in rows]
+
     def buscar(self, id: int) -> CompanySeguros | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
