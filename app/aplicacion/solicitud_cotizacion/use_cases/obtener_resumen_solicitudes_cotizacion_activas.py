@@ -42,7 +42,7 @@ class ObtenerResumenSolicitudesCotizacionActivasUseCase:
 
             # Campos específicos de condominio
             if prospecto.linea_negocio.nombre.lower() == 'condominio':
-                condominio = self.repositorio_prospectos.buscar_prospecto_condominio(solicitud.id_prospecto, rut_usuario)
+                condominio = self.repositorio_prospectos.buscar_prospecto_condominio(solicitud.id_prospecto)
 
                 if condominio is not None:
                     if condominio.administrador is None:

@@ -1,3 +1,5 @@
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
@@ -40,10 +42,13 @@ class ActualizarProspectoCondominioUseCase:
         metros_cuadrados: float | None
     ):
         
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id, rut_usuario)
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id)
 
         if prospecto is None:
-            raise ValueError('Prospecto no encontrado')
+            raise RecursoNoEncontradoException('Prospecto no encontrado')
+        
+        if not prospecto.ejecutivo_comercial_asignado or prospecto.ejecutivo_comercial_asignado.rut != rut_usuario:
+            raise UsuarioNoAutorizadoException
 
         prospecto.rut_riesgo = rut_riesgo
         prospecto.nombre_riesgo = nombre_riesgo
