@@ -44,61 +44,9 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 return DictRowPolizaAdapter(row).to_poliza() if row else None
 
-    def obtener_polizas_cliente(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
+    def obtener_polizas_cliente(self, id_cliente: int) -> list[Poliza]:
         with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-                
-                query = '''
-                    select id
-                    from Cliente
-                    where id = %(id_cliente)s
-                '''
-
-                params = {
-                    'id_cliente': id_cliente
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise RecursoNoEncontradoException('Cliente no encontrado')
-
-                if rut_usuario is not None:
-                    autorizado = False
-
-                    query = '''
-                        select P.rut_registrado_por,
-                        P.rut_ej_comercial_asignado,
-                        PC.rut_ej_comercial as rut_ej_comercial_proceso,
-                        PC.rut_ej_evaluacion
-                        from Cliente C
-                        inner join Prospecto P
-                        on C.id_prospecto = P.id
-                        inner join ProcesoComercial PC
-                        on P.id = PC.id_prospecto
-                        where C.id = %(id_cliente)s
-                    '''
-
-                    params = {
-                        'id_cliente': id_cliente
-                    }
-
-                    cur.execute(query, params)
-                    rows = cur.fetchall()
-
-                    for row in rows:
-                        rut_registrado_por = row['rut_registrado_por']
-                        rut_ej_comercial_asignado = row['rut_ej_comercial_asignado']
-                        rut_ej_comercial_proceso = row['rut_ej_comercial_proceso']
-                        rut_ej_evaluacion = row['rut_ej_evaluacion']
-
-                        if rut_usuario == rut_registrado_por or rut_usuario == rut_ej_comercial_asignado or rut_usuario == rut_ej_comercial_proceso or rut_usuario == rut_ej_evaluacion:
-                            autorizado = True
-                            break
-
-                    if not autorizado:
-                        raise UsuarioNoAutorizadoException        
+            with conn.cursor() as cur:   
 
                 query = '''
                     select P.numero_poliza, 

@@ -283,6 +283,55 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return DictRowProspectoAdapter(row).to_prospecto() if row else None
             
+    
+    def buscar_cliente(self, id_cliente: int) -> Prospecto | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                
+                query = '''
+                    select P.id as id_prospecto,
+                    CL.id as id_cliente,
+                    P.rut_riesgo, P.nombre_riesgo,
+                    P.telefono_contacto, P.direccion,
+                    P.rut_registrado_por, U.nombre as nombre_registrado_por,
+                    P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.region, P.comuna,
+                    P.correo_contacto, P.observaciones,
+                    P.updated_at as prospecto_updated_at,
+                    P.informacion_completa,
+                    LN.id as id_linea_negocio,
+                    LN.nombre as linea_negocio,
+                    CS_PLAN.id as id_company_planificacion,
+                    CS_PLAN.nombre as nombre_company_planificacion,
+                    PP.prima_vigente as prima_vigente_planificacion,
+                    PP.termino_vigencia as termino_vigencia_planificacion,
+                    PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
+                    from Prospecto P
+                    left join Cliente CL
+                    on P.id = CL.id_prospecto
+                    inner join Usuario U
+                    on P.rut_registrado_por = U.rut
+                    left join Usuario EJ_COM
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    left join PlanificacionProspecto PP
+                    on P.id = PP.id_prospecto
+                    left join CompanySeguros CS_PLAN
+                    on PP.id_company = CS_PLAN.id
+                    where CL.id = %(id_cliente)s
+                '''
+
+                params = {
+                    'id_cliente': id_cliente
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowProspectoAdapter(row).to_prospecto() if row else None
+            
             
     def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:

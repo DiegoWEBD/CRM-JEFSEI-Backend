@@ -15,7 +15,6 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
     def buscar(self, id: int) -> SolicitudCotizacion | None:
          with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cotizaciones: list[SolicitudCotizacion] = []
 
                 query = '''
                     select SC.id, SC.tipo, 
