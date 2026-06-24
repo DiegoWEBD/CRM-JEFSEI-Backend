@@ -245,7 +245,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 params = {
                     'numero_poliza': poliza.numero_poliza,
                     'titulo': 'Iniciar cotización para renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza} ({poliza.nombre_producto}), por lo que debe comenzar a cotizar para su renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a cotizar para su renovación',
                     'completado': False,
                     'tipo_gestion': 'renovacion_cotizacion',
                     'fecha_recordatorio': fecha_recordatorio_cotizacion
@@ -276,8 +276,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 params = {
                     'numero_poliza': poliza.numero_poliza,
-                    'titulo': 'Iniciar cotización para renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza} ({poliza.nombre_producto}), por lo que debe comenzar a gestionar su renovación',
+                    'titulo': 'Gestionar renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a gestionar su renovación',
                     'completado': False,
                     'tipo_gestion': 'renovacion_cotizacion',
                     'fecha_recordatorio': fecha_recordatorio_contacto
