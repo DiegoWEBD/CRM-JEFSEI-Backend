@@ -13,7 +13,7 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
-    def obtener_polizas_cliente(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
+    def obtener_polizas_cliente(self, id_cliente: int) -> list[Poliza]:
         pass
 
     @abstractmethod

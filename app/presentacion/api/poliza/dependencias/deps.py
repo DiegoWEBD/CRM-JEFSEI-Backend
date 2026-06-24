@@ -7,11 +7,17 @@ from app.infraestructura.company_seguros.repositorio_company_seguros_postgres im
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
+from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 
 
 def get_obtener_polizas_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
-    return ObtenerPolizasUseCase(repositorio_polizas)
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    
+    return ObtenerPolizasUseCase(
+        repositorio_prospectos=repositorio_prospectos,
+        repositorio_polizas=repositorio_polizas
+    )
 
 def get_registrar_renovacion_cotizada_use_case():
     authorization_repository = AuthorizationRepositoryPostgres()

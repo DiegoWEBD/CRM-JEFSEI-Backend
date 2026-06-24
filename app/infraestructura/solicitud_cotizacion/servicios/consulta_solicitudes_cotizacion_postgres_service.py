@@ -36,8 +36,8 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                     where not PC.cerrado 
                     and (
                         cast(%(rut_usuario)s as varchar) is null
-                        or PC.rut_ej_comercial = %(rut_usuario)s
-                        or PC.rut_ej_evaluacion = %(rut_usuario)s
+                        or P.rut_ej_comercial_asignado = %(rut_usuario)s
+                        or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
                     )
                     group by
                         SC.id,
