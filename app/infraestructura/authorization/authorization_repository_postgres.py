@@ -9,6 +9,33 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
             with conn.cursor() as cur:
 
                 query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_TODOS':
+                        return True
+                    if row['codigo_permiso'] == 'OBTENER_PROSPECTOS_PROPIOS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
                     select rut_registrado_por,
                     rut_ej_comercial_asignado,
                     rut_ej_evaluacion_asignado
@@ -61,6 +88,33 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
     def usuario_puede_ver_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'VER_SOLICITUDES_COTIZACION_GLOBAL':
+                        return True
+                    if row['codigo_permiso'] == 'VER_SOLICITUDES_COTIZACION_PROPIAS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
 
                 query = '''
                     select P.rut_ej_comercial_asignado,
