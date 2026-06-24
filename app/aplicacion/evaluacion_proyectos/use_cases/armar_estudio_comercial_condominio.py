@@ -44,7 +44,7 @@ class ArmarEstudioComercialCondominioUseCase:
         if len(ids_cotizacion) == 0:
             raise Exception('No se puede armar el estudio del condominio sin cotizaciones')
 
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto, rut_usuario=None)
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
 
         if not prospecto or prospecto.id is None:
             raise ValueError('Prospecto no encontrado')
