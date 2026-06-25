@@ -1,14 +1,14 @@
 from psycopg.rows import DictRow
 
-from app.dominio.recordatorio.recordatorio import Recordatorio
+from app.dominio.recordatorio.recordatorio_usuario.recordatorio_usuario import RecordatorioUsuario
 
 
-class DictRowRecordatorioAdapter:
+class DictRowRecordatorioUsuarioAdapter:
 
     def __init__(self, row: DictRow) -> None:
         self.row = row
 
-    def to_recordatorio(self) -> Recordatorio:
+    def to_recordatorio(self) -> RecordatorioUsuario:
         
         id = self.row['id']
         id_prospecto = self.row['id_prospecto']
@@ -21,7 +21,7 @@ class DictRowRecordatorioAdapter:
         fecha_recordatorio = self.row['fecha_recordatorio']
         
 
-        return Recordatorio(
+        return RecordatorioUsuario(
             id=id,
             id_prospecto=id_prospecto,
             nombre_prospecto=nombre_riesgo,

@@ -5,8 +5,6 @@ class Recordatorio:
     def __init__(
         self,
         id: int,
-        id_prospecto: int | None,
-        nombre_prospecto: str | None,
         titulo: str,
         detalle: str | None,
         completado: bool,
@@ -14,8 +12,6 @@ class Recordatorio:
         prioridad: str,
         fecha_recordatorio: datetime
     ):
-        self.id_prospecto = id_prospecto
-        self.nombre_prospecto = nombre_prospecto
         self.titulo = titulo
         self.detalle = detalle
         self.completado = completado

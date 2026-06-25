@@ -20,9 +20,7 @@ class CrearProcesoComercialUseCase:
         self.repositorio_prospectos = repositorio_prospectos
 
     def ejecutar(self, tipo: str, id_prospecto: int, usuario: Usuario) -> ProcesoComercial:
-        print(id_prospecto)
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
-        print(prospecto)
 
         if not prospecto:
             raise RecursoNoEncontradoException('Prospecto no encontrado')

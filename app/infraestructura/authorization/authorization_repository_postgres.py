@@ -222,9 +222,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 
                 rut_ej_comercial_asignado = row['rut_ej_comercial_asignado']
 
-                return any([
-                    rut_ej_comercial_asignado == rut_usuario
-                ])
+                return rut_ej_comercial_asignado == rut_usuario
             
     def usuario_puede_solicitar_cotizacion(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
         with obtener_conexion() as conn:
@@ -372,7 +370,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 '''
 
                 params = {
-                    'id_proceso_comercial':id_proceso_comercial
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)

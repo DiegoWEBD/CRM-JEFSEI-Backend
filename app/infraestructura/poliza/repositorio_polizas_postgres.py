@@ -224,31 +224,52 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 # Registrar recordatorio para comenzar a cotizar renovación
 
                 query = '''
-                    insert into RecordatorioPostVentaPoliza (
-                        numero_poliza,
+                    insert into Recordatorio (
                         titulo,
                         detalle,
+                        prioridad,
                         completado,
                         tipo_gestion,
                         fecha_recordatorio
                     )
                     values (
-                        %(numero_poliza)s,
                         %(titulo)s,
                         %(detalle)s,
+                        %(prioridad)s,
                         %(completado)s,
                         %(tipo_gestion)s,
                         %(fecha_recordatorio)s
                     )
+                    returning id
                 '''
 
                 params = {
-                    'numero_poliza': poliza.numero_poliza,
                     'titulo': 'Iniciar cotización para renovación',
                     'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a cotizar para su renovación',
+                    'prioridad': 'alta',
                     'completado': False,
                     'tipo_gestion': 'renovacion_cotizacion',
                     'fecha_recordatorio': fecha_recordatorio_cotizacion
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                id_recordatorio = row['id'] # type: ignore
+
+                query = '''
+                    insert into RecordatorioRenovacionPoliza (
+                        id,
+                        numero_poliza
+                    )
+                    values (
+                        %(id)s,
+                        %(numero_poliza)s
+                    )
+                '''
+
+                params = {
+                    'id': id_recordatorio,
+                    'numero_poliza': poliza.numero_poliza
                 }
 
                 cur.execute(query, params)
@@ -256,31 +277,52 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 # Registrar recordatorio para comenzar la gestión de la renovación
 
                 query = '''
-                    insert into RecordatorioPostVentaPoliza (
-                        numero_poliza,
+                    insert into Recordatorio (
                         titulo,
                         detalle,
+                        prioridad,
                         completado,
                         tipo_gestion,
                         fecha_recordatorio
                     )
                     values (
-                        %(numero_poliza)s,
                         %(titulo)s,
                         %(detalle)s,
+                        %(prioridad)s,
                         %(completado)s,
                         %(tipo_gestion)s,
                         %(fecha_recordatorio)s
                     )
+                    returning id
                 '''
 
                 params = {
-                    'numero_poliza': poliza.numero_poliza,
                     'titulo': 'Gestionar renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a gestionar su renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe gestionar su renovación',
+                    'prioridad': 'alta',
                     'completado': False,
-                    'tipo_gestion': 'renovacion_cotizacion',
-                    'fecha_recordatorio': fecha_recordatorio_contacto
+                    'tipo_gestion': 'renovacion',
+                    'fecha_recordatorio': fecha_recordatorio_cotizacion
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                id_recordatorio = row['id'] # type: ignore
+
+                query = '''
+                    insert into RecordatorioRenovacionPoliza (
+                        id,
+                        numero_poliza
+                    )
+                    values (
+                        %(id)s,
+                        %(numero_poliza)s
+                    )
+                '''
+
+                params = {
+                    'id': id_recordatorio,
+                    'numero_poliza': poliza.numero_poliza
                 }
 
                 cur.execute(query, params)

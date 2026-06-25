@@ -34,10 +34,13 @@ class DictRowPolizaAdapter:
             else:
                 estado = EstadoPoliza.VIGENTE
 
-        company = CompanySeguros(
-            id=self.row['id_company'],
-            nombre=self.row['company']
-        )
+        company = None
+
+        if self.row['id_company'] is not None:
+            company = CompanySeguros(
+                id=self.row['id_company'],
+                nombre=self.row['company']
+            )
 
         return Poliza(
             numero_poliza=self.row['numero_poliza'],
