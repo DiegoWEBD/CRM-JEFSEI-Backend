@@ -11,6 +11,7 @@ class PolizaJsonAdapter:
     def to_json(self) -> PolizaJson:
         return PolizaJson(
             numero_poliza=self.poliza.numero_poliza,
+            id_proceso_comercial=self.poliza.id_proceso_comercial,
             tipo=self.poliza.tipo,
             nombre_producto=self.poliza.nombre_producto,
             company=CompanySegurosJsonAdapter(self.poliza.company).to_json() if self.poliza.company else None,

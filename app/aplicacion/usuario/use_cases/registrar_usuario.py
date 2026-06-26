@@ -18,8 +18,10 @@ class RegistrarUsuarioUseCase:
         telefono: str,
         id_sucursal: int,
         password: str,
-        meta_mensual_uf: int,
-        codigo_roles: list[str]
+        meta_mensual_uf: int | None,
+        codigo_roles: list[str],
+        porcentaje_comision: float | None,
+        junior: bool
     ) -> bool:
         usuario = self.repositorio_usuarios.buscar(rut)
 
@@ -30,7 +32,6 @@ class RegistrarUsuarioUseCase:
         
         sucursal = Sucursal(id=id_sucursal, nombre='')
         roles = [Rol(codigo=codigo, nombre='') for codigo in codigo_roles]
-        meta = None if meta_mensual_uf == 0 else meta_mensual_uf
 
         nuevo_usuario = Usuario(
             rut=rut,
@@ -40,9 +41,11 @@ class RegistrarUsuarioUseCase:
             sucursal=sucursal,
             password_hash=password_hash,
             roles=roles,
-            meta_mensual_uf=meta,
+            meta_mensual_uf=meta_mensual_uf,
             habilitado=True,
             eliminado=False,
+            porcentaje_comision=porcentaje_comision,
+            junior=junior
         )
 
         return self.repositorio_usuarios.registrar(nuevo_usuario)

@@ -61,7 +61,9 @@ def registrar_usuario(
             id_sucursal=request.id_sucursal,
             password=request.password,
             codigo_roles=request.codigo_roles,
-            meta_mensual_uf=request.meta_mensual_uf
+            meta_mensual_uf=request.meta_mensual_uf,
+            porcentaje_comision=request.porcentaje_comision,
+            junior=request.junior
         )
 
         if not registrado:

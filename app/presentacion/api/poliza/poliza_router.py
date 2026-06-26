@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Query, status
 
 from app.aplicacion.cotizacion.use_cases.registrar_renovacion_cotizada import RegistrarRenovacionCotizadaUseCase
+from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.poliza.dependencias.deps import get_obtener_polizas_use_case, get_registrar_renovacion_cotizada_use_case
+from app.presentacion.api.poliza.dependencias.deps import get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_registrar_renovacion_cotizada_use_case
 
 
 router = APIRouter(prefix='/polizas', tags=['Polizas'])
@@ -28,6 +29,19 @@ def obtener_polizas(
     return {
         'polizas': [PolizaJsonAdapter(poliza).to_json() for poliza in polizas]
     }
+
+@router.get('/{numero_poliza}', status_code=status.HTTP_200_OK)
+def obtener_poliza(
+    numero_poliza: str,
+    usuario: Usuario = Depends(permisos_requeridos('OBTENER_POLIZAS_TODAS', 'OBTENER_POLIZAS_PROPIAS')),
+    use_case: ObtenerPolizaUseCase = Depends(get_obtener_poliza_use_case)
+):
+    poliza = use_case.ejecutar(numero_poliza, usuario)
+
+    return {
+        'poliza': poliza
+    }
+
 
 @router.post('/{numero_poliza}/registrar-renovacion-cotizada', status_code=status.HTTP_201_CREATED)
 def registrar_renovacion_cotizada(

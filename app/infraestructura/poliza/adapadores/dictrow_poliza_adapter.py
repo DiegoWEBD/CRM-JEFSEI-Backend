@@ -44,6 +44,7 @@ class DictRowPolizaAdapter:
 
         return Poliza(
             numero_poliza=self.row['numero_poliza'],
+            id_proceso_comercial=self.row['id_proceso_comercial'],
             tipo=self.row['tipo'],
             nombre_producto=self.row['nombre_producto'],
             company=company,

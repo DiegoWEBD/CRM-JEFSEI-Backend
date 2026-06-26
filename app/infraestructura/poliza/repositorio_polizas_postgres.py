@@ -16,6 +16,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.nombre as company,
                     PR.nombre as nombre_producto,
@@ -51,6 +52,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.nombre as company,
                     PR.nombre as nombre_producto,
@@ -86,6 +88,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.id as id_company,
                     CS.nombre as company,

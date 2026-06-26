@@ -18,6 +18,7 @@ from app.presentacion.api.proceso_comercial import proceso_comercial_router
 from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.recordatorio import recordatorio_router
 from app.presentacion.api.solicitud_cotizacion import solicitud_cotizacion_router
+from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -182,6 +183,13 @@ app.include_router(
 
 app.include_router(
     router=proceso_comercial_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=sucursal_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

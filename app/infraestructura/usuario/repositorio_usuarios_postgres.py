@@ -110,68 +110,64 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
             return False
 
         with obtener_conexion() as conn:
-            try:
-                with conn.cursor() as cur:
+            with conn.cursor() as cur:
+                query = '''
+                    insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash, meta_mensual_uf, porcentaje_comision, junior)
+                    values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s, %(meta_mensual_uf)s, %(porcentaje_comision)s, %(junior)s)
+                '''
+                params = {
+                    'rut': usuario.rut,
+                    'nombre': usuario.nombre,
+                    'correo': usuario.correo,
+                    'telefono': usuario.telefono,
+                    'id_sucursal': usuario.sucursal.id,
+                    'password_hash': usuario.password_hash,
+                    'meta_mensual_uf': usuario.meta_mensual_uf,
+                    'porcentaje_comision': usuario.porcentaje_comision,
+                    'junior': usuario.junior
+                }
+
+                cur.execute(query, params)
+
+                for rol in usuario.roles:
                     query = '''
-                        insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash, meta_mensual_uf)
-                        values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s, %(meta_mensual_uf)s)
+                        insert into RolUsuario (rut_usuario, codigo_rol)
+                        values (%(rut_usuario)s, %(codigo_rol)s)
                     '''
+
                     params = {
-                        'rut': usuario.rut,
-                        'nombre': usuario.nombre,
-                        'correo': usuario.correo,
-                        'telefono': usuario.telefono,
-                        'id_sucursal': usuario.sucursal.id,
-                        'password_hash': usuario.password_hash,
-                        'meta_mensual_uf': usuario.meta_mensual_uf
+                        'rut_usuario': usuario.rut,
+                        'codigo_rol': rol.codigo
                     }
 
                     cur.execute(query, params)
 
-                    for rol in usuario.roles:
-                        query = '''
-                            insert into RolUsuario (rut_usuario, codigo_rol)
-                            values (%(rut_usuario)s, %(codigo_rol)s)
-                        '''
-                        params = {
-                            'rut_usuario': usuario.rut,
-                            'codigo_rol': rol.codigo
-                        }
-                        cur.execute(query, params)
-
-                    conn.commit()
-
-                    return True
-            except:
-                conn.rollback()
-                return False
+                return True
             
     def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
         with obtener_conexion() as conn:
-            try:
-                with conn.cursor() as cur:
+            with conn.cursor() as cur:
+                query = '''
+                    delete from RolUsuario
+                    where rut_usuario = %(rut_usuario)s
+                '''
+                params = {
+                    'rut_usuario': rut
+                }
+
+                cur.execute(query, params)
+
+                for codigo_rol in codigo_roles:
                     query = '''
-                        delete from RolUsuario
-                        where rut_usuario = %(rut_usuario)s
+                        insert into RolUsuario (rut_usuario, codigo_rol)
+                        values (%(rut_usuario)s, %(codigo_rol)s)
                     '''
+
                     params = {
-                        'rut_usuario': rut
+                        'rut_usuario': rut,
+                        'codigo_rol': codigo_rol
                     }
+
                     cur.execute(query, params)
 
-                    for codigo_rol in codigo_roles:
-                        query = '''
-                            insert into RolUsuario (rut_usuario, codigo_rol)
-                            values (%(rut_usuario)s, %(codigo_rol)s)
-                        '''
-                        params = {
-                            'rut_usuario': rut,
-                            'codigo_rol': codigo_rol
-                        }
-                        cur.execute(query, params)
-
-                    conn.commit()
-                    return True
-            except:
-                conn.rollback()
-                return False
+                return True

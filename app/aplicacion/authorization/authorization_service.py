@@ -27,3 +27,6 @@ class AuthorizationService:
     
     def usuario_puede_subir_poliza(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
         return self.authorization_repository.usuario_puede_subir_poliza(rut_usuario, id_proceso_comercial)
+    
+    def usuario_puede_ver_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self.authorization_repository.usuario_puede_ver_poliza(rut_usuario, numero_poliza)
