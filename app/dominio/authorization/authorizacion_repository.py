@@ -34,3 +34,7 @@ class AuthorizationRepository(ABC):
     @abstractmethod
     def usuario_puede_ver_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
         pass
+
+    @abstractmethod
+    def usuario_puede_ver_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
+        pass

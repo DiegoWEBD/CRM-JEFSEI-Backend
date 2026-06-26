@@ -441,3 +441,54 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     row['rut_ej_renovacion_asignado'] == rut_usuario,
                     row['rut_as_renovacion_asignado'] == rut_usuario
                 ])
+            
+    def usuario_puede_ver_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'VER_PLAN_PAGO_GLOBAL':
+                        return True
+                    if row['codigo_permiso'] == 'VER_PLAN_PAGO_PROPIAS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select C.rut_ej_cobranza_asignado
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    where P.numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return row['rut_ej_cobranza_asignado'] == rut_usuario
