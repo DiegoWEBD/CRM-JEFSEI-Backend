@@ -9,7 +9,7 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
-    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int) -> None:
+    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
         pass
 
     @abstractmethod
@@ -19,3 +19,5 @@ class RepositorioPolizas(ABC):
     @abstractmethod
     def polizas_gestionadas_ej_comercial_mes_actual(self, rut_ejecutivo: str) -> list[Poliza]:
         pass
+
+    

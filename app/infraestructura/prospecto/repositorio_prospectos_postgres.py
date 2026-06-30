@@ -246,6 +246,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.telefono_contacto, P.direccion,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
                     P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -265,6 +266,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on P.rut_registrado_por = U.rut
                     left join Usuario EJ_COM
                     on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on P.rut_ej_evaluacion_asignado = EJ_EV.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -295,6 +298,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.telefono_contacto, P.direccion,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
                     P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -314,6 +318,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on P.rut_registrado_por = U.rut
                     left join Usuario EJ_COM
                     on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on P.rut_ej_evaluacion_asignado = EJ_EV.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -367,6 +373,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.telefono_contacto, P.direccion,
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
                     P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.informacion_completa,
@@ -409,6 +416,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on P.rut_registrado_por = U.rut
                     left join Usuario EJ_COM
                     on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on P.rut_ej_evaluacion_asignado = EJ_EV.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join AdministradorCondominio AC
@@ -430,182 +439,82 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 return DictRowProspectoCondominioAdapter(row).to_prospecto_condominio() if row else None
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:
+        if not prospecto.id or not prospecto.ejecutivo_comercial_asignado:
             return
-        
-        CODIGO_EJECUTIVO = 'EJECUTIVO_COMERCIAL'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
                 query = '''
-                    update ProcesoComercial
-                    set rut_ej_comercial = %(rut_ej_comercial)s
-                    where id_prospecto = %(id_prospecto)s
-                    returning id
+                    update Prospecto
+                    set rut_ej_comercial_asignado = %(rut_ej_comercial)s
+                    where id = %(id_prospecto)s
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.proceso_comercial.ejecutivo_comercial.rut,
+                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
                     'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
-
-                id_proceso_comercial: int = row['id']
-
-                # Registro de cambio de estado
-                query = '''
-                    select id_estado_particular_actual
-                    from HistorialEstado
-                    where id_proceso_comercial = %(id_proceso_comercial)s
-                    order by fecha_registro desc
-                    limit 1
-                '''
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
-
-                id_estado_particular_actual: int = row['id_estado_particular_actual']
 
                 query = '''
-                    insert into EstadoParticular(codigo_estado_base)
-                    values (%(codigo_estado_base)s)
-                    returning id
+                    update ProcesoComercial
+                    set rut_ej_comercial = %(rut_ej_comercial)s
+                    where id_prospecto = %(id_prospecto)s
+                    and cerrado = false
                 '''
                 params = {
-                    'codigo_estado_base': CODIGO_EJECUTIVO
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al asignar ejecutivo comercial al prospecto')
-
-                id_estado_particular_nuevo: int = row['id']
-
-                query = '''
-                    insert into HistorialEstado(
-                        id_proceso_comercial, 
-                        id_estado_particular_anterior,
-                        id_estado_particular_actual,
-                        rut_cambiado_por
-                    )
-                    values (
-                        %(id_proceso_comercial)s,
-                        %(id_estado_particular_anterior)s,
-                        %(id_estado_particular_actual)s,
-                        %(rut_cambiado_por)s
-                    )
-                '''
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular_anterior': id_estado_particular_actual,
-                    'id_estado_particular_actual': id_estado_particular_nuevo,
-                    'rut_cambiado_por': asignado_por.rut
+                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
+                    'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
 
 
-    # ARREGLAR LUEGO
     def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.proceso_comercial or not prospecto.proceso_comercial.ejecutivo_comercial:
+        if not prospecto.id or not prospecto.ejecutivo_evaluacion_asignado:
             return
-        
-        CODIGO_EJECUTIVO = 'EJECUTIVO_COMERCIAL'
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
                 query = '''
-                    update ProcesoComercial
-                    set rut_ej_comercial = %(rut_ej_comercial)s
-                    where id_prospecto = %(id_prospecto)s
-                    returning id
+                    update Prospecto
+                    set rut_ej_evaluacion_asignado = %(rut_ej_evaluacion)s
+                    where id = %(id_prospecto)s
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.ejecutivo_comercial.rut,
+                    'rut_ej_evaluacion': prospecto.ejecutivo_evaluacion_asignado.rut,
                     'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_proceso_comercial: int = row['id']
-
-                # Registro de cambio de estado
-                query = '''
-                    select id_estado_particular_actual
-                    from HistorialEstado
-                    where id_proceso_comercial = %(id_proceso_comercial)s
-                    order by fecha_registro desc
-                    limit 1
-                '''
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_estado_particular_actual: int = row['id_estado_particular_actual']
 
                 query = '''
-                    insert into EstadoParticular(codigo_estado_base)
-                    values (%(codigo_estado_base)s)
-                    returning id
+                    update ProcesoComercial
+                    set rut_ej_evaluacion = %(rut_ej_evaluacion)s
+                    where id_prospecto = %(id_prospecto)s
+                    and cerrado = false
                 '''
                 params = {
-                    'codigo_estado_base': CODIGO_EJECUTIVO
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise ValueError('Error al registrar prospecto')
-
-                id_estado_particular_nuevo: int = row['id']
-
-                query = '''
-                    insert into HistorialEstado(
-                        id_proceso_comercial, 
-                        id_estado_particular_anterior,
-                        id_estado_particular_actual,
-                        rut_cambiado_por
-                    )
-                    values (
-                        %(id_proceso_comercial)s,
-                        %(id_estado_particular_anterior)s,
-                        %(id_estado_particular_actual)s,
-                        %(rut_cambiado_por)s
-                    )
-                '''
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'id_estado_particular_anterior': id_estado_particular_actual,
-                    'id_estado_particular_actual': id_estado_particular_nuevo,
-                    'rut_cambiado_por': asignado_por.rut
+                    'rut_ej_evaluacion': prospecto.ejecutivo_evaluacion_asignado.rut,
+                    'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
 
-    def cambiar_siguiente_estado(self, id: int) -> None:
-        pass
+    def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update ProspectoCondominio
+                    set id_administrador = %(id_administrador)s
+                    where id = %(id_prospecto)s
+                '''
+                params = {
+                    'id_administrador': id_administrador,
+                    'id_prospecto': prospecto.id
+                }
+
+                cur.execute(query, params)

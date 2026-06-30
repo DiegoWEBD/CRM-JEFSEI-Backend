@@ -467,17 +467,20 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 for row in rows:
                     if row['codigo_permiso'] == 'VER_PLAN_PAGO_GLOBAL':
                         return True
-                    if row['codigo_permiso'] == 'VER_PLAN_PAGO_PROPIAS':
+                    if row['codigo_permiso'] == 'VER_PLAN_PAGO_PROPIOS':
                         tiene_permisos = True
 
                 if not tiene_permisos:
                     return False
 
                 query = '''
-                    select C.rut_ej_cobranza_asignado
+                    select C.rut_ej_cobranza_asignado,
+                    PR.rut_ej_comercial_asignado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
+                    inner join Prospecto PR
+                    on C.id_prospecto = PR.id
                     where P.numero_poliza = %(numero_poliza)s
                 '''
 
@@ -491,4 +494,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 if row is None:
                     return False
 
-                return row['rut_ej_cobranza_asignado'] == rut_usuario
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
+                ])

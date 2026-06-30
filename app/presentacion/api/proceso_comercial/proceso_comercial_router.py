@@ -8,7 +8,6 @@ from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import 
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.aplicacion.proceso_comercial.use_cases.registrar_aceptacion_cliente import RegistrarAceptacionClienteUseCase
-from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspectoUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
@@ -19,7 +18,7 @@ from app.presentacion.api.exceptions.bad_request_exception import BadRequestExce
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
 from app.presentacion.api.historial_estado.mappers.resumen_historial_estado_mapper import ResumenHistorialEstadoMapper
 from app.presentacion.api.poliza.dependencias.deps import get_registrar_poliza_a_proceso_comercial_use_case
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_filtros, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_obtener_todos_procesos_comerciales_use_case
 from app.presentacion.api.proceso_comercial.dto.estado_semaforo import EstadoSemaforo
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 from app.presentacion.api.proceso_comercial.dto.reportes_proceso_comercial import ReportesProcesoComercialDTO
@@ -27,10 +26,8 @@ from app.presentacion.api.proceso_comercial.dto.reportes_proceso_comercial_cerra
 from app.presentacion.api.proceso_comercial.dto.requests.cerrar_proceso_comercial_request import CerrarProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.crear_proceso_comercial_request import CrearProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.registrar_poliza_a_proceso_comercial_request import RegistrarPolizaAProcesoComercialRequest
-from app.presentacion.api.prospecto.dependencias.deps import get_obtener_prospecto_use_case
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_solicitudes_cotizacion_use_case, get_registrar_aceptacion_cliente_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 from app.presentacion.api.solicitud_cotizacion.dto.requests.solicitud_cotizacion_request_union import SolicitudCotizacionRequestUnion
-from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 router = APIRouter(prefix='/procesos-comerciales', tags=['ProcesosComerciales'])
 
@@ -239,8 +236,7 @@ def registrar_poliza(
     id: int,
     request: RegistrarPolizaAProcesoComercialRequest,
     usuario: Usuario = Depends(permisos_requeridos('CARGAR_POLIZAS_PROPIAS', 'CARGAR_POLIZAS_GLOBAL')),
-    use_case_registrar_poliza: RegistrarPolizaAProcesoComercialUseCase = Depends(get_registrar_poliza_a_proceso_comercial_use_case),
-    use_case_cerrar_proceso: CerrarProcesoComercialUseCase = Depends(get_cerrar_proceso_comercial_use_case)
+    use_case_registrar_poliza: RegistrarPolizaAProcesoComercialUseCase = Depends(get_registrar_poliza_a_proceso_comercial_use_case)
 ):
     use_case_registrar_poliza.ejecutar(
         id_proceso_comercial=id,
@@ -252,13 +248,6 @@ def registrar_poliza(
         fecha_emision=datetime.fromisoformat(request.fecha_emision),
         inicio_vigencia=datetime.fromisoformat(request.inicio_vigencia),
         fin_vigencia=datetime.fromisoformat(request.fin_vigencia),
-        usuario=usuario
-    )
-
-    use_case_cerrar_proceso.ejecutar(
-        id=id,
-        ganado=True,
-        observacion=None,
         usuario=usuario
     )
 

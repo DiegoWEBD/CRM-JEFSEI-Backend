@@ -1,6 +1,7 @@
 from dateutil.relativedelta import relativedelta
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.infraestructura.db.conexion import obtener_conexion
@@ -120,7 +121,9 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 return [DictRowPolizaAdapter(row).to_poliza() for row in rows]
 
-    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int) -> None:
+    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
+        ESTADO_POLIZA_REGISTRADA = 'POLIZA_REGISTRADA'
+
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -305,7 +308,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     'prioridad': 'alta',
                     'completado': False,
                     'tipo_gestion': 'renovacion',
-                    'fecha_recordatorio': fecha_recordatorio_cotizacion
+                    'fecha_recordatorio': fecha_recordatorio_contacto
                 }
 
                 cur.execute(query, params)
@@ -326,6 +329,38 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 params = {
                     'id': id_recordatorio,
                     'numero_poliza': poliza.numero_poliza
+                }
+
+                cur.execute(query, params)
+
+                # Registro de historial
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (
+                        id_proceso_comercial,
+                        codigo_estado,
+                        rut_registrado_por
+                    )
+                    select
+                        %(id_proceso_comercial)s,
+                        %(codigo_estado)s,
+                        %(rut_registrado_por)s
+                    where coalesce(
+                        (
+                            select codigo_estado
+                            from HistorialEstadoInformativoProcesoComercial
+                            where id_proceso_comercial = %(id_proceso_comercial)s
+                            order by fecha_registro desc
+                            limit 1
+                        ),
+                        ''
+                    ) <> %(codigo_estado)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': poliza.id_proceso_comercial,
+                    'codigo_estado': ESTADO_POLIZA_REGISTRADA,
+                    'rut_registrado_por': rut_usuario
                 }
 
                 cur.execute(query, params)
