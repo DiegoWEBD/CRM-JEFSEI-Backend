@@ -36,6 +36,7 @@ class RegistrarCotizacionASolicitudUseCase:
         id_company: int,
         fecha_emision: datetime,
         fecha_vencimiento: datetime,
+        nombre_archivo: str | None = None,
         
     ):
 
@@ -62,7 +63,8 @@ class RegistrarCotizacionASolicitudUseCase:
             prima_adicional_asistencia=prima_adicional_asistencia,
             company=company,
             fecha_emision=fecha_emision,
-            fecha_vencimiento=fecha_vencimiento
+            fecha_vencimiento=fecha_vencimiento,
+            nombre_archivo=nombre_archivo
         )
 
         self.repositorio_cotizaciones.registrar_cotizacion_a_solicitud(id_solicitud, cotizacion, rut_usuario)

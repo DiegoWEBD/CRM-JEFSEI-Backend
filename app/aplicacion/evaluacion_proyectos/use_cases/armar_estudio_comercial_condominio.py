@@ -6,6 +6,7 @@ from datetime import datetime
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
@@ -47,7 +48,7 @@ class ArmarEstudioComercialCondominioUseCase:
         prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
 
         if not prospecto or prospecto.id is None:
-            raise ValueError('Prospecto no encontrado')
+            raise RecursoNoEncontradoException('Prospecto no encontrado')
         
         monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         

@@ -11,3 +11,5 @@ class CotizacionJson(BaseModel):
     company: str 
     fecha_emision: str 
     fecha_vencimiento: str
+    nombre_archivo: str | None = None
+    archivo_base64: str | None = None

@@ -5,6 +5,8 @@ from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import 
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
+from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
+from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
@@ -40,7 +42,14 @@ def get_filtros(
 
 def get_cerrar_proceso_comercial_use_case():
     repositorio = RepositorioProcesosComercialesPostgres()
-    return CerrarProcesoComercialUseCase(repositorio)
+    repositorio_polizas = RepositorioPolizasPostgres()
+    repositorio_planes_pago = RepositorioPlanesPagoPostgres()
+
+    return CerrarProcesoComercialUseCase(
+        repositorio_procesos_comerciales=repositorio,
+        repositorio_planes_pago=repositorio_planes_pago,
+        repositorio_polizas=repositorio_polizas
+    )
 
 def get_crear_proceso_comercial_use_case():
     authorization_repository = AuthorizationRepositoryPostgres()

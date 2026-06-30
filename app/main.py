@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
@@ -73,10 +74,21 @@ async def bad_request_handler(
     )
 
 
-@app.exception_handler(BadRequestException)
+@app.exception_handler(RecursoYaExisteException)
 async def recurso_ya_existe_handler(
     _: Request,
     exc: RecursoYaExisteException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={'detail': str(exc)},
+    )
+
+
+@app.exception_handler(ConflictoEnAccionException)
+async def conflict_handler(
+    _: Request,
+    exc: ConflictoEnAccionException,
 ):
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,

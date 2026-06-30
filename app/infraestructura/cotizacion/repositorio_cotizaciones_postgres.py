@@ -21,7 +21,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     C.id_company,
                     CS.nombre as nombre_company,
                     C.fecha_emision,
-                    C.fecha_vencimiento
+                    C.fecha_vencimiento,
+                    C.nombre_archivo
                     from Cotizacion C
                     inner join CompanySeguros CS
                     on C.id_company = CS.id
@@ -50,7 +51,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     C.id_company,
                     CS.nombre as nombre_company,
                     C.fecha_emision,
-                    C.fecha_vencimiento
+                    C.fecha_vencimiento,
+                    C.nombre_archivo
                     from Cotizacion C
                     inner join CompanySeguros CS
                     on C.id_company = CS.id
@@ -83,7 +85,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                         prima_adicional_asistencia, 
                         tasa_afecta, 
                         tasa_excenta, 
-                        tasa_politica
+                        tasa_politica,
+                        nombre_archivo
                     )
                     values(
                         %(id_solicitud)s,
@@ -94,7 +97,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                         %(prima_adicional_asistencia)s, 
                         %(tasa_afecta)s, 
                         %(tasa_excenta)s, 
-                        %(tasa_politica)s
+                        %(tasa_politica)s,
+                        %(nombre_archivo)s
                     )
                 '''
 
@@ -107,7 +111,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     'prima_adicional_asistencia': cotizacion.prima_adicional_asistencia,
                     'tasa_afecta': cotizacion.tasa_afecta,
                     'tasa_excenta': cotizacion.tasa_excenta,
-                    'tasa_politica': cotizacion.tasa_politica
+                    'tasa_politica': cotizacion.tasa_politica,
+                    'nombre_archivo': cotizacion.nombre_archivo
                 }
 
                 cur.execute(query, params)

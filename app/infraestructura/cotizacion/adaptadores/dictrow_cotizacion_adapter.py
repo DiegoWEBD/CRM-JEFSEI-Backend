@@ -24,5 +24,6 @@ class DictRowCotizacionAdapter:
             prima_adicional_asistencia=self.row['prima_adicional_asistencia'],
             fecha_emision=self.row['fecha_emision'],
             fecha_vencimiento=self.row['fecha_vencimiento'],
-            company=company
+            company=company,
+            nombre_archivo=self.row['nombre_archivo']
         )

@@ -9,6 +9,10 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_proceso_comercial(self, id_proceso_comercial: int) -> Poliza | None:
+        pass
+
+    @abstractmethod
     def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
         pass
 

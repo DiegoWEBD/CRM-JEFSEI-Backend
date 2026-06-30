@@ -45,6 +45,42 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 row = cur.fetchone()
 
                 return DictRowPolizaAdapter(row).to_poliza() if row else None
+            
+    def buscar_por_proceso_comercial(self, id_proceso_comercial: int) -> Poliza | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                
+                query = '''
+                    select P.numero_poliza, 
+                    P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
+                    P.comision_corredora_pct,
+                    CS.nombre as company,
+                    PR.nombre as nombre_producto,
+                    P.fecha_emision,
+                    P.inicio_vigencia,
+                    P.fin_vigencia,
+                    P.id_company,
+                    P.cancelada,
+                    P.renovacion_cotizada
+                    from Poliza P
+                    inner join ProcesoComercial PC
+                    on P.id_proceso_comercial = PC.id
+                    inner join Producto PR
+                    on PC.id_producto = PR.id
+                    left join CompanySeguros CS
+                    on P.id_company = CS.id
+                    where PC.id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowPolizaAdapter(row).to_poliza() if row else None
 
     def obtener_polizas_cliente(self, id_cliente: int) -> list[Poliza]:
         with obtener_conexion() as conn:
