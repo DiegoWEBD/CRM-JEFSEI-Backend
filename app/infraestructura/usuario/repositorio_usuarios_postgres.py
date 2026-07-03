@@ -144,6 +144,38 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
 
                 return True
             
+    def actualizar(self, usuario: Usuario) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Usuario
+                    set nombre = %(nombre)s,
+                        correo = %(correo)s,
+                        telefono = %(telefono)s,
+                        id_sucursal = %(id_sucursal)s,
+                        password_hash = %(password_hash)s,
+                        meta_mensual_uf = %(meta_mensual_uf)s,
+                        porcentaje_comision = %(porcentaje_comision)s,
+                        junior = %(junior)s,
+                        habilitado = %(habilitado)s
+                    where rut = %(rut)s
+                '''
+                params = {
+                    'rut': usuario.rut,
+                    'nombre': usuario.nombre,
+                    'correo': usuario.correo,
+                    'telefono': usuario.telefono,
+                    'id_sucursal': usuario.sucursal.id if usuario.sucursal else None,
+                    'password_hash': usuario.password_hash,
+                    'meta_mensual_uf': usuario.meta_mensual_uf,
+                    'porcentaje_comision': usuario.porcentaje_comision,
+                    'junior': usuario.junior,
+                    'habilitado': usuario.habilitado
+                }
+
+                cur.execute(query, params)
+                return True
+
     def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

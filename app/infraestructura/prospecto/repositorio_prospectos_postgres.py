@@ -439,8 +439,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 return DictRowProspectoCondominioAdapter(row).to_prospecto_condominio() if row else None
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.ejecutivo_comercial_asignado:
+        if not prospecto.id:
             return
+
+        rut = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -451,7 +453,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     where id = %(id_prospecto)s
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
+                    'rut_ej_comercial': rut,
                     'id_prospecto': prospecto.id
                 }
 
@@ -464,7 +466,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     and cerrado = false
                 '''
                 params = {
-                    'rut_ej_comercial': prospecto.ejecutivo_comercial_asignado.rut,
+                    'rut_ej_comercial': rut,
                     'id_prospecto': prospecto.id
                 }
 
@@ -472,8 +474,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
 
     def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id or not prospecto.ejecutivo_evaluacion_asignado:
+        if not prospecto.id:
             return
+
+        rut = prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -484,7 +488,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     where id = %(id_prospecto)s
                 '''
                 params = {
-                    'rut_ej_evaluacion': prospecto.ejecutivo_evaluacion_asignado.rut,
+                    'rut_ej_evaluacion': rut,
                     'id_prospecto': prospecto.id
                 }
 
@@ -497,7 +501,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     and cerrado = false
                 '''
                 params = {
-                    'rut_ej_evaluacion': prospecto.ejecutivo_evaluacion_asignado.rut,
+                    'rut_ej_evaluacion': rut,
                     'id_prospecto': prospecto.id
                 }
 

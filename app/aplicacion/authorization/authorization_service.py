@@ -33,3 +33,6 @@ class AuthorizationService:
     
     def usuario_puede_ver_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
         return self.authorization_repository.usuario_puede_ver_plan_pago(rut_usuario, numero_poliza)
+    
+    def usuario_puede_crear_estudio_comercial(self, rut_usuario: str, id_prospecto: int) -> bool:
+        return self.authorization_repository.usuario_puede_crear_estudio_comercial(rut_usuario, id_prospecto)

@@ -1,5 +1,10 @@
-def convertir_numero_a_formato_chileno(numero: int | float) -> str:
-    numero_formateado = f"{numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+def convertir_numero_a_formato_chileno(numero: int | float, decimales: int = 2) -> str:
+    numero_formateado = (
+        f"{numero:,.{decimales}f}"
+        .replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
+    )
     partes = numero_formateado.split(',')
 
     if len(partes) != 2:

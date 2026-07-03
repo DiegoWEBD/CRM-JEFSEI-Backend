@@ -13,16 +13,20 @@ class AsignarEjecutivoComercialUseCase:
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
 
-    def ejecutar(self, id_prospecto: int, rut_ej_comercial: str, asignado_por: Usuario):
+    def ejecutar(self, id_prospecto: int, rut_ej_comercial: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
         if not prospecto:
             raise RecursoNoEncontradoException('Prospecto no encontrado')
-        
-        usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
 
-        if not usuario:
-            raise RecursoNoEncontradoException('Usuario no encontrado')
+        if rut_ej_comercial is not None:
+            usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
 
-        prospecto.ejecutivo_comercial_asignado = usuario
+            if not usuario:
+                raise RecursoNoEncontradoException('Usuario no encontrado')
+
+            prospecto.ejecutivo_comercial_asignado = usuario
+        else:
+            prospecto.ejecutivo_comercial_asignado = None
+
         self.repositorio_prospectos.asignar_ejecutivo_comercial(prospecto, asignado_por)
