@@ -178,67 +178,36 @@ def registrar_prospecto(
 def asignar_ejecutivo_comercial(
     id: int,
     request: AsignarEjecutivoComercialRequest,
-    usuario = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_COMERCIAL')),
+    usuario: Usuario = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_COMERCIAL')),
     use_case: AsignarEjecutivoComercialUseCase = Depends(get_asignar_ejecutivo_comercial_use_case)
 ):
-    try:
-        use_case.ejecutar(
-            id_prospecto=id, 
-            rut_ej_comercial=request.rut_ej_comercial,
-            asignado_por=usuario
-        )
+    use_case.ejecutar(
+        id_prospecto=id, 
+        rut_ej_comercial=request.rut_ej_comercial,
+        asignado_por=usuario
+    )
 
-        return {
-            'message': 'Ejecutivo comercial asignado correctamente'
-        }
-
-    except HTTPException:
-        raise
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
-        )
+    return {
+        'message': 'Ejecutivo comercial asignado correctamente'
+    }
 
 
 @router.post('/{id}/asignar-ej-evaluacion', status_code=status.HTTP_200_OK)
 def asignar_ejecutivo_evaluacion(
     id: int,
     request: AsignarEjecutivoEvaluacionRequest,
-    _ = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_EVALUACION')),
+    usuario: Usuario = Depends(permisos_requeridos('ASIGNAR_EJECUTIVO_EVALUACION')),
     use_case: AsignarEjecutivoEvaluacionUseCase = Depends(get_asignar_ejecutivo_evaluacion_use_case)
 ):
-    try:
-        use_case.ejecutar(
-            id_prospecto=id, 
-            rut_ej_evaluacion=request.rut_ej_evaluacion
-        )
+    use_case.ejecutar(
+        id_prospecto=id, 
+        rut_ej_evaluacion=request.rut_ej_evaluacion,
+        asignado_por=usuario
+    )
 
-        return {
-            'message': 'Ejecutivo de evaluación de proyectos asignado correctamente'
-        }
-
-    except HTTPException:
-        raise
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
-        )
+    return {
+        'message': 'Ejecutivo de evaluación de proyectos asignado correctamente'
+    }
 
 
 @router.put('/condominios/{id}', status_code=status.HTTP_200_OK)

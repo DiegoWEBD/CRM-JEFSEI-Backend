@@ -139,14 +139,14 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                 cur.execute(
                     '''
                     select
-                      ru.tipo_gestion as tipo,
-                      count(*) filter (where ru.completado = true) as concretadas,
-                      count(*) filter (where ru.completado = false) as pendientes
-                    from RecordatorioUsuario ru
-                    where extract(year from ru.fecha_recordatorio) = %(year)s
-                      and extract(month from ru.fecha_recordatorio) = %(mes)s
-                    group by ru.tipo_gestion
-                    order by ru.tipo_gestion
+                    r.tipo_gestion as tipo,
+                    count(*) filter (where r.completado = true) as concretadas,
+                    count(*) filter (where r.completado = false) as pendientes
+                    from Recordatorio r
+                    where extract(year from r.fecha_recordatorio) = %(year)s
+                    and extract(month from r.fecha_recordatorio) = %(mes)s
+                    group by r.tipo_gestion
+                    order by r.tipo_gestion
                     ''',
                     {'year': year, 'mes': mes},
                 )
@@ -163,7 +163,7 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                       count(*) as agendadas,
                       count(*) filter (where ru.completado = true) as concretadas,
                       count(*) filter (where ru.completado = false) as pendientes
-                    from RecordatorioUsuario ru
+                    from Recordatorio ru
                     where extract(year from ru.fecha_recordatorio) = %(year)s
                       and extract(month from ru.fecha_recordatorio) = %(mes)s
                     ''',

@@ -58,6 +58,7 @@ class RegistrarPolizaAProcesoComercialUseCase:
         
         poliza = Poliza(
             numero_poliza=numero_poliza,
+            id_proceso_comercial=id_proceso_comercial,
             tipo=tipo,
             nombre_producto='',
             company=company,
@@ -70,4 +71,4 @@ class RegistrarPolizaAProcesoComercialUseCase:
             renovacion_cotizada=False
         )
 
-        self.repositorio_polizas.registrar_a_proceso_comercial(poliza, id_proceso_comercial)
+        self.repositorio_polizas.registrar_a_proceso_comercial(poliza, id_proceso_comercial, usuario.rut)

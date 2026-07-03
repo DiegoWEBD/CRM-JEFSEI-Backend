@@ -1,6 +1,7 @@
 from dateutil.relativedelta import relativedelta
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.infraestructura.db.conexion import obtener_conexion
@@ -16,6 +17,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.nombre as company,
                     PR.nombre as nombre_producto,
@@ -43,6 +45,42 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 row = cur.fetchone()
 
                 return DictRowPolizaAdapter(row).to_poliza() if row else None
+            
+    def buscar_por_proceso_comercial(self, id_proceso_comercial: int) -> Poliza | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                
+                query = '''
+                    select P.numero_poliza, 
+                    P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
+                    P.comision_corredora_pct,
+                    CS.nombre as company,
+                    PR.nombre as nombre_producto,
+                    P.fecha_emision,
+                    P.inicio_vigencia,
+                    P.fin_vigencia,
+                    P.id_company,
+                    P.cancelada,
+                    P.renovacion_cotizada
+                    from Poliza P
+                    inner join ProcesoComercial PC
+                    on P.id_proceso_comercial = PC.id
+                    inner join Producto PR
+                    on PC.id_producto = PR.id
+                    left join CompanySeguros CS
+                    on P.id_company = CS.id
+                    where PC.id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowPolizaAdapter(row).to_poliza() if row else None
 
     def obtener_polizas_cliente(self, id_cliente: int) -> list[Poliza]:
         with obtener_conexion() as conn:
@@ -51,6 +89,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.nombre as company,
                     PR.nombre as nombre_producto,
@@ -86,6 +125,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 query = '''
                     select P.numero_poliza, 
                     P.tipo, P.prima_neta, 
+                    P.id_proceso_comercial,
                     P.comision_corredora_pct,
                     CS.id as id_company,
                     CS.nombre as company,
@@ -117,7 +157,9 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 return [DictRowPolizaAdapter(row).to_poliza() for row in rows]
 
-    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int) -> None:
+    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
+        ESTADO_POLIZA_REGISTRADA = 'POLIZA_REGISTRADA'
+
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -224,31 +266,52 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 # Registrar recordatorio para comenzar a cotizar renovación
 
                 query = '''
-                    insert into RecordatorioPostVentaPoliza (
-                        numero_poliza,
+                    insert into Recordatorio (
                         titulo,
                         detalle,
+                        prioridad,
                         completado,
                         tipo_gestion,
                         fecha_recordatorio
                     )
                     values (
-                        %(numero_poliza)s,
                         %(titulo)s,
                         %(detalle)s,
+                        %(prioridad)s,
                         %(completado)s,
                         %(tipo_gestion)s,
                         %(fecha_recordatorio)s
                     )
+                    returning id
                 '''
 
                 params = {
-                    'numero_poliza': poliza.numero_poliza,
                     'titulo': 'Iniciar cotización para renovación',
                     'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a cotizar para su renovación',
+                    'prioridad': 'alta',
                     'completado': False,
                     'tipo_gestion': 'renovacion_cotizacion',
                     'fecha_recordatorio': fecha_recordatorio_cotizacion
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                id_recordatorio = row['id'] # type: ignore
+
+                query = '''
+                    insert into RecordatorioRenovacionPoliza (
+                        id,
+                        numero_poliza
+                    )
+                    values (
+                        %(id)s,
+                        %(numero_poliza)s
+                    )
+                '''
+
+                params = {
+                    'id': id_recordatorio,
+                    'numero_poliza': poliza.numero_poliza
                 }
 
                 cur.execute(query, params)
@@ -256,31 +319,84 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 # Registrar recordatorio para comenzar la gestión de la renovación
 
                 query = '''
-                    insert into RecordatorioPostVentaPoliza (
-                        numero_poliza,
+                    insert into Recordatorio (
                         titulo,
                         detalle,
+                        prioridad,
                         completado,
                         tipo_gestion,
                         fecha_recordatorio
                     )
                     values (
-                        %(numero_poliza)s,
                         %(titulo)s,
                         %(detalle)s,
+                        %(prioridad)s,
                         %(completado)s,
                         %(tipo_gestion)s,
                         %(fecha_recordatorio)s
                     )
+                    returning id
                 '''
 
                 params = {
-                    'numero_poliza': poliza.numero_poliza,
                     'titulo': 'Gestionar renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a gestionar su renovación',
+                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe gestionar su renovación',
+                    'prioridad': 'alta',
                     'completado': False,
-                    'tipo_gestion': 'renovacion_cotizacion',
+                    'tipo_gestion': 'renovacion',
                     'fecha_recordatorio': fecha_recordatorio_contacto
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                id_recordatorio = row['id'] # type: ignore
+
+                query = '''
+                    insert into RecordatorioRenovacionPoliza (
+                        id,
+                        numero_poliza
+                    )
+                    values (
+                        %(id)s,
+                        %(numero_poliza)s
+                    )
+                '''
+
+                params = {
+                    'id': id_recordatorio,
+                    'numero_poliza': poliza.numero_poliza
+                }
+
+                cur.execute(query, params)
+
+                # Registro de historial
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (
+                        id_proceso_comercial,
+                        codigo_estado,
+                        rut_registrado_por
+                    )
+                    select
+                        %(id_proceso_comercial)s,
+                        %(codigo_estado)s,
+                        %(rut_registrado_por)s
+                    where coalesce(
+                        (
+                            select codigo_estado
+                            from HistorialEstadoInformativoProcesoComercial
+                            where id_proceso_comercial = %(id_proceso_comercial)s
+                            order by fecha_registro desc
+                            limit 1
+                        ),
+                        ''
+                    ) <> %(codigo_estado)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': poliza.id_proceso_comercial,
+                    'codigo_estado': ESTADO_POLIZA_REGISTRADA,
+                    'rut_registrado_por': rut_usuario
                 }
 
                 cur.execute(query, params)

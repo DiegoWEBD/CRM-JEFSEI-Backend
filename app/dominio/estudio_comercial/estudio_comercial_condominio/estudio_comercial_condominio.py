@@ -1,4 +1,5 @@
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
+from app.dominio.estudio_comercial.seccion_estudio_comercial.seccion_estudio_comercial import SeccionEstudioComercial
 
 
 class EstudioComercialCondominio:
@@ -9,6 +10,7 @@ class EstudioComercialCondominio:
         valor_uf: float,
         monto_asegurado_actual: float | None,
         porcentaje_infraseguro: float | None,
+        secciones: list[SeccionEstudioComercial],
         detalles_monto_asegurado_actual: list[DetalleEstudioComercial],
         detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial],
         detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial],
@@ -22,3 +24,4 @@ class EstudioComercialCondominio:
         self.detalles_monto_asegurado_sugerido = detalles_monto_asegurado_sugerido
         self.detalles_monto_asegurado_primer_ejemplo = detalles_monto_asegurado_primer_ejemplo
         self.detalles_monto_asegurado_segundo_ejemplo = detalles_monto_asegurado_segundo_ejemplo
+        self.secciones = secciones

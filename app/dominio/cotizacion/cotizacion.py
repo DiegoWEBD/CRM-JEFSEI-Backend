@@ -14,6 +14,7 @@ class Cotizacion:
         company: CompanySeguros, 
         fecha_emision: datetime, 
         fecha_vencimiento: datetime,
+        nombre_archivo: str | None = None,
     ):
         self.id = id
         self.prima_adicional_asistencia = prima_adicional_asistencia
@@ -24,3 +25,4 @@ class Cotizacion:
         self.fecha_emision = fecha_emision
         self.fecha_vencimiento = fecha_vencimiento
         self.monto_total_asegurado = monto_total_asegurado
+        self.nombre_archivo = nombre_archivo

@@ -1,3 +1,4 @@
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
 
@@ -10,6 +11,6 @@ class ObtenerUsuarioUseCase:
         usuario = self.repositorio_usuarios.buscar(rut)
 
         if usuario is None:
-            raise ValueError("Usuario no encontrado")
+            raise RecursoNoEncontradoException("Usuario no encontrado")
         
         return usuario

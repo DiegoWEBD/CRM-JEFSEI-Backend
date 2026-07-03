@@ -16,5 +16,9 @@ class RepositorioUsuarios(ABC):
         pass
 
     @abstractmethod
+    def actualizar(self, usuario: Usuario) -> bool:
+        pass
+
+    @abstractmethod
     def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
         pass

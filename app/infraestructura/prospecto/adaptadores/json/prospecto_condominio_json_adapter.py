@@ -29,6 +29,7 @@ class ProspectoCondominioJsonAdapter:
             linea_negocio=LineaNegocioJsonAdapter(self.prospecto.linea_negocio).to_json(),
             registrado_por=UsuarioJsonResumenAdapter(self.prospecto.registrado_por).to_usuario_json_resumen(),
             ejecutivo_comercial_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_comercial_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_comercial_asignado else None,
+            ejecutivo_evaluacion_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_evaluacion_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_evaluacion_asignado else None,
             planificacion_prospecto=PlanificacionProspectoJsonAdapter(self.prospecto.planificacion_prospecto).to_planificacion_prospecto_json() if self.prospecto.planificacion_prospecto else None,
             administrador=AdministradorCondominioJsonAdapter(self.prospecto.administrador).to_json() if self.prospecto.administrador is not None else None,
             uf_por_metro_cuadrado=self.prospecto.uf_por_metro_cuadrado,

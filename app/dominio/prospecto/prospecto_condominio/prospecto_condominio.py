@@ -22,6 +22,7 @@ class ProspectoCondominio(Prospecto):
         linea_negocio: LineaNegocio, 
         registrado_por: Usuario, 
         ejecutivo_comercial_asignado: Usuario | None,
+        ejecutivo_evaluacion_asignado: Usuario | None,
         #companies_sugeridas: list[CompanySeguros],     
         #proceso_comercial: ProcesoComercial,
         uf_por_metro_cuadrado: float | None,
@@ -62,6 +63,7 @@ class ProspectoCondominio(Prospecto):
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
+            ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado,
             planificacion_prospecto=planificacion_prospecto,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa

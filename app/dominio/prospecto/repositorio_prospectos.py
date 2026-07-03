@@ -36,5 +36,5 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
-    def cambiar_siguiente_estado(self, id: int) -> None:
+    def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         pass

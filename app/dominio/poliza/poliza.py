@@ -8,6 +8,7 @@ class Poliza:
     def __init__(
         self, 
         numero_poliza: str, 
+        id_proceso_comercial: int,
         tipo: str, 
         nombre_producto: str,
         company: CompanySeguros | None,
@@ -20,6 +21,7 @@ class Poliza:
         renovacion_cotizada: bool
     ):
         self.numero_poliza = numero_poliza
+        self.id_proceso_comercial = id_proceso_comercial
         self.tipo = tipo
         self.inicio_vigencia = inicio_vigencia
         self.fin_vigencia = fin_vigencia

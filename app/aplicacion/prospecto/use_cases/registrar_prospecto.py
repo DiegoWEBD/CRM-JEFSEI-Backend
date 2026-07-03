@@ -79,6 +79,7 @@ class RegistrarProspectoUseCase:
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=registrado_por,
+            ejecutivo_evaluacion_asignado=None,
             tiene_locales_comerciales=tiene_locales_comerciales,
             uso_del_condominio=uso_del_condominio,
             numero_pisos=numero_pisos,
