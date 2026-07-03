@@ -26,3 +26,22 @@ class RepositorioComunicadosGerenciaPostgres(RepositorioComunicadosGerencia):
                 rows = cur.fetchall()
 
                 return [DictRowComunicadoGerenciaAdapter(row).to_comunicado_gerencia() for row in rows]
+
+    def registrar(self, comunicado: ComunicadoGerencia, rut_gerente: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    insert into ComunicadoGerencia (rut_gerente, titulo, descripcion, prioridad, fecha, caducidad)
+                    values (%(rut_gerente)s, %(titulo)s, %(descripcion)s, %(prioridad)s, %(fecha)s, %(caducidad)s)
+                '''
+                params = {
+                    'rut_gerente': rut_gerente,
+                    'titulo': comunicado.titulo,
+                    'descripcion': comunicado.descripcion,
+                    'prioridad': comunicado.prioridad,
+                    'fecha': comunicado.fecha,
+                    'caducidad': comunicado.caducidad
+                }
+
+                cur.execute(query, params)
+                return True

@@ -8,3 +8,7 @@ class RepositorioComunicadosGerencia(ABC):
     @abstractmethod
     def obtener_todos(self) -> list[ComunicadoGerencia]:
         pass
+
+    @abstractmethod
+    def registrar(self, comunicado: ComunicadoGerencia, rut_gerente: str) -> bool:
+        pass
