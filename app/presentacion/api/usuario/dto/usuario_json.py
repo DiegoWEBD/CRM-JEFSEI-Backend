@@ -6,8 +6,8 @@ from app.presentacion.api.rol.dto.rol_json import RolJson
 class UsuarioJson(BaseModel):
     rut: str
     nombre: str
-    correo: str
-    telefono: str
+    correo: str | None = None
+    telefono: str | None = None
     sucursal: str
     fecha_registro: str
     habilitado: bool

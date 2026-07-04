@@ -9,6 +9,40 @@ from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_usuario_a
 
 class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
+    def registrar(self, rut_usuario: str, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    insert into Recordatorio (titulo, detalle, completado, prioridad, tipo_gestion, fecha_recordatorio)
+                    values (%(titulo)s, %(detalle)s, false, %(prioridad)s, %(tipo_gestion)s, %(fecha_recordatorio)s::timestamptz)
+                    returning id
+                '''
+                params = {
+                    'titulo': titulo,
+                    'detalle': detalle,
+                    'prioridad': prioridad,
+                    'tipo_gestion': tipo_gestion,
+                    'fecha_recordatorio': fecha_recordatorio
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                id = row['id'] # type: ignore
+
+                query = '''
+                    insert into RecordatorioUsuario (id, rut_usuario, id_prospecto)
+                    values (%(id)s, %(rut_usuario)s, %(id_prospecto)s)
+                '''
+                params = {
+                    'id': id,
+                    'rut_usuario': rut_usuario,
+                    'id_prospecto': id_prospecto
+                }
+
+                cur.execute(query, params)
+                
+
     def obtener_recordatorios_usuario(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioUsuario]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

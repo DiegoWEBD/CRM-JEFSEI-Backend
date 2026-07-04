@@ -13,3 +13,7 @@ class RepositorioRecordatorios(ABC):
     @abstractmethod
     def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioRenovacionPoliza]:
         pass
+
+    @abstractmethod
+    def registrar(self, rut_usuario: str, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None) -> None:
+        pass
