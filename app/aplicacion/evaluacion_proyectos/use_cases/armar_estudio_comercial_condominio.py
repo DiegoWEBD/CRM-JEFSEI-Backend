@@ -8,6 +8,7 @@ from app.dominio.company_seguros.repositorio_company_seguros import RepositorioC
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.estudio_comercial.seccion_estudio_comercial.seccion_estudio_comercial import SeccionEstudioComercial
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
@@ -51,7 +52,7 @@ class ArmarEstudioComercialCondominioUseCase:
     ) -> tuple[EstudioComercialCondominio, int, str]:
 
         if len(ids_cotizacion) == 0:
-            raise Exception('No se puede armar el estudio del condominio sin cotizaciones')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio sin cotizaciones')
 
         prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
 
@@ -64,25 +65,25 @@ class ArmarEstudioComercialCondominioUseCase:
         monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         
         if not prospecto.year_construccion:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
 
         if not prospecto.uf_por_metro_cuadrado:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la uf por metro cuadrado')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta la uf por metro cuadrado')
         
         if not prospecto.metros_cuadrados:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, faltan los metros cuadrados')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, faltan los metros cuadrados')
         
         if not prospecto.cantidad_departamentos:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta la cantidad de unidades')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta la cantidad de unidades')
         
         if prospecto.porcentaje_depreciacion is None:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
         
         if not prospecto.porcentaje_espacios_comunes:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
         
         if not prospecto.administrador:
-            raise Exception('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
 
         cotizaciones = [
             self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)

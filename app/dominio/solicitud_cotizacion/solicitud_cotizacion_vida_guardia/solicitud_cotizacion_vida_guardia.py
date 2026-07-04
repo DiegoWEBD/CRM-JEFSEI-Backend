@@ -18,7 +18,8 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
         producto: str,
         recotizacion: bool,
         motivo_recotizacion: str | None,
-        numero_guardias: int
+        numero_guardias: int,
+        cantidad_cotizaciones: int = 0
     ):
         super().__init__(
             id=id,
@@ -32,7 +33,8 @@ class SolicitudCotizacionVidaGuardia(SolicitudCotizacion):
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,
             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
-            producto=producto
+            producto=producto,
+            cantidad_cotizaciones=cantidad_cotizaciones
         )
 
         self.numero_guardias = numero_guardias

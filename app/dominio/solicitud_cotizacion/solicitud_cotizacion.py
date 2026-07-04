@@ -15,7 +15,8 @@ class SolicitudCotizacion:
         tipo: str,
         producto: str,
         recotizacion: bool,
-        motivo_recotizacion: str | None
+        motivo_recotizacion: str | None,
+        cantidad_cotizaciones: int = 0
     ):
         self.id = id
         self.fecha = fecha
@@ -29,3 +30,4 @@ class SolicitudCotizacion:
         self.rut_ejecutivo_comercial = rut_ejecutivo_comercial
         self.nombre_ejecutivo_comercial = nombre_ejecutivo_comercial
         self.producto = producto
+        self.cantidad_cotizaciones = cantidad_cotizaciones

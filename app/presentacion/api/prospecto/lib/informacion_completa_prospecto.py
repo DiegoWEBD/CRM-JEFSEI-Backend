@@ -10,11 +10,21 @@ def informacion_completa_prospecto_condominio(prospecto: ProspectoCondominio) ->
             prospecto.planificacion_prospecto.company_poliza is not None,
             prospecto.planificacion_prospecto.monto_asegurado_vigente is not None
         ])
+
+    if prospecto.administrador:
+        falta_telefono = False
+    else:
+        falta_telefono = prospecto.telefono_contacto is None
     
+    if prospecto.tiene_piscina is False:
+        falta_ubicacion_piscina = False
+    else:
+        falta_ubicacion_piscina = prospecto.ubicacion_piscina is None
+
     return all([
         prospecto.rut_riesgo is not None,
         prospecto.nombre_riesgo is not None,
-        prospecto.telefono_contacto is not None,
+        not falta_telefono,
         prospecto.correo_contacto is not None,
         prospecto.direccion is not None,
         prospecto.region is not None,
@@ -30,7 +40,7 @@ def informacion_completa_prospecto_condominio(prospecto: ProspectoCondominio) ->
         prospecto.cantidad_departamentos is not None,
         prospecto.cantidad_subterraneos is not None,
         prospecto.tiene_piscina is not None,
-        prospecto.ubicacion_piscina is not None,
+        not falta_ubicacion_piscina,
         prospecto.tiene_alarma_incendio is not None,
         prospecto.tiene_sprinklers is not None,
         prospecto.year_construccion is not None,
