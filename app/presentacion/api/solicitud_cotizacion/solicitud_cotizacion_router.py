@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
@@ -11,8 +12,10 @@ from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.cotizacion.adaptadores.cotizacion_json_adapter import CotizacionJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud_use_case, get_registrar_cotizacion_a_solicitud_use_case
+from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
+from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 
 
 router = APIRouter(prefix='/solicitudes-cotizacion', tags=['SolicitudesCotizacion'])
@@ -110,3 +113,68 @@ def registrar_cotizacion_a_solicitud(
     return {
         'message': 'Cotización registrada'
     }
+
+
+@router.post('/{id}/estudios-comerciales', status_code=status.HTTP_201_CREATED)
+def subir_estudio_comercial(
+    id: int,
+    archivo: UploadFile = File(...),
+    _ = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
+    repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
+):
+    if archivo.content_type != 'application/pdf':
+        raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
+
+    from datetime import datetime
+    timestamp_ms = int(datetime.now().timestamp() * 1000)
+    nombre_unico = f'estudio_comercial_{id}_{timestamp_ms}.pdf'
+    ruta = f'documentos/estudios_finales/{nombre_unico}'
+
+    os.makedirs('documentos/estudios_finales', exist_ok=True)
+
+    with open(ruta, 'wb') as f:
+        f.write(archivo.file.read())
+
+    id_estudio = repositorio.insertar(id_solicitud=id, nombre_archivo=nombre_unico)
+
+    return {
+        'id': id_estudio,
+        'id_solicitud': id,
+        'nombre_archivo': nombre_unico,
+        'mensaje': 'Estudio comercial subido correctamente',
+    }
+
+
+@router.get('/{id}/estudios-comerciales', status_code=status.HTTP_200_OK)
+def listar_estudios_comerciales(
+    id: int,
+    _ = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
+    repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
+):
+    estudios = repositorio.listar_por_id_solicitud(id)
+    return [
+        {
+            'id': e.id,
+            'nombre_archivo': e.nombre_archivo,
+        }
+        for e in estudios
+    ]
+
+
+@router.get('/{id}/estudios-comerciales/{estudio_id}/archivo', status_code=status.HTTP_200_OK)
+def descargar_archivo_estudio(
+    id: int,
+    estudio_id: int,
+    _ = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
+    repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
+):
+    estudios = repositorio.listar_por_id_solicitud(id)
+    estudio = next((e for e in estudios if e.id == estudio_id), None)
+    if estudio is None or estudio.nombre_archivo is None:
+        raise HTTPException(status_code=404, detail='Estudio no encontrado')
+
+    ruta = f'documentos/estudios_finales/{estudio.nombre_archivo}'
+    if not os.path.exists(ruta):
+        raise HTTPException(status_code=404, detail='Archivo no encontrado')
+
+    return FileResponse(ruta, media_type='application/pdf', filename=estudio.nombre_archivo)

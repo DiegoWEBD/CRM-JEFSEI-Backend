@@ -13,8 +13,6 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
-from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
-from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
 from app.presentacion.api.estudio_comercial.dto.seccion_estudio_comercial_request import SeccionEstudioComercialRequest
@@ -29,13 +27,11 @@ class ArmarEstudioComercialCondominioUseCase:
         repositorio_prospectos: RepositorioProspectos,
         repositorio_company_seguros: RepositorioCompanySeguros,
         repositorio_cotizaciones: RepositorioCotizaciones,
-        repositorio_estudios: RepositorioEstudiosComerciales
     ):
         self.authorization_service = authorization_service
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_company_seguros = repositorio_company_seguros
         self.repositorio_cotizaciones = repositorio_cotizaciones
-        self.repositorio_estudios = repositorio_estudios
         self.datos_plantilla: dict[str, object] = {}
         self.doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
 

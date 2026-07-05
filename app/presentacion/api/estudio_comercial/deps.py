@@ -11,14 +11,12 @@ def get_armar_estudio_comercial_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_companies = RepositorioCompanySegurosPostgres()
     repositorio_cotizaciones = RepositorioCotizacionesPostgres()
-    repositorio_estudios = RepositorioEstudiosComercialesPostgres()
     authorization_service = AuthorizationService(authorization_repository=AuthorizationRepositoryPostgres())
 
     return ArmarEstudioComercialCondominioUseCase(
         repositorio_prospectos=repositorio_prospectos,
         repositorio_company_seguros=repositorio_companies,
         repositorio_cotizaciones=repositorio_cotizaciones,
-        repositorio_estudios=repositorio_estudios,
         authorization_service=authorization_service
     )
 
