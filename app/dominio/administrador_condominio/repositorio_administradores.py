@@ -14,3 +14,11 @@ class RepositorioAdministradores(ABC):
     @abstractmethod
     def buscar(self, id: int) -> AdministradorCondominio | None:
         pass
+
+    @abstractmethod
+    def guardar(self, administrador: AdministradorCondominio) -> AdministradorCondominio:
+        pass
+
+    @abstractmethod
+    def actualizar(self, administrador: AdministradorCondominio) -> AdministradorCondominio:
+        pass
