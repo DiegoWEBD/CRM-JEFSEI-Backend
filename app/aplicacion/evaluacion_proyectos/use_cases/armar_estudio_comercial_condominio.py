@@ -42,14 +42,16 @@ class ArmarEstudioComercialCondominioUseCase:
     def ejecutar(
         self,
         id_prospecto: int,
-        infraseguro_primer_ejemplo: float,
-        infraseguro_segundo_ejemplo: float,
+        monto_asegurado_actual: float | None,
+        con_monto_sugerido: bool,
+        infraseguro_primer_ejemplo: float | None,
+        infraseguro_segundo_ejemplo: float | None,
         cantidad_cuotas: int,
         ids_cotizacion: list[int],
-        secciones: list[SeccionEstudioComercialRequest],
+        secciones: list[SeccionEstudioComercialRequest] | None,
         valor_uf: float,
         usuario: Usuario
-    ) -> tuple[EstudioComercialCondominio, int, str]:
+    ) -> str:
 
         if len(ids_cotizacion) == 0:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio sin cotizaciones')
@@ -62,7 +64,7 @@ class ArmarEstudioComercialCondominioUseCase:
         if not self.authorization_service.usuario_puede_crear_estudio_comercial(usuario.rut, id_prospecto):
             raise UsuarioNoAutorizadoException
 
-        monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
+        #monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         
         if not prospecto.year_construccion:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
@@ -109,7 +111,7 @@ class ArmarEstudioComercialCondominioUseCase:
             'page_break': rt
         }
 
-        estudio, ruta_docx = self.__armar_estudio(
+        ruta_docx = self.__armar_estudio(
             id_prospecto=prospecto.id,
             monto_asegurado_actual=monto_asegurado_actual,
             infraseguro_primer_ejemplo=infraseguro_primer_ejemplo,
@@ -121,19 +123,21 @@ class ArmarEstudioComercialCondominioUseCase:
             porcentaje_bienes_espacios_comunes=prospecto.porcentaje_espacios_comunes,
             cotizaciones=cotizaciones,
             secciones=secciones,
-            valor_uf=valor_uf
+            valor_uf=valor_uf,
+            con_monto_sugerido=con_monto_sugerido,
+            cantidad_unidades=prospecto.cantidad_departamentos
         )
 
-        id_estudio = self.repositorio_estudios.registrar(estudio, ids_cotizacion, usuario.rut)
+        #id_estudio = self.repositorio_estudios.registrar(estudio, ids_cotizacion, usuario.rut)
 
-        return estudio, id_estudio, str(ruta_docx)
+        return str(ruta_docx)
     
     def __armar_estudio(
         self,
         id_prospecto: int,
         monto_asegurado_actual: float | None,
-        infraseguro_primer_ejemplo: float,
-        infraseguro_segundo_ejemplo: float,
+        infraseguro_primer_ejemplo: float | None,
+        infraseguro_segundo_ejemplo: float | None,
         metros_cuadrados_construidos: float,
         valor_uf_por_metro_cuadrado: float,
         porcentaje_depreciacion: float,
@@ -141,36 +145,63 @@ class ArmarEstudioComercialCondominioUseCase:
         porcentaje_bienes_espacios_comunes: float,
         cotizaciones: list[Cotizacion],
         valor_uf: float,
-        secciones: list[SeccionEstudioComercialRequest],
+        secciones: list[SeccionEstudioComercialRequest] | None,
+        con_monto_sugerido: bool,
+        cantidad_unidades: int
 
-    ) -> tuple[EstudioComercialCondominio, str]:
+    ) -> str:
         
         valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
         valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
         monto_asegurado_sugerido = round(valor_total_reconstruccion_depreciacion_iva * porcentaje_bienes_espacios_comunes)
-        
-        infraseguro_actual = None
-
-        if monto_asegurado_actual is not None:
-            infraseguro_actual = round(1 - (monto_asegurado_actual / monto_asegurado_sugerido), 2)
-        
-        monto_asegurado_primer_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo))
-        monto_asegurado_segundo_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo))
 
         self.datos_plantilla.update({
             'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
             'valor_reconstruccion_depreciacion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_depreciacion_iva),
             'monto_asegurado_sugerido': convertir_numero_a_formato_chileno(monto_asegurado_sugerido),
-            'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo),
-            'porcentaje_infraseguro_segundo_ejemplo': convertir_numero_a_formato_chileno(infraseguro_segundo_ejemplo * 100),
+            'monto_asegurado_ejemplo_50': convertir_numero_a_formato_chileno(round(monto_asegurado_sugerido * 0.5)),
+            'con_monto_sugerido': con_monto_sugerido
         })
 
+        if secciones is not None:
+            self.__armar_secciones_estudio(secciones, cotizaciones, cantidad_cuotas, valor_uf)
+        else:
+            self.datos_plantilla['secciones'] = None
+            self.__armar_estudio_sin_secciones(
+                cotizaciones=cotizaciones,
+                monto_asegurado_actual=monto_asegurado_actual,
+                monto_asegurado_sugerido=monto_asegurado_sugerido,
+                infraseguro_primer_ejemplo=infraseguro_primer_ejemplo,
+                infraseguro_segundo_ejemplo=infraseguro_segundo_ejemplo,
+                cantidad_cuotas=cantidad_cuotas,
+                valor_uf=valor_uf,
+                cantidad_unidades=cantidad_unidades
+            )
+
+        nombre_estudio = f'estudio_comercial_condominio_id_{id_prospecto}'
+
+        carpeta_estudio = Path( f'documentos/estudios/{nombre_estudio}')
+
+        # crea toda la ruta si no existe
+        carpeta_estudio.mkdir(parents=True, exist_ok=True)
+
+        ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
+
+        self.doc.render(self.datos_plantilla)
+
+        self.doc.save(ruta_docx)
+
+        return str(ruta_docx)
+    
+
+    def __armar_secciones_estudio(
+        self,
+        secciones: list[SeccionEstudioComercialRequest],
+        cotizaciones: list[Cotizacion],
+        cantidad_cuotas: int,
+        valor_uf: float
+    ):
         secciones_estudio: list[SeccionEstudioComercial] = []
-        detalles: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_actual: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_segundo_ejemplo: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial] = []
 
         for seccion in secciones:
             detalles_seccion: list[DetalleEstudioComercial] = []
@@ -194,40 +225,93 @@ class ArmarEstudioComercialCondominioUseCase:
 
             secciones_estudio.append(seccion_estudio)
 
-
-        estudio = EstudioComercialCondominio(
-            cantidad_cuotas=cantidad_cuotas,
-            valor_uf=valor_uf,
-            monto_asegurado_actual=monto_asegurado_actual,
-            porcentaje_infraseguro=infraseguro_actual,
-            secciones=secciones_estudio,
-            detalles_monto_asegurado_actual=detalles_monto_asegurado_actual,
-            detalles_monto_asegurado_primer_ejemplo=detalles_monto_asegurado_primer_ejemplo,
-            detalles_monto_asegurado_segundo_ejemplo=detalles_monto_asegurado_segundo_ejemplo,
-            detalles_monto_asegurado_sugerido=detalles_monto_asegurado_sugerido
-        )
-
         self.__renderizar_secciones_docx(secciones_estudio, valor_uf)
-        #self.__renderizar_detalles_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual')
-        #self.__renderizar_detalles_docx(detalles_monto_asegurado_primer_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_primer_ejemplo')
-        #self.__renderizar_detalles_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo')
-        #self.__renderizar_detalles_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido')
 
-        nombre_estudio = f'estudio_comercial_condominio_id_{id_prospecto}'
-
-        carpeta_estudio = Path( f'documentos/estudios/{nombre_estudio}')
-
-        # crea toda la ruta si no existe
-        carpeta_estudio.mkdir(parents=True, exist_ok=True)
-
-        ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
-
-        self.doc.render(self.datos_plantilla)
-
-        self.doc.save(ruta_docx)
-
-        return estudio, str(ruta_docx)
     
+    def __armar_estudio_sin_secciones(
+        self,
+        cotizaciones: list[Cotizacion],
+        monto_asegurado_actual: float | None,
+        monto_asegurado_sugerido: float,
+        infraseguro_primer_ejemplo: float | None,
+        infraseguro_segundo_ejemplo: float | None,
+        cantidad_cuotas: int,
+        valor_uf: float,
+        cantidad_unidades: int
+    ):
+        infraseguro_actual = None
+
+        if monto_asegurado_actual is not None:
+            infraseguro_actual = round(1 - (monto_asegurado_actual / monto_asegurado_sugerido), 2)
+        
+        monto_asegurado_primer_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo)) if infraseguro_primer_ejemplo is not None else None
+        monto_asegurado_segundo_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo)) if infraseguro_segundo_ejemplo is not None else None
+
+        self.datos_plantilla.update({
+            'monto_asegurado_actual': convertir_numero_a_formato_chileno(monto_asegurado_actual) if monto_asegurado_actual is not None else None,
+            'porcentaje_infraseguro_actual': round(infraseguro_actual * 100) if infraseguro_actual is not None else None,
+            'monto_asegurado_primer_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_primer_ejemplo) if monto_asegurado_primer_ejemplo is not None else None,
+            'porcentaje_infraseguro_primer_ejemplo': convertir_numero_a_formato_chileno(infraseguro_primer_ejemplo * 100) if infraseguro_primer_ejemplo is not None else None,
+            'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo) if monto_asegurado_segundo_ejemplo is not None else None,
+            'porcentaje_infraseguro_segundo_ejemplo': convertir_numero_a_formato_chileno(infraseguro_segundo_ejemplo * 100) if infraseguro_segundo_ejemplo is not None else None,
+        })
+
+        detalles_monto_asegurado_actual: list[DetalleEstudioComercial] = []
+        detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial] = []
+        detalles_monto_asegurado_segundo_ejemplo: list[DetalleEstudioComercial] = []
+        detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial] = []
+
+        for cotizacion in cotizaciones:
+
+            # Monto asegurado sugerido
+            detalle_monto_asegurado_sugerido = self.__detalle_estudio(
+                cotizacion=cotizacion,
+                monto_asegurado=monto_asegurado_sugerido,
+                porcentaje_infraseguro=0,
+                cantidad_cuotas=cantidad_cuotas
+            )
+
+            detalles_monto_asegurado_sugerido.append(detalle_monto_asegurado_sugerido)
+
+            # Monto asegurado actual
+            if monto_asegurado_actual is not None and infraseguro_actual is not None:
+                detalle_monto_asegurado_actual = self.__detalle_estudio(
+                    cotizacion=cotizacion,
+                    monto_asegurado=monto_asegurado_actual,
+                    porcentaje_infraseguro=infraseguro_actual,
+                    cantidad_cuotas=cantidad_cuotas
+                )
+
+                detalles_monto_asegurado_actual.append(detalle_monto_asegurado_actual)
+
+            # Monto asegurado primer ejemplo infraseguro
+            if monto_asegurado_primer_ejemplo is not None and infraseguro_primer_ejemplo is not None:
+                detalle_monto_asegurado_primer_ejemplo = self.__detalle_estudio(
+                    cotizacion=cotizacion,
+                    monto_asegurado=monto_asegurado_primer_ejemplo,
+                    porcentaje_infraseguro=infraseguro_primer_ejemplo,
+                    cantidad_cuotas=cantidad_cuotas
+                )
+
+                detalles_monto_asegurado_primer_ejemplo.append(detalle_monto_asegurado_primer_ejemplo)
+
+            # Monto asegurado segundo ejemplo infraseguro
+            if monto_asegurado_segundo_ejemplo is not None and infraseguro_segundo_ejemplo is not None:
+                detalle_monto_asegurado_segundo_ejemplo = self.__detalle_estudio(
+                    cotizacion=cotizacion,
+                    monto_asegurado=monto_asegurado_segundo_ejemplo,
+                    porcentaje_infraseguro=infraseguro_segundo_ejemplo,
+                    cantidad_cuotas=cantidad_cuotas
+                )
+
+                detalles_monto_asegurado_segundo_ejemplo.append(detalle_monto_asegurado_segundo_ejemplo)
+
+
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual', valor_uf)
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_primer_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_primer_ejemplo', valor_uf)
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo', valor_uf)
+        self.__renderizar_detalles_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido', valor_uf)
+
     
     def __detalle_estudio(
         self, 
@@ -281,7 +365,12 @@ class ArmarEstudioComercialCondominioUseCase:
         cuota = (tasa * prima_bruta) / (1 - (1 + tasa) ** -cantidad_cuotas)
         return cuota
     
-    def __renderizar_secciones_docx(self, secciones: list[SeccionEstudioComercial], valor_uf: float):
+    def __renderizar_secciones_docx(self, secciones: list[SeccionEstudioComercial] | None, valor_uf: float):
+
+        if not secciones:
+            self.datos_plantilla['secciones'] = None
+            return
+
         datos_secciones = []
 
         for i, seccion in enumerate(secciones):
@@ -329,201 +418,13 @@ class ArmarEstudioComercialCondominioUseCase:
             })
 
         self.datos_plantilla['secciones'] = datos_secciones
-
-    '''
-    def __armar_estudio(
-        self,
-        id_prospecto: int,
-        monto_asegurado_actual: float | None,
-        infraseguro_primer_ejemplo: float,
-        infraseguro_segundo_ejemplo: float,
-        metros_cuadrados_construidos: float,
-        valor_uf_por_metro_cuadrado: float,
-        porcentaje_depreciacion: float,
-        cantidad_cuotas: int,
-        cantidad_unidades: int,
-        porcentaje_bienes_espacios_comunes: float,
-        cotizaciones: list[Cotizacion]
-
-    ) -> tuple[EstudioComercialCondominio, str]:
-        
-        valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
-        valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
-        monto_asegurado_sugerido = round(valor_total_reconstruccion_depreciacion_iva * porcentaje_bienes_espacios_comunes)
-        
-        infraseguro_actual = None
-
-        if monto_asegurado_actual is not None:
-            infraseguro_actual = round(1 - (monto_asegurado_actual / monto_asegurado_sugerido), 2)
-        
-        monto_asegurado_primer_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo))
-        monto_asegurado_segundo_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo))
-
-        self.datos_plantilla.update({
-            'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
-            'valor_reconstruccion_depreciacion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_depreciacion_iva),
-            'monto_asegurado_sugerido': convertir_numero_a_formato_chileno(monto_asegurado_sugerido)
-        })
-
-        detalles: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_actual: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_segundo_ejemplo: list[DetalleEstudioComercial] = []
-        detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial] = []
-
-        for cotizacion in cotizaciones:
-
-            # Monto asegurado sugerido
-            detalle_monto_asegurado_sugerido = self.__detalle_estudio(
-                cotizacion=cotizacion,
-                monto_asegurado=monto_asegurado_sugerido,
-                porcentaje_infraseguro=0,
-                cantidad_cuotas=cantidad_cuotas
-            )
-
-            detalles.append(detalle_monto_asegurado_sugerido)
-            detalles_monto_asegurado_sugerido.append(detalle_monto_asegurado_sugerido)
-
-            # Monto asegurado actual
-            if monto_asegurado_actual is not None and infraseguro_actual is not None:
-                detalle_monto_asegurado_actual = self.__detalle_estudio(
-                    cotizacion=cotizacion,
-                    monto_asegurado=monto_asegurado_actual,
-                    porcentaje_infraseguro=infraseguro_actual,
-                    cantidad_cuotas=cantidad_cuotas
-                )
-                
-                self.datos_plantilla.update({
-                    'monto_asegurado_actual': convertir_numero_a_formato_chileno(monto_asegurado_actual),
-                    'porcentaje_infraseguro_actual': round(infraseguro_actual * 100)
-                })
-
-                detalles.append(detalle_monto_asegurado_actual)
-                detalles_monto_asegurado_actual.append(detalle_monto_asegurado_actual)
-
-            # Monto asegurado primer ejemplo infraseguro
-            detalle_monto_asegurado_primer_ejemplo = self.__detalle_estudio(
-                cotizacion=cotizacion,
-                monto_asegurado=monto_asegurado_primer_ejemplo,
-                porcentaje_infraseguro=infraseguro_primer_ejemplo,
-                cantidad_cuotas=cantidad_cuotas
-            )
-
-            self.datos_plantilla.update({
-                'monto_asegurado_primer_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_primer_ejemplo),
-                'porcentaje_infraseguro_primer_ejemplo': round(infraseguro_primer_ejemplo * 100)
-            })
-
-            detalles.append(detalle_monto_asegurado_primer_ejemplo)
-            detalles_monto_asegurado_primer_ejemplo.append(detalle_monto_asegurado_primer_ejemplo)
-
-            # Monto asegurado segundo ejemplo infraseguro
-            detalle_monto_asegurado_segundo_ejemplo = self.__detalle_estudio(
-                cotizacion=cotizacion,
-                monto_asegurado=monto_asegurado_segundo_ejemplo,
-                porcentaje_infraseguro=infraseguro_segundo_ejemplo,
-                cantidad_cuotas=cantidad_cuotas
-            )
-
-            self.datos_plantilla.update({
-                'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo),
-                'porcentaje_infraseguro_segundo_ejemplo': round(infraseguro_segundo_ejemplo * 100)
-            })
-
-            detalles.append(detalle_monto_asegurado_segundo_ejemplo)
-            detalles_monto_asegurado_segundo_ejemplo.append(detalle_monto_asegurado_segundo_ejemplo)
-
-
-        estudio = EstudioComercialCondominio(
-            cantidad_cuotas=cantidad_cuotas,
-            valor_uf=40000,
-            monto_asegurado_actual=monto_asegurado_actual,
-            porcentaje_infraseguro=infraseguro_actual,
-            detalles_monto_asegurado_actual=detalles_monto_asegurado_actual,
-            detalles_monto_asegurado_primer_ejemplo=detalles_monto_asegurado_primer_ejemplo,
-            detalles_monto_asegurado_segundo_ejemplo=detalles_monto_asegurado_segundo_ejemplo,
-            detalles_monto_asegurado_sugerido=detalles_monto_asegurado_sugerido
-        )
-
-        self.__renderizar_detalles_docx(detalles_monto_asegurado_actual, cantidad_unidades, 'detalles_monto_asegurado_actual')
-        self.__renderizar_detalles_docx(detalles_monto_asegurado_primer_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_primer_ejemplo')
-        self.__renderizar_detalles_docx(detalles_monto_asegurado_segundo_ejemplo, cantidad_unidades, 'detalles_monto_asegurado_segundo_ejemplo')
-        self.__renderizar_detalles_docx(detalles_monto_asegurado_sugerido, cantidad_unidades, 'detalles_monto_asegurado_sugerido')
-
-        nombre_estudio = f'estudio_comercial_condominio_id_{id_prospecto}'
-
-        carpeta_estudio = Path( f'documentos/estudios/{nombre_estudio}')
-
-        # crea toda la ruta si no existe
-        carpeta_estudio.mkdir(parents=True, exist_ok=True)
-
-        ruta_docx = carpeta_estudio / f'{nombre_estudio}.docx'
-
-        self.doc.render(self.datos_plantilla)
-
-        self.doc.save(ruta_docx)
-
-        return estudio, str(ruta_docx)
     
-    
-    def __detalle_estudio(
-        self, 
-        cotizacion: Cotizacion, 
-        monto_asegurado: float, 
-        porcentaje_infraseguro: float,
-        cantidad_cuotas: int
-    ) -> DetalleEstudioComercial:
 
-        decimales = 2
-        tasa_afecta = cotizacion.tasa_afecta
-        tasa_excenta = cotizacion.tasa_excenta
-        tasa_politica = cotizacion.tasa_politica
-        prima_afecta_adicional = cotizacion.prima_adicional_asistencia
-        prima_excenta_adicional = 0
-
-        prima_afecta = round((monto_asegurado / 1000 * (tasa_afecta + tasa_politica)) + prima_afecta_adicional, decimales)
-        prima_excenta = round((monto_asegurado * tasa_excenta / 1000) + prima_excenta_adicional, decimales)
-        iva_prima_afecta = round(prima_afecta * ArmarEstudioComercialCondominioUseCase.factor_iva, decimales)
-        prima_neta = round(prima_afecta + prima_excenta, decimales)
-        prima_bruta = round(prima_neta + iva_prima_afecta, decimales)
-
-        factores_cuotas = self.repositorio_company_seguros.obtener_factores_cuotas(cotizacion.company.id)
-        factor = None
-
-        for factor_cuota in factores_cuotas:
-            if factor_cuota.numero_cuotas == cantidad_cuotas:
-                factor = factor_cuota.factor
-
-        if factor is not None:
-            valor_cuota = prima_bruta * factor
-        else:
-            valor_cuota = self.__valor_cuota_con_factor_generico(
-                cantidad_cuotas=cantidad_cuotas,
-                prima_bruta=prima_bruta
-            )
-
-        return DetalleEstudioComercial(
-            cotizacion=cotizacion,
-            monto_asegurado=monto_asegurado,
-            porcentaje_infraseguro=porcentaje_infraseguro,
-            iva_prima_afecta=iva_prima_afecta,
-            prima_neta=prima_neta,
-            prima_bruta=prima_bruta,
-            valor_cuota=round(valor_cuota, decimales)
-        )
-    
-    def __valor_cuota_con_factor_generico(self, cantidad_cuotas: int, prima_bruta: float) -> float:
-        tasa = 0.005      # 0.5%
-
-        cuota = (tasa * prima_bruta) / (1 - (1 + tasa) ** -cantidad_cuotas)
-        return cuota
-    
-    def __renderizar_detalles_docx(self, detalles: list[DetalleEstudioComercial], cantidad_unidades: int, dict_key: str):
+    def __renderizar_detalles_docx(self, detalles: list[DetalleEstudioComercial], cantidad_unidades: int, dict_key: str, valor_uf: float):
         datos_detalles = []
-        VALOR_UF = 40509.29
 
         for detalle in detalles:
-            valor_cuota_pesos = round(detalle.valor_cuota * VALOR_UF)
+            valor_cuota_pesos = round(detalle.valor_cuota * valor_uf)
             prorrateo_pesos = round(valor_cuota_pesos / cantidad_unidades)
 
             logo = InlineImage(
@@ -543,4 +444,3 @@ class ArmarEstudioComercialCondominioUseCase:
             })
 
         self.datos_plantilla[dict_key] = datos_detalles
-        '''

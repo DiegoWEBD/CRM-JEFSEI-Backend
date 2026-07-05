@@ -10,7 +10,7 @@ class EstudioComercialCondominio:
         valor_uf: float,
         monto_asegurado_actual: float | None,
         porcentaje_infraseguro: float | None,
-        secciones: list[SeccionEstudioComercial],
+        secciones: list[SeccionEstudioComercial] | None,
         detalles_monto_asegurado_actual: list[DetalleEstudioComercial],
         detalles_monto_asegurado_sugerido: list[DetalleEstudioComercial],
         detalles_monto_asegurado_primer_ejemplo: list[DetalleEstudioComercial],

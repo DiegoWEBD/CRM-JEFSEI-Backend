@@ -53,8 +53,10 @@ def armar_estudio_comercial(
     usuario: Usuario = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
     use_case: ArmarEstudioComercialCondominioUseCase = Depends(get_armar_estudio_comercial_use_case)
 ):
-    estudio_comercial, id_estudio, ruta_archivo = use_case.ejecutar(
+    ruta_archivo = use_case.ejecutar(
         id_prospecto=request.id_prospecto,
+        monto_asegurado_actual=request.monto_asegurado_actual,
+        con_monto_sugerido=request.con_monto_sugerido,
         infraseguro_primer_ejemplo=request.infraseguro_primer_ejemplo,
         infraseguro_segundo_ejemplo=request.infraseguro_segundo_ejemplo,
         cantidad_cuotas=request.cantidad_cuotas,
@@ -69,7 +71,6 @@ def armar_estudio_comercial(
     archivo_base64 = base64.b64encode(archivo_bytes).decode('utf-8')
 
     return {
-        'estudio_comercial': estudio_comercial,
         'archivo_base64': archivo_base64,
         'nombre_archivo': f'estudio_comercial_{request.id_prospecto}.docx',
     }
