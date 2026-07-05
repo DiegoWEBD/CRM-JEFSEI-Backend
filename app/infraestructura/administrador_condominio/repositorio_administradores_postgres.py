@@ -46,3 +46,40 @@ class RepositorioAdministradoresPostgres(RepositorioAdministradores):
                     return None
 
                 return DictRowAdministradorAdapter(row).to_administrador()
+
+    def guardar(self, administrador: AdministradorCondominio) -> AdministradorCondominio:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = """
+                    INSERT INTO AdministradorCondominio (nombre_administrador, nombre_contacto, telefono, correo)
+                    VALUES (%(nombre_administrador)s, %(nombre_contacto)s, %(telefono)s, %(correo)s)
+                    RETURNING id
+                """
+                cur.execute(query, {
+                    'nombre_administrador': administrador.nombre_administrador,
+                    'nombre_contacto': administrador.nombre_contacto,
+                    'telefono': administrador.telefono,
+                    'correo': administrador.correo,
+                })
+                administrador.id = cur.fetchone()['id']
+                return administrador
+
+    def actualizar(self, administrador: AdministradorCondominio) -> AdministradorCondominio:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = """
+                    UPDATE AdministradorCondominio
+                    SET nombre_administrador = %(nombre_administrador)s,
+                        nombre_contacto = %(nombre_contacto)s,
+                        telefono = %(telefono)s,
+                        correo = %(correo)s
+                    WHERE id = %(id)s
+                """
+                cur.execute(query, {
+                    'id': administrador.id,
+                    'nombre_administrador': administrador.nombre_administrador,
+                    'nombre_contacto': administrador.nombre_contacto,
+                    'telefono': administrador.telefono,
+                    'correo': administrador.correo,
+                })
+                return administrador

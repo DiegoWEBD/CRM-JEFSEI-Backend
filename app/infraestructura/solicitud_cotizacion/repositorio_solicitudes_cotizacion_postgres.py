@@ -231,7 +231,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     P.nombre_riesgo,
                     P.informacion_completa,
                     PC.rut_ej_comercial,
-                    EJ_COM.nombre as nombre_ejecutivo_comercial
+                    EJ_COM.nombre as nombre_ejecutivo_comercial,
+                    (select count(*) from Cotizacion C where C.id_solicitud = SC.id) as cantidad_cotizaciones
                     from SolicitudCotizacion SC
                     inner join ProcesoComercial PC
                     on SC.id_proceso_comercial = PC.id
@@ -264,6 +265,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     rut_ej_comercial = row['rut_ej_comercial']
                     nombre_ejecutivo_comercial = row['nombre_ejecutivo_comercial']
                     producto = row['producto']
+                    cantidad_cotizaciones = row['cantidad_cotizaciones']
 
                     if tipo == 'vida_guardia':
                         query = '''
@@ -295,6 +297,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                             producto=producto,
+                            cantidad_cotizaciones=cantidad_cotizaciones,
                             numero_guardias=row_solicitud['numero_guardias']
                         ))
 
@@ -332,6 +335,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                             producto=producto,
+                            cantidad_cotizaciones=cantidad_cotizaciones,
                             actividades=actividades
                         ))
 
@@ -365,6 +369,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                             producto=producto,
+                            cantidad_cotizaciones=cantidad_cotizaciones,
                             monto_asegurado_total=row_solicitud['monto_asegurado_total'],
                             nombre_excel=row_solicitud['nombre_excel']
                         ))
@@ -399,6 +404,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                             producto=producto,
+                            cantidad_cotizaciones=cantidad_cotizaciones,
                             limite=row_solicitud['limite_responsabilidad_civil'],
                             actividad_del_condominio=row_solicitud['actividad_del_condominio']
                         ))
@@ -416,7 +422,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
-                            producto=producto
+                            producto=producto,
+                            cantidad_cotizaciones=cantidad_cotizaciones
                         ))
 
             return cotizaciones 

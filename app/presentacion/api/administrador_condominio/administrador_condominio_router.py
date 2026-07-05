@@ -6,6 +6,12 @@ from app.aplicacion.administrador_condominio.use_cases.obtener_administrador_por
 from app.aplicacion.administrador_condominio.use_cases.obtener_administradores import (
     ObtenerAdministradoresUseCase,
 )
+from app.aplicacion.administrador_condominio.use_cases.registrar_administrador import (
+    RegistrarAdministradorUseCase,
+)
+from app.aplicacion.administrador_condominio.use_cases.actualizar_administrador import (
+    ActualizarAdministradorUseCase,
+)
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import (
     ConsultaProspectosService,
 )
@@ -15,9 +21,17 @@ from app.infraestructura.administrador_condominio.adaptadores.administrador_cond
     AdministradorCondominioJsonAdapter,
 )
 from app.presentacion.api.administrador_condominio.deps import (
+    get_actualizar_administrador_use_case,
     get_consulta_prospectos_service,
     get_obtener_administrador_por_id_use_case,
     get_obtener_administradores_use_case,
+    get_registrar_administrador_use_case,
+)
+from app.presentacion.api.administrador_condominio.dto.registrar_administrador_request import (
+    RegistrarAdministradorRequest,
+)
+from app.presentacion.api.administrador_condominio.dto.actualizar_administrador_request import (
+    ActualizarAdministradorRequest,
 )
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import (
@@ -54,6 +68,46 @@ def obtener_administradores(
             AdministradorCondominioJsonAdapter(a).to_json()
             for a in administradores
         ]
+    }
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def registrar_administrador(
+    request: RegistrarAdministradorRequest,
+    use_case: RegistrarAdministradorUseCase = Depends(
+        get_registrar_administrador_use_case
+    ),
+):
+    administrador = use_case.ejecutar(
+        nombre_administrador=request.nombre_administrador,
+        nombre_contacto=request.nombre_contacto,
+        telefono=request.telefono,
+        correo=request.correo,
+    )
+
+    return {
+        "data": AdministradorCondominioJsonAdapter(administrador).to_json()
+    }
+
+
+@router.put("/{id}", status_code=status.HTTP_200_OK)
+def actualizar_administrador(
+    id: int,
+    request: ActualizarAdministradorRequest,
+    use_case: ActualizarAdministradorUseCase = Depends(
+        get_actualizar_administrador_use_case
+    ),
+):
+    administrador = use_case.ejecutar(
+        id=id,
+        nombre_administrador=request.nombre_administrador,
+        nombre_contacto=request.nombre_contacto,
+        telefono=request.telefono,
+        correo=request.correo,
+    )
+
+    return {
+        "data": AdministradorCondominioJsonAdapter(administrador).to_json()
     }
 
 

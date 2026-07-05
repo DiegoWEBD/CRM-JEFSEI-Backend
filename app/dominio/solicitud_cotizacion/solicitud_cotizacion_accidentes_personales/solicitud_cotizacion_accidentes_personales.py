@@ -20,7 +20,8 @@ class SolicitudCotizacionAccidentesPersonales(SolicitudCotizacion):
         producto: str,
         recotizacion: bool,
         motivo_recotizacion: str | None,
-        actividades: list[ActividadAccidentesPersonales]
+        actividades: list[ActividadAccidentesPersonales],
+        cantidad_cotizaciones: int = 0
     ):
         super().__init__(
             id=id,
@@ -34,7 +35,8 @@ class SolicitudCotizacionAccidentesPersonales(SolicitudCotizacion):
             informacion_completa=informacion_completa,
             rut_ejecutivo_comercial=rut_ejecutivo_comercial,
             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
-            producto=producto
+            producto=producto,
+            cantidad_cotizaciones=cantidad_cotizaciones
         )
 
         self.actividades = actividades
