@@ -118,6 +118,7 @@ def obtener_prospecto_por_id(
 @router.get('/{id}/procesos-comerciales', status_code=status.HTTP_200_OK)
 def obtener_procesos_comerciales_prospecto(
     id: int,
+    abiertos: Optional[bool] = Query(None),
     usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES', 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
     use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case)
 ):
@@ -125,7 +126,8 @@ def obtener_procesos_comerciales_prospecto(
 
     procesos = use_case.ejecutar(
         id_prospecto=id,
-        rut_usuario=usuario.rut if not puede_ver_todos else None
+        rut_usuario=usuario.rut if not puede_ver_todos else None,
+        abiertos=abiertos
     )
 
     return {

@@ -63,11 +63,20 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
-    def obtener_procesos_comerciales(self, id_prospecto: int) -> list[ProcesoComercial]:
-         with obtener_conexion() as conn:
+    def obtener_procesos_comerciales(self, id_prospecto: int, abiertos: bool | None = None) -> list[ProcesoComercial]:
+        with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = '''
+                condiciones = ["PC.id_prospecto = %(id_prospecto)s"]
+                params = {"id_prospecto": id_prospecto}
+
+                if abiertos is not None:
+                    condiciones.append("PC.cerrado = %(cerrado)s")
+                    params["cerrado"] = not abiertos
+
+                where_clause = " and ".join(condiciones)
+
+                query = f'''
                     select PC.id,
                     PC.id_prospecto,
                     PR.nombre_riesgo as nombre_cliente,
@@ -105,14 +114,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_comercial = EJ_COM.rut
                     left join Usuario EJ_EV
                     on PC.rut_ej_evaluacion = EJ_EV.rut
-                    where PC.id_prospecto = %(id_prospecto)s
+                    where {where_clause}
                 '''
 
-                params = {
-                    'id_prospecto': id_prospecto
-                }
-
-                cur.execute(query, params)
+                cur.execute(query, params) # type: ignore
                 rows = cur.fetchall()
 
                 return [DictRowProcesoComercialAdapter(row).to_proceso_comercial() for row in rows]
