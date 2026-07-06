@@ -8,6 +8,10 @@ from app.dominio.usuario.usuario import Usuario
 class RepositorioProspectos(ABC):
     
     @abstractmethod
+    def registrar_prospecto(self, prospecto: Prospecto) -> int:
+        pass
+
+    @abstractmethod
     def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> int:
         pass
     
@@ -37,4 +41,16 @@ class RepositorioProspectos(ABC):
 
     @abstractmethod
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
+        pass
+
+    @abstractmethod
+    def actualizar_prospecto(self, prospecto: Prospecto) -> None:
+        pass
+
+    @abstractmethod
+    def asignar_ejecutivo_cobranza(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
+        pass
+
+    @abstractmethod
+    def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass

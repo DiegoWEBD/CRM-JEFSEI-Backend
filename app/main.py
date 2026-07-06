@@ -6,6 +6,7 @@ from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.administrador_condominio import administrador_condominio_router
 from app.presentacion.api.auth import auth_router
+from app.presentacion.api.cliente import cliente_router
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.comuna import comuna_router
 from app.presentacion.api.company_seguros import company_seguros_router
@@ -118,6 +119,13 @@ app.include_router(
 
 app.include_router(
     router=prospecto_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=cliente_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.lib.normalizar_texto import normalizar_texto
@@ -16,8 +17,9 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
+from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
@@ -207,6 +209,31 @@ def asignar_ejecutivo_evaluacion(
 
     return {
         'message': 'Ejecutivo de evaluación de proyectos asignado correctamente'
+    }
+
+
+@router.put('/{id}', status_code=status.HTTP_200_OK)
+def actualizar_prospecto(
+    id: int,
+    request: ActualizarProspectoRequest,
+    usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
+    use_case: ActualizarProspectoUseCase = Depends(get_actualizar_prospecto_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        rut_usuario=usuario.rut,
+        rut_riesgo=request.rut_riesgo,
+        nombre_riesgo=request.nombre_riesgo,
+        telefono_contacto=request.telefono_contacto,
+        correo_contacto=request.correo_contacto,
+        direccion=request.direccion,
+        region=request.region,
+        comuna=request.comuna,
+        observaciones=request.observaciones
+    )
+
+    return {
+        'message': 'Prospecto actualizado correctamente'
     }
 
 

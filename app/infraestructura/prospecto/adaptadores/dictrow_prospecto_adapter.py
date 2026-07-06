@@ -29,6 +29,10 @@ class DictRowProspectoAdapter:
         nombre_ej_comercial_asignado = self.row['nombre_ej_comercial_asignado']
         rut_ej_evaluacion_asignado = self.row['rut_ej_evaluacion_asignado']
         nombre_ej_evaluacion_asignado = self.row['nombre_ej_evaluacion_asignado']
+        rut_ej_cobranza_asignado = self.row['rut_ej_cobranza_asignado']
+        nombre_ej_cobranza_asignado = self.row['nombre_ej_cobranza_asignado']
+        rut_ej_renovacion_asignado = self.row['rut_ej_renovacion_asignado']
+        nombre_ej_renovacion_asignado = self.row['nombre_ej_renovacion_asignado']
         id_linea_negocio = self.row['id_linea_negocio']  
         region = self.row['region']  
         comuna = self.row['comuna']  
@@ -88,6 +92,22 @@ class DictRowProspectoAdapter:
                 nombre = nombre_ej_evaluacion_asignado
             ) 
 
+        ejecutivo_cobranza = None
+
+        if rut_ej_cobranza_asignado is not None:
+            ejecutivo_cobranza = Usuario(
+                rut = rut_ej_cobranza_asignado,
+                nombre = nombre_ej_cobranza_asignado
+            )
+
+        ejecutivo_renovacion = None
+
+        if rut_ej_renovacion_asignado is not None:
+            ejecutivo_renovacion = Usuario(
+                rut = rut_ej_renovacion_asignado,
+                nombre = nombre_ej_renovacion_asignado
+            )
+
         return Prospecto(
             id = id,
             id_cliente=id_cliente,
@@ -103,6 +123,8 @@ class DictRowProspectoAdapter:
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=ejecutivo_comercial,
             ejecutivo_evaluacion_asignado=ejecutivo_evaluacion,
+            ejecutivo_cobranza_asignado=ejecutivo_cobranza,
+            ejecutivo_renovacion_asignado=ejecutivo_renovacion,
             planificacion_prospecto=planificacion,
             ultima_actualizacion=prospecto_updated_at,
             informacion_completa=informacion_completa
