@@ -38,3 +38,11 @@ class RepositorioProspectos(ABC):
     @abstractmethod
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         pass
+
+    @abstractmethod
+    def asignar_ejecutivo_cobranza(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
+        pass
+
+    @abstractmethod
+    def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
+        pass
