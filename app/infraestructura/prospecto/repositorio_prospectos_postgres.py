@@ -6,7 +6,7 @@ from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
-from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto_condominio
+from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio
 
 
 class RepositorioProspectosPostgres(RepositorioProspectos):
@@ -146,6 +146,102 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 cur.execute(query, params)
 
                 return id_prospecto
+
+    def registrar_prospecto(self, prospecto: Prospecto) -> int:
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into Prospecto(
+                        rut_riesgo,
+                        nombre_riesgo,
+                        telefono_contacto,
+                        correo_contacto,
+                        direccion,
+                        region,
+                        comuna,
+                        observaciones,
+                        id_linea_negocio,
+                        rut_registrado_por,
+                        rut_ej_comercial_asignado,
+                        informacion_completa
+                    )
+                    values(
+                        %(rut_riesgo)s,
+                        %(nombre_riesgo)s,
+                        %(telefono_contacto)s,
+                        %(correo_contacto)s,
+                        %(direccion)s,
+                        %(region)s,
+                        %(comuna)s,
+                        %(observaciones)s,
+                        %(id_linea_negocio)s,
+                        %(rut_registrado_por)s,
+                        %(rut_ej_comercial_asignado)s,
+                        %(informacion_completa)s
+                    )
+                    returning id
+                '''
+
+                params = {
+                    'rut_riesgo': prospecto.rut_riesgo,
+                    'nombre_riesgo': prospecto.nombre_riesgo,
+                    'telefono_contacto': prospecto.telefono_contacto,
+                    'correo_contacto': prospecto.correo_contacto,
+                    'direccion': prospecto.direccion,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
+                    'observaciones': prospecto.observaciones,
+                    'id_linea_negocio': prospecto.linea_negocio.id,
+                    'rut_registrado_por': prospecto.registrado_por.rut,
+                    'rut_ej_comercial_asignado': prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None,
+                    'informacion_completa': informacion_completa_prospecto(prospecto)
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    raise ValueError('Error al registrar prospecto')
+
+                return row['id']
+
+    def actualizar_prospecto(self, prospecto: Prospecto) -> None:
+        if prospecto.id is None:
+            return
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update Prospecto
+                    set rut_riesgo = %(rut_riesgo)s,
+                    nombre_riesgo = %(nombre_riesgo)s,
+                    telefono_contacto = %(telefono_contacto)s,
+                    correo_contacto = %(correo_contacto)s,
+                    direccion = %(direccion)s,
+                    region = %(region)s,
+                    comuna = %(comuna)s,
+                    observaciones = %(observaciones)s,
+                    informacion_completa = %(informacion_completa)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'rut_riesgo': prospecto.rut_riesgo,
+                    'nombre_riesgo': prospecto.nombre_riesgo,
+                    'telefono_contacto': prospecto.telefono_contacto,
+                    'correo_contacto': prospecto.correo_contacto,
+                    'direccion': prospecto.direccion,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
+                    'observaciones': prospecto.observaciones,
+                    'informacion_completa': informacion_completa_prospecto(prospecto),
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
 
     def actualizar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
         if prospecto.id is None:

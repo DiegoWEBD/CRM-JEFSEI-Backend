@@ -1,6 +1,7 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -72,6 +73,10 @@ def get_obtener_prospecto_factory():
         obtener_prospecto_condominio=prospecto_condominio_use_case,
         obtener_prospecto_linea_personal=prospecto_linea_personal_use_case
     )
+
+def get_actualizar_prospecto_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    return ActualizarProspectoUseCase(repositorio_prospectos)
 
 def get_actualizar_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
