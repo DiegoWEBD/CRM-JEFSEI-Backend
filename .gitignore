@@ -1,4 +1,4 @@
 .env
 __pycache__/
-respaldo_db.sql
+respaldo.sql
 documentos/

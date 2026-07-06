@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bFZziKHd6OGiYH1d1wMeUXT5ZRQxs7JxpC1nUYR6YVYhaQ6zCtgoo6IPOp2XhZf
+\restrict hfflf29O8KgnDhUR0vxF3igMXRWNyBuQ81E6hDcqnJ7cALRDfKPwZYmd44fc5Bt
 
 -- Dumped from database version 18.3 (Debian 18.3-1.pgdg13+1)
 -- Dumped by pg_dump version 18.3 (Debian 18.3-1.pgdg13+1)
@@ -529,6 +529,47 @@ CREATE TABLE public.factorcuotascompany (
 ALTER TABLE public.factorcuotascompany OWNER TO crm_admin;
 
 --
+-- Name: gestioncomercial; Type: TABLE; Schema: public; Owner: crm_admin
+--
+
+CREATE TABLE public.gestioncomercial (
+    id integer NOT NULL,
+    tipo character varying(15) NOT NULL,
+    rut_usuario character varying(10) NOT NULL,
+    id_prospecto integer NOT NULL,
+    titulo text NOT NULL,
+    estado_contacto text,
+    observacion text,
+    created_at timestamp with time zone NOT NULL,
+    fecha_gestion timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.gestioncomercial OWNER TO crm_admin;
+
+--
+-- Name: gestioncomercial_id_seq; Type: SEQUENCE; Schema: public; Owner: crm_admin
+--
+
+CREATE SEQUENCE public.gestioncomercial_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.gestioncomercial_id_seq OWNER TO crm_admin;
+
+--
+-- Name: gestioncomercial_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: crm_admin
+--
+
+ALTER SEQUENCE public.gestioncomercial_id_seq OWNED BY public.gestioncomercial.id;
+
+
+--
 -- Name: historialestadoinformativoprocesocomercial; Type: TABLE; Schema: public; Owner: crm_admin
 --
 
@@ -858,21 +899,6 @@ CREATE TABLE public.prospectocondominio (
 ALTER TABLE public.prospectocondominio OWNER TO crm_admin;
 
 --
--- Name: prospectoempresa; Type: TABLE; Schema: public; Owner: crm_admin
---
-
-CREATE TABLE public.prospectoempresa (
-    id integer NOT NULL,
-    actividad text NOT NULL,
-    ma_rc real,
-    ma_edificio real,
-    cantidad_trabajadores integer
-);
-
-
-ALTER TABLE public.prospectoempresa OWNER TO crm_admin;
-
---
 -- Name: recordatorio; Type: TABLE; Schema: public; Owner: crm_admin
 --
 
@@ -1195,6 +1221,13 @@ ALTER TABLE ONLY public.estudiocomercialcondominio ALTER COLUMN id SET DEFAULT n
 --
 
 ALTER TABLE ONLY public.etapaprocesocomercialparticular ALTER COLUMN id SET DEFAULT nextval('public.etapaprocesocomercialparticular_id_seq'::regclass);
+
+
+--
+-- Name: gestioncomercial id; Type: DEFAULT; Schema: public; Owner: crm_admin
+--
+
+ALTER TABLE ONLY public.gestioncomercial ALTER COLUMN id SET DEFAULT nextval('public.gestioncomercial_id_seq'::regclass);
 
 
 --
@@ -1553,6 +1586,17 @@ COPY public.cuota (id, id_plan_pago, numero_cuota, fecha_vencimiento, pagado, fe
 64	6	9	2027-04-05 00:00:00+00	f	\N
 65	6	10	2027-05-05 00:00:00+00	f	\N
 66	6	11	2027-06-05 00:00:00+00	f	\N
+67	7	1	2026-07-30 00:00:00+00	f	\N
+68	7	2	2026-08-30 00:00:00+00	f	\N
+69	7	3	2026-09-30 00:00:00+00	f	\N
+70	7	4	2026-10-30 00:00:00+00	f	\N
+71	7	5	2026-11-30 00:00:00+00	f	\N
+72	7	6	2026-12-30 00:00:00+00	f	\N
+73	7	7	2027-01-30 00:00:00+00	f	\N
+74	7	8	2027-02-28 00:00:00+00	f	\N
+75	7	9	2027-03-30 00:00:00+00	f	\N
+76	7	10	2027-04-30 00:00:00+00	f	\N
+77	7	11	2027-05-30 00:00:00+00	f	\N
 \.
 
 
@@ -1683,6 +1727,15 @@ COPY public.factorcuotascompany (id_company, numero_cuotas, factor) FROM stdin;
 10	10	0.1029
 10	11	0.0938
 10	12	0.0862
+\.
+
+
+--
+-- Data for Name: gestioncomercial; Type: TABLE DATA; Schema: public; Owner: crm_admin
+--
+
+COPY public.gestioncomercial (id, tipo, rut_usuario, id_prospecto, titulo, estado_contacto, observacion, created_at, fecha_gestion) FROM stdin;
+1	llamada	19995707-4	118	Llamada	\N	\N	2026-07-06 21:15:00.086958+00	2026-07-06 17:14:00+00
 \.
 
 
@@ -1823,6 +1876,7 @@ COPY public.historialestadoinformativoprocesocomercial (id, id_proceso_comercial
 382	333	ESTUDIO_DISPONIBLE	2026-07-06 16:16:29.516618+00	\N	19956311-4
 385	334	COTIZACION_SOLICITADA_COMPANY	2026-07-06 16:25:10.857743+00	\N	19956311-4
 387	334	COTIZACION_DISPONIBLE	2026-07-06 16:29:40.835434+00	\N	19661132-0
+390	323	PLAN_PAGO_CREADO	2026-07-06 19:59:31.841212+00	\N	20036887-8
 341	320	ESTUDIO_DISPONIBLE	2026-07-01 16:18:38.293659+00	\N	20036887-8
 145	159	GANADO	2026-06-05 19:50:25.926916+00	\N	12220101-5
 146	160	GANADO	2026-06-05 19:50:25.926916+00	\N	12220101-5
@@ -1842,6 +1896,7 @@ COPY public.historialestadoinformativoprocesocomercial (id, id_proceso_comercial
 284	303	ESTUDIO_DISPONIBLE	2026-06-23 16:51:01.646333+00	\N	19661132-0
 310	312	ESTUDIO_DISPONIBLE	2026-06-30 14:47:25.803849+00	\N	19661132-0
 331	319	ESTUDIO_DISPONIBLE	2026-06-30 20:38:01.579242+00	\N	19661132-0
+391	323	GANADO	2026-07-06 19:59:31.954174+00	\N	20036887-8
 345	321	ESTUDIO_DISPONIBLE	2026-07-02 19:28:27.31304+00	\N	19661132-0
 349	322	ESTUDIO_DISPONIBLE	2026-07-02 19:47:35.692221+00	\N	19661132-0
 363	325	OPORTUNIDAD_CREADA	2026-07-04 21:18:25.540715+00	\N	19661132-0
@@ -2119,6 +2174,7 @@ COPY public.planpago (id, numero_poliza) FROM stdin;
 4	987451254
 5	522222222
 6	51248787
+7	11212121
 \.
 
 
@@ -2216,7 +2272,7 @@ COPY public.procesocomercial (id, id_prospecto, rut_ej_comercial, id_producto, c
 315	90	19956311-4	6	t	PERDIDO	f	\N	\N	\N	\N	\N
 331	123	28372975-3	9	f	OPORTUNIDAD_CREADA	f	\N	\N	\N	\N	\N
 328	123	28372975-3	5	f	COTIZACION_DISPONIBLE	f	\N	\N	\N	\N	\N
-323	118	19995707-4	25	f	COTIZACION_DISPONIBLE	f	\N	\N	\N	\N	\N
+323	118	19995707-4	25	t	GANADO	f	\N	\N	\N	\N	\N
 137	79	28372975-3	24	t	GANADO	f	\N	\N	\N	\N	\N
 138	80	28372975-3	24	t	GANADO	f	\N	\N	\N	\N	\N
 139	81	28372975-3	24	t	GANADO	f	\N	\N	\N	\N	\N
@@ -2481,14 +2537,6 @@ COPY public.prospectocondominio (id, tiene_locales_comerciales, uso_del_condomin
 
 
 --
--- Data for Name: prospectoempresa; Type: TABLE DATA; Schema: public; Owner: crm_admin
---
-
-COPY public.prospectoempresa (id, actividad, ma_rc, ma_edificio, cantidad_trabajadores) FROM stdin;
-\.
-
-
---
 -- Data for Name: recordatorio; Type: TABLE DATA; Schema: public; Owner: crm_admin
 --
 
@@ -2504,6 +2552,7 @@ COPY public.recordatorio (id, titulo, detalle, completado, prioridad, tipo_gesti
 21	Recordatorio de prueba	LLamada de prueba	f	alta	llamada	2026-07-04 20:03:04.458116+00	2026-07-05 09:00:00+00
 22	Iniciar cotización para renovación	El día 08-07-2027 vence la póliza 251485124, por lo que debe comenzar a cotizar para su renovación	f	alta	renovacion_cotizacion	2026-07-06 16:21:02.884553+00	2027-05-08 00:00:00+00
 23	Gestionar renovación	El día 08-07-2027 vence la póliza 251485124, por lo que debe gestionar su renovación	f	alta	renovacion	2026-07-06 16:21:02.884553+00	2027-06-18 00:00:00+00
+24	Contactar con Condominio Parque Mackenna	Preguntar aceptación	f	normal	llamada	2026-07-06 21:15:32.092051+00	2026-07-13 10:00:00+00
 9	Iniciar cotización para renovación	El día 01-07-2027 vence la póliza 6549876541, por lo que debe comenzar a cotizar para su renovación	f	alta	renovacion_cotizacion	2026-06-30 14:51:48.101263+00	2027-05-01 00:00:00+00
 10	Gestionar renovación	El día 01-07-2027 vence la póliza 6549876541, por lo que debe gestionar su renovación	f	alta	renovacion	2026-06-30 14:51:48.101263+00	2027-05-01 00:00:00+00
 2	Condiciones de renovación	Preguntar si acepta las condiciones de renovación	t	normal	llamada	2026-06-25 17:21:19.590091+00	2026-06-23 00:00:00+00
@@ -2561,6 +2610,7 @@ COPY public.recordatoriorenovacionpoliza (id, numero_poliza) FROM stdin;
 COPY public.recordatoriousuario (id, rut_usuario, id_prospecto) FROM stdin;
 21	20036887-8	\N
 2	13358892-2	77
+24	19995707-4	118
 \.
 
 
@@ -2786,7 +2836,7 @@ SELECT pg_catalog.setval('public.cotizacion_id_seq', 37, true);
 -- Name: cuota_id_seq; Type: SEQUENCE SET; Schema: public; Owner: crm_admin
 --
 
-SELECT pg_catalog.setval('public.cuota_id_seq', 66, true);
+SELECT pg_catalog.setval('public.cuota_id_seq', 77, true);
 
 
 --
@@ -2804,10 +2854,17 @@ SELECT pg_catalog.setval('public.etapaprocesocomercialparticular_id_seq', 1, fal
 
 
 --
+-- Name: gestioncomercial_id_seq; Type: SEQUENCE SET; Schema: public; Owner: crm_admin
+--
+
+SELECT pg_catalog.setval('public.gestioncomercial_id_seq', 1, true);
+
+
+--
 -- Name: historialestadoinformativoprocesocomercial_id_seq; Type: SEQUENCE SET; Schema: public; Owner: crm_admin
 --
 
-SELECT pg_catalog.setval('public.historialestadoinformativoprocesocomercial_id_seq', 389, true);
+SELECT pg_catalog.setval('public.historialestadoinformativoprocesocomercial_id_seq', 391, true);
 
 
 --
@@ -2821,7 +2878,7 @@ SELECT pg_catalog.setval('public.lineanegocio_id_seq', 1, false);
 -- Name: planpago_id_seq; Type: SEQUENCE SET; Schema: public; Owner: crm_admin
 --
 
-SELECT pg_catalog.setval('public.planpago_id_seq', 6, true);
+SELECT pg_catalog.setval('public.planpago_id_seq', 7, true);
 
 
 --
@@ -2849,7 +2906,7 @@ SELECT pg_catalog.setval('public.prospecto_id_seq', 123, true);
 -- Name: recordatorio_id_seq; Type: SEQUENCE SET; Schema: public; Owner: crm_admin
 --
 
-SELECT pg_catalog.setval('public.recordatorio_id_seq', 23, true);
+SELECT pg_catalog.setval('public.recordatorio_id_seq', 24, true);
 
 
 --
@@ -3051,6 +3108,14 @@ ALTER TABLE ONLY public.factorcuotascompany
 
 
 --
+-- Name: gestioncomercial gestioncomercial_pkey; Type: CONSTRAINT; Schema: public; Owner: crm_admin
+--
+
+ALTER TABLE ONLY public.gestioncomercial
+    ADD CONSTRAINT gestioncomercial_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: historialestadoinformativoprocesocomercial historialestadoinformativoprocesocomercial_pkey; Type: CONSTRAINT; Schema: public; Owner: crm_admin
 --
 
@@ -3176,14 +3241,6 @@ ALTER TABLE ONLY public.prospecto
 
 ALTER TABLE ONLY public.prospectocondominio
     ADD CONSTRAINT prospectocondominio_pkey PRIMARY KEY (id);
-
-
---
--- Name: prospectoempresa prospectoempresa_pkey; Type: CONSTRAINT; Schema: public; Owner: crm_admin
---
-
-ALTER TABLE ONLY public.prospectoempresa
-    ADD CONSTRAINT prospectoempresa_pkey PRIMARY KEY (id);
 
 
 --
@@ -3506,6 +3563,22 @@ ALTER TABLE ONLY public.factorcuotascompany
 
 
 --
+-- Name: gestioncomercial gestioncomercial_id_prospecto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crm_admin
+--
+
+ALTER TABLE ONLY public.gestioncomercial
+    ADD CONSTRAINT gestioncomercial_id_prospecto_fkey FOREIGN KEY (id_prospecto) REFERENCES public.prospecto(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: gestioncomercial gestioncomercial_rut_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crm_admin
+--
+
+ALTER TABLE ONLY public.gestioncomercial
+    ADD CONSTRAINT gestioncomercial_rut_usuario_fkey FOREIGN KEY (rut_usuario) REFERENCES public.usuario(rut) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: historialestadoinformativoprocesocomercial historialestadoinformativoprocesocome_id_proceso_comercial_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crm_admin
 --
 
@@ -3714,14 +3787,6 @@ ALTER TABLE ONLY public.prospectocondominio
 
 
 --
--- Name: prospectoempresa prospectoempresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crm_admin
---
-
-ALTER TABLE ONLY public.prospectoempresa
-    ADD CONSTRAINT prospectoempresa_id_fkey FOREIGN KEY (id) REFERENCES public.prospecto(id) ON DELETE CASCADE;
-
-
---
 -- Name: recordatoriocobranzacuotapoliza recordatoriocobranzacuotapoliza_id_cuota_fkey; Type: FK CONSTRAINT; Schema: public; Owner: crm_admin
 --
 
@@ -3845,5 +3910,5 @@ ALTER TABLE ONLY public.usuario
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bFZziKHd6OGiYH1d1wMeUXT5ZRQxs7JxpC1nUYR6YVYhaQ6zCtgoo6IPOp2XhZf
+\unrestrict hfflf29O8KgnDhUR0vxF3igMXRWNyBuQ81E6hDcqnJ7cALRDfKPwZYmd44fc5Bt
 
