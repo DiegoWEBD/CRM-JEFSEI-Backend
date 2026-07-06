@@ -119,7 +119,7 @@ def registrar_cotizacion_a_solicitud(
 def subir_estudio_comercial(
     id: int,
     archivo: UploadFile = File(...),
-    _ = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
+    usuario = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
     repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
 ):
     if archivo.content_type != 'application/pdf':
@@ -135,7 +135,7 @@ def subir_estudio_comercial(
     with open(ruta, 'wb') as f:
         f.write(archivo.file.read())
 
-    id_estudio = repositorio.insertar(id_solicitud=id, nombre_archivo=nombre_unico)
+    id_estudio = repositorio.insertar(id_solicitud=id, nombre_archivo=nombre_unico, rut_usuario=usuario.rut)
 
     return {
         'id': id_estudio,

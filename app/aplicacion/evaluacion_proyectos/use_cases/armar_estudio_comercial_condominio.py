@@ -124,8 +124,6 @@ class ArmarEstudioComercialCondominioUseCase:
             cantidad_unidades=prospecto.cantidad_departamentos
         )
 
-        #id_estudio = self.repositorio_estudios.registrar(estudio, ids_cotizacion, usuario.rut)
-
         return str(ruta_docx)
     
     def __armar_estudio(
