@@ -68,7 +68,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 return DictRowCotizacionAdapter(row).to_cotizacion()
 
     def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str):
-        ESTADO_COTIZACION_CARGADA = 'ESTUDIO_EN_DESARROLLO'
+        ESTADO_COTIZACION_CARGADA = 'COTIZACION_DISPONIBLE'
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
