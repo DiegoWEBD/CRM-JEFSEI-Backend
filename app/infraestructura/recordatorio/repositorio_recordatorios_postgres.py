@@ -117,7 +117,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                 }
 
                 if id_prospecto is not None:
-                    query += ' and P.id = %(id_prospecto)s'
+                    query += ' and C.id_prospecto = %(id_prospecto)s'
                     params['id_prospecto'] = str(id_prospecto)
 
                 query += ' order by R.fecha_recordatorio'
