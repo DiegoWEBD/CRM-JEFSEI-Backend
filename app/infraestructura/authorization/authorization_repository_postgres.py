@@ -36,8 +36,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 query = '''
-                    select rut_registrado_por,
-                    rut_ej_comercial_asignado,
+                    select rut_ej_comercial_asignado,
                     rut_ej_evaluacion_asignado
                     from Prospecto
                     where id = %(id_prospecto)s
@@ -54,7 +53,6 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 autorizado = any([
-                    row['rut_registrado_por'] == rut_usuario,
                     row['rut_ej_comercial_asignado'] == rut_usuario,
                     row['rut_ej_evaluacion_asignado'] == rut_usuario
                 ])

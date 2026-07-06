@@ -9,7 +9,8 @@ class RepositorioEstudiosComerciales(ABC):
     def insertar(
         self,
         id_solicitud: int,
-        nombre_archivo: str
+        nombre_archivo: str,
+        rut_usuario: str,
     ) -> int:
         pass
 
