@@ -63,11 +63,11 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
-    def obtener_procesos_comerciales(self, id_prospecto: int) -> list[ProcesoComercial]:
-         with obtener_conexion() as conn:
+    def obtener_procesos_comerciales(self, id_prospecto: int, abiertos: bool | None = None) -> list[ProcesoComercial]:
+        with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = '''
+                query = """
                     select PC.id,
                     PC.id_prospecto,
                     PR.nombre_riesgo as nombre_cliente,
@@ -105,12 +105,24 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_comercial = EJ_COM.rut
                     left join Usuario EJ_EV
                     on PC.rut_ej_evaluacion = EJ_EV.rut
-                    where PC.id_prospecto = %(id_prospecto)s
-                '''
+                    where 1 = 1
+                """
 
-                params = {
-                    'id_prospecto': id_prospecto
-                }
+                params: list = []
+
+                query += """
+                    and PC.id_prospecto = %s
+                """
+                params.append(id_prospecto)
+
+                if abiertos is True:
+                    query += """
+                        and PC.cerrado = false
+                    """
+                elif abiertos is False:
+                    query += """
+                        and PC.cerrado = true
+                    """
 
                 cur.execute(query, params)
                 rows = cur.fetchall()

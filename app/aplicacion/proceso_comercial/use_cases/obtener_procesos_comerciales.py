@@ -18,7 +18,7 @@ class ObtenerProcesosComercialesUseCase:
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_prospectos = repositorio_prospectos
 
-    def ejecutar(self, id_prospecto: int, rut_usuario: str | None = None) -> list[ProcesoComercial]:
+    def ejecutar(self, id_prospecto: int, rut_usuario: str | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
 
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
@@ -30,4 +30,4 @@ class ObtenerProcesosComercialesUseCase:
             if not self.authorization_service.usuario_puede_ver_procesos_comerciales(rut_usuario, prospecto.id):
                 raise UsuarioNoAutorizadoException
 
-        return self.repositorio_procesos_comerciales.obtener_procesos_comerciales(prospecto.id)
+        return self.repositorio_procesos_comerciales.obtener_procesos_comerciales(prospecto.id, abiertos)
