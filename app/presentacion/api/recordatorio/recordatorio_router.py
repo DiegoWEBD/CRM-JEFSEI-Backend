@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
@@ -9,6 +10,7 @@ from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerR
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.recordatorio.dependencias.deps import get_actualizar_recordatorio_use_case, get_completar_recordatorio_use_case, get_eliminar_recordatorio_use_case, get_obtener_recordatorios_usuario_use_case, get_registrar_recordatorio_use_case
 from app.presentacion.api.recordatorio.dto.actualizar_recordatorio_request import ActualizarRecordatorioRequest
 from app.presentacion.api.recordatorio.dto.registrar_recordatorio_request import RegistrarRecordatorioRequest
@@ -23,6 +25,12 @@ def obtener_recordatorios_usuario(
     usuario: Usuario = Depends(get_current_user),
     use_case: ObtenerRecordatoriosUsuarioUseCase = Depends(get_obtener_recordatorios_usuario_use_case)
 ):
+    if not fecha:
+        raise BadRequestException('El parámetro "fecha" es requerido')
+    try:
+        datetime.strptime(fecha, '%Y-%m-%d')
+    except ValueError:
+        raise BadRequestException(f'Fecha inválida: "{fecha}". Debe ser YYYY-MM-DD')
     recordatorios = use_case.ejecutar(
         rut_usuario=usuario.rut,
         fecha=fecha,

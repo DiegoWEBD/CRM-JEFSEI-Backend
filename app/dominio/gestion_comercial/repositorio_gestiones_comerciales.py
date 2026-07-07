@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 from app.dominio.gestion_comercial.gestion_comercial import GestionComercial
 
@@ -15,7 +14,7 @@ class RepositorioGestionesComerciales(ABC):
         titulo: str,
         estado_contacto: str | None,
         observacion: str | None,
-        fecha_gestion: datetime,
+        fecha_gestion: str,
     ) -> GestionComercial:
         pass
 

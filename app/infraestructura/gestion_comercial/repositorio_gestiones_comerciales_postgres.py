@@ -16,7 +16,7 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
         titulo: str,
         estado_contacto: str | None,
         observacion: str | None,
-        fecha_gestion: datetime,
+        fecha_gestion: str,
     ) -> GestionComercial:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -25,7 +25,7 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
                 cur.execute(
                     '''
                     insert into GestionComercial (tipo, rut_usuario, id_prospecto, titulo, estado_contacto, observacion, created_at, fecha_gestion)
-                    values (%(tipo)s, %(rut_usuario)s, %(id_prospecto)s, %(titulo)s, %(estado_contacto)s, %(observacion)s, %(created_at)s, %(fecha_gestion)s)
+                    values (%(tipo)s, %(rut_usuario)s, %(id_prospecto)s, %(titulo)s, %(estado_contacto)s, %(observacion)s, %(created_at)s, %(fecha_gestion)s::timestamptz)
                     returning id
                     ''',
                     {

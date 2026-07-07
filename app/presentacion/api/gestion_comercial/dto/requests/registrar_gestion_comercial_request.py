@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, field_validator, model_validator
@@ -21,7 +20,7 @@ class RegistrarGestionComercialRequest(BaseModel):
     titulo: str
     estado_contacto: str | None = None
     observacion: str | None = None
-    fecha_gestion: datetime
+    fecha_gestion: str
 
     @field_validator('titulo')
     @classmethod
