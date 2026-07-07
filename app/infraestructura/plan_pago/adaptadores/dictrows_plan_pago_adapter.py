@@ -11,16 +11,19 @@ class DictRowsPlanPagoAdapter:
 
     def to_plan_pago(self) -> PlanPago:
 
-        id = self.rows[0]['id']
+        id = self.rows[0]['id_plan_pago']
         cuotas: list[Cuota] = []
 
         for row in self.rows:
+            id = row['id']
             numero_cuota = row['numero_cuota']
             fecha_vencimiento = row['fecha_vencimiento']
             pagado = row['pagado']
             fecha_pago = row['fecha_pago']
+            print(fecha_pago)
 
             cuotas.append(Cuota(
+                id=id,
                 numero_cuota=numero_cuota,
                 fecha_vencimiento=fecha_vencimiento,
                 pagado=pagado,

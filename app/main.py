@@ -11,6 +11,7 @@ from app.presentacion.api.auth.dependencias.get_current_user import get_current_
 from app.presentacion.api.comuna import comuna_router
 from app.presentacion.api.company_seguros import company_seguros_router
 from app.presentacion.api.comunicado_gerencia import comunicado_gerencia_router
+from app.presentacion.api.cuota import cuota_router
 from app.presentacion.api.estudio_comercial import estudio_comercial_router
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.gestion_comercial import gestion_comercial_router
@@ -20,6 +21,7 @@ from app.presentacion.api.poliza import poliza_router
 from app.presentacion.api.proceso_comercial import proceso_comercial_router
 from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.recordatorio import recordatorio_router
+from app.presentacion.api.rol import rol_router
 from app.presentacion.api.solicitud_cotizacion import solicitud_cotizacion_router
 from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
@@ -218,6 +220,20 @@ app.include_router(
 
 app.include_router(
     router=gestion_comercial_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=rol_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=cuota_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

@@ -52,10 +52,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 if rut_usuario:
 
                     where_clause = '''
-                        where P.rut_registrado_por = %(rut_usuario)s
-                        or P.rut_ej_comercial_asignado = %(rut_usuario)s
+                        where P.rut_ej_comercial_asignado = %(rut_usuario)s
                         or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
                         or C.rut_ej_renovacion_asignado = %(rut_usuario)s
+                        or C.rut_ej_cobranza_asignado = %(rut_usuario)s
                     '''
 
                     params["rut_usuario"] = rut_usuario

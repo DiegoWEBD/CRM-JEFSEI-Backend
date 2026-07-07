@@ -20,6 +20,8 @@ class ProspectoJson(BaseModel):
     registrado_por: UsuarioJsonResumen 
     ejecutivo_comercial_asignado: UsuarioJsonResumen | None
     ejecutivo_evaluacion_asignado: UsuarioJsonResumen | None
+    ejecutivo_cobranza_asignado: UsuarioJsonResumen | None = None
+    ejecutivo_renovacion_asignado: UsuarioJsonResumen | None = None
     ultima_actualizacion: str
     informacion_completa: bool
     planificacion_prospecto: PlanificacionProspectoJson | None

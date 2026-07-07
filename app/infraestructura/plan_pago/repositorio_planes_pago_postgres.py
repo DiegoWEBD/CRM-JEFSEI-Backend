@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from app.dominio.cuota.cuota import Cuota
 from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.plan_pago.repositorio_planes_pago import RepositorioPlanesPago
 from app.dominio.poliza.poliza import Poliza
@@ -12,7 +15,8 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
             with conn.cursor() as cur:
 
                 query = '''
-                    select PP.id,
+                    select PP.id as id_plan_pago,
+                    C.id,
                     C.numero_cuota,
                     C.fecha_vencimiento,
                     C.pagado,
@@ -21,6 +25,7 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     inner join Cuota C
                     on PP.id = C.id_plan_pago
                     where PP.numero_poliza = %(numero_poliza)s
+                    order by numero_cuota
                 '''
 
                 params = {
@@ -34,6 +39,38 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     return None
 
                 return DictRowsPlanPagoAdapter(rows).to_plan_pago()
+
+    def buscar_cuota_por_id(self, id_cuota: int) -> Cuota | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select C.id,
+                    C.numero_cuota,
+                    C.fecha_vencimiento,
+                    C.pagado,
+                    C.fecha_pago
+                    from Cuota C
+                    where C.id = %(id)s
+                '''
+
+                params = {
+                    'id': id_cuota
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                return Cuota(
+                    id=row['id'],
+                    numero_cuota=row['numero_cuota'],
+                    fecha_vencimiento=row['fecha_vencimiento'],
+                    pagado=row['pagado'],
+                    fecha_pago=row['fecha_pago']
+                )
             
     def registrar_plan_pago_poliza(self, poliza: Poliza, plan_pago: PlanPago, rut_usuario: str) -> None:
         ESTADO_PLAN_PAGO_CREADO = 'PLAN_PAGO_CREADO'
@@ -70,7 +107,7 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                         'fecha_pago': cuota.fecha_pago
                     }
 
-                    cur.execute(query, params)
+                cur.execute(query, params)
 
                 # Registro de historial
 
@@ -100,6 +137,25 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     'id_proceso_comercial': poliza.id_proceso_comercial,
                     'codigo_estado': ESTADO_PLAN_PAGO_CREADO,
                     'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+    def actualizar_cuota(self, id_cuota: int, pagado: bool, fecha_pago: datetime | None) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update Cuota
+                    set pagado = %(pagado)s,
+                    fecha_pago = %(fecha_pago)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': id_cuota,
+                    'pagado': pagado,
+                    'fecha_pago': fecha_pago
                 }
 
                 cur.execute(query, params)
