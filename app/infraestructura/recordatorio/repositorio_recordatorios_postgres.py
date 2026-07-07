@@ -83,6 +83,46 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 return [DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()for row in rows]
             
+    def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select R.id,
+                    RU.id_prospecto,
+                    P.nombre_riesgo,
+                    R.titulo,
+                    R.detalle,
+                    R.completado,
+                    R.tipo_gestion,
+                    R.prioridad,
+                    R.fecha_recordatorio
+                    from RecordatorioUsuario RU
+                    inner join Recordatorio R
+                    on RU.id = R.id
+                    left join Prospecto P
+                    on RU.id_prospecto = P.id
+                    where RU.rut_usuario = %(rut_usuario)s
+                    and RU.id_prospecto = %(id_prospecto)s
+                    and R.completado = false
+                    and R.tipo_gestion IN ('llamada', 'correo', 'mensaje')
+                    and R.fecha_recordatorio > NOW()
+                    order by R.fecha_recordatorio
+                    limit 1
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario,
+                    'id_prospecto': str(id_prospecto),
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                return DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()
+            
     def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioRenovacionPoliza]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -126,3 +166,45 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                 rows = cur.fetchall()
 
                 return [DictRowRecordatorioRenovacionPolizaAdapter(row).to_recordatorio()for row in rows]
+
+    def actualizar(self, id: int, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None = None) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Recordatorio
+                    set titulo = %(titulo)s,
+                        detalle = %(detalle)s,
+                        prioridad = %(prioridad)s,
+                        tipo_gestion = %(tipo_gestion)s,
+                        fecha_recordatorio = %(fecha_recordatorio)s::timestamptz
+                    where id = %(id)s
+                '''
+                params = {
+                    'id': id,
+                    'titulo': titulo,
+                    'detalle': detalle,
+                    'prioridad': prioridad,
+                    'tipo_gestion': tipo_gestion,
+                    'fecha_recordatorio': fecha_recordatorio,
+                }
+                cur.execute(query, params)
+
+                if id_prospecto is not None:
+                    query = '''
+                        update RecordatorioUsuario
+                        set id_prospecto = %(id_prospecto)s
+                        where id = %(id)s
+                    '''
+                    cur.execute(query, {'id': id, 'id_prospecto': id_prospecto})
+
+    def completar(self, id: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = 'update Recordatorio set completado = true where id = %(id)s'
+                cur.execute(query, {'id': id})
+
+    def eliminar(self, id: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute('delete from RecordatorioUsuario where id = %(id)s', {'id': id})
+                cur.execute('delete from Recordatorio where id = %(id)s', {'id': id})

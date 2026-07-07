@@ -16,40 +16,40 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
         titulo: str,
         estado_contacto: str | None,
         observacion: str | None,
-        fecha_gestion: datetime,
+        fecha_gestion: str,
     ) -> GestionComercial:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 created_at = datetime.now(timezone.utc)
 
                 cur.execute(
-                    """
+                    '''
                     insert into GestionComercial (tipo, rut_usuario, id_prospecto, titulo, estado_contacto, observacion, created_at, fecha_gestion)
-                    values (%(tipo)s, %(rut_usuario)s, %(id_prospecto)s, %(titulo)s, %(estado_contacto)s, %(observacion)s, %(created_at)s, %(fecha_gestion)s)
+                    values (%(tipo)s, %(rut_usuario)s, %(id_prospecto)s, %(titulo)s, %(estado_contacto)s, %(observacion)s, %(created_at)s, %(fecha_gestion)s::timestamptz)
                     returning id
-                    """,
+                    ''',
                     {
-                        "tipo": tipo,
-                        "rut_usuario": rut_usuario,
-                        "id_prospecto": id_prospecto,
-                        "titulo": titulo,
-                        "estado_contacto": estado_contacto,
-                        "observacion": observacion,
-                        "created_at": created_at,
-                        "fecha_gestion": fecha_gestion,
+                        'tipo': tipo,
+                        'rut_usuario': rut_usuario,
+                        'id_prospecto': id_prospecto,
+                        'titulo': titulo,
+                        'estado_contacto': estado_contacto,
+                        'observacion': observacion,
+                        'created_at': created_at,
+                        'fecha_gestion': fecha_gestion,
                     },
                 )
                 row = cur.fetchone()
                 if row is None:
-                    raise RuntimeError("No se pudo crear la gestión comercial")
-                id_creado: int = row["id"]
+                    raise RuntimeError('No se pudo crear la gestión comercial')
+                id_creado: int = row['id']
 
         return self._buscar_por_id(id_creado)
 
     def obtener_todas(self, id_prospecto: int | None = None) -> list[GestionComercial]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                query = """
+                query = '''
                     select
                         GC.id,
                         GC.tipo,
@@ -66,14 +66,14 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
                     left join Usuario U on GC.rut_usuario = U.rut
                     left join Prospecto PR on GC.id_prospecto = PR.id
                     where 1 = 1
-                """
-                params: list = []
+                '''
+                params: dict = {}
 
                 if id_prospecto is not None:
-                    query += " and GC.id_prospecto = %s"
-                    params.append(id_prospecto)
+                    query += ' and GC.id_prospecto = %(id_prospecto)s'
+                    params['id_prospecto'] = id_prospecto
 
-                query += " order by GC.fecha_gestion desc"
+                query += ' order by GC.fecha_gestion desc'
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
@@ -84,7 +84,7 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """
+                    '''
                     select
                         GC.id,
                         GC.tipo,
@@ -100,11 +100,11 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
                     from GestionComercial GC
                     left join Usuario U on GC.rut_usuario = U.rut
                     left join Prospecto PR on GC.id_prospecto = PR.id
-                    where GC.id_prospecto = %s
+                    where GC.id_prospecto = %(id_prospecto)s
                     order by GC.created_at desc
                     limit 1
-                    """,
-                    [id_prospecto],
+                    ''',
+                    {'id_prospecto': id_prospecto},
                 )
                 row = cur.fetchone()
 
@@ -114,7 +114,7 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """
+                    '''
                     select
                         GC.id,
                         GC.tipo,
@@ -130,11 +130,11 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
                     from GestionComercial GC
                     left join Usuario U on GC.rut_usuario = U.rut
                     left join Prospecto PR on GC.id_prospecto = PR.id
-                    where GC.id = %s
-                    """,
-                    [id],
+                    where GC.id = %(id)s
+                    ''',
+                    {'id': id},
                 )
                 row = cur.fetchone()
                 if row is None:
-                    raise RuntimeError(f"Gestión comercial con id {id} no encontrada después de crear")
+                    raise RuntimeError(f'Gestión comercial con id {id} no encontrada después de crear')
                 return DictRowGestionComercialAdapter(row).to_gestion_comercial()

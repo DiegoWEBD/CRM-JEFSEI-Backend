@@ -17,3 +17,19 @@ class RepositorioRecordatorios(ABC):
     @abstractmethod
     def registrar(self, rut_usuario: str, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None) -> None:
         pass
+
+    @abstractmethod
+    def actualizar(self, id: int, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None = None) -> None:
+        pass
+
+    @abstractmethod
+    def completar(self, id: int) -> None:
+        pass
+
+    @abstractmethod
+    def eliminar(self, id: int) -> None:
+        pass
+
+    @abstractmethod
+    def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
+        pass

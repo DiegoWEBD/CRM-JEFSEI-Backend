@@ -108,12 +108,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     where 1 = 1
                 """
 
-                params: list = []
+                params: dict = {}
 
                 query += """
-                    and PC.id_prospecto = %s
+                    and PC.id_prospecto = %(id_prospecto)s
                 """
-                params.append(id_prospecto)
+                params["id_prospecto"] = id_prospecto
 
                 if abiertos is True:
                     query += """
@@ -184,49 +184,54 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     where 1 = 1
                 """
 
-                params = []
+                params: dict = {}
 
                 if texto_busqueda:
                     query += """
                         and (
-                            PR.nombre_riesgo ilike %s
-                            or cast(PC.id as text) ilike %s
+                            PR.nombre_riesgo ilike %(texto_busqueda)s
+                            or cast(PC.id as text) ilike %(texto_busqueda)s
                         )
                     """
-                    busqueda = f"%{texto_busqueda}%"
-                    params.extend([busqueda, busqueda])
+                    params["texto_busqueda"] = f"%{texto_busqueda}%"
 
                 if ejecutivos:
-                    placeholders = ", ".join(["%s"] * len(ejecutivos))
+                    placeholders = ", ".join(
+                        f"%(ejecutivo_{i})s" for i in range(len(ejecutivos))
+                    )
                     query += f"""
                         and PC.rut_ej_comercial in ({placeholders})
                     """
-                    params.extend(ejecutivos)
+                    for i, rut in enumerate(ejecutivos):
+                        params[f"ejecutivo_{i}"] = rut
 
                 if etapas:
-                    placeholders = ", ".join(["%s"] * len(etapas))
+                    placeholders = ", ".join(
+                        f"%(etapa_{i})s" for i in range(len(etapas))
+                    )
                     query += f"""
                         and EPC.codigo in ({placeholders})
                     """
-                    params.extend(etapas)
+                    for i, codigo in enumerate(etapas):
+                        params[f"etapa_{i}"] = codigo
 
                 if cerrado is not None:
                     query += """
-                        and PC.cerrado = %s
+                        and PC.cerrado = %(cerrado)s
                     """
-                    params.append(cerrado)
+                    params["cerrado"] = cerrado
 
                 if fecha_ingreso_etapa_desde is not None:
                     query += """
-                        and HI.fecha_registro >= %s
+                        and HI.fecha_registro >= %(fecha_desde)s
                     """
-                    params.append(fecha_ingreso_etapa_desde)
+                    params["fecha_desde"] = fecha_ingreso_etapa_desde
 
                 if fecha_ingreso_etapa_hasta is not None:
                     query += """
-                        and HI.fecha_registro <= %s
+                        and HI.fecha_registro <= %(fecha_hasta)s
                     """
-                    params.append(fecha_ingreso_etapa_hasta)
+                    params["fecha_hasta"] = fecha_ingreso_etapa_hasta
 
                 query += """
                     order by HI.fecha_registro desc
