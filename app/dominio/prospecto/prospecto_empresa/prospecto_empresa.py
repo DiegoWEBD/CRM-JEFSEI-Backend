@@ -31,7 +31,11 @@ class ProspectoEmpresa(Prospecto):
         ultima_actualizacion: datetime,
         id: int | None = None, 
         id_cliente: int | None = None,
-        planificacion_prospecto: PlanificacionProspecto | None = None
+        planificacion_prospecto: PlanificacionProspecto | None = None,
+        ejecutivo_comercial_asignado: Usuario | None = None,
+        ejecutivo_evaluacion_asignado: Usuario | None = None,
+        ejecutivo_cobranza_asignado: Usuario | None = None,
+        ejecutivo_renovacion_asignado: Usuario | None = None,
     ):
         super().__init__(
             id=id,
@@ -46,6 +50,10 @@ class ProspectoEmpresa(Prospecto):
             observaciones=observaciones,
             linea_negocio=linea_negocio,
             registrado_por=registrado_por,
+            ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
+            ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado,
+            ejecutivo_cobranza_asignado=ejecutivo_cobranza_asignado,
+            ejecutivo_renovacion_asignado=ejecutivo_renovacion_asignado,
             planificacion_prospecto=planificacion_prospecto,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa

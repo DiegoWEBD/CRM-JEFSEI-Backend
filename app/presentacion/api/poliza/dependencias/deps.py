@@ -1,7 +1,9 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.cotizacion.use_cases.registrar_renovacion_cotizada import RegistrarRenovacionCotizadaUseCase
+from app.aplicacion.poliza.use_cases.cancelar_poliza import CancelarPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
+from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
@@ -55,4 +57,20 @@ def get_registrar_poliza_a_proceso_comercial_use_case():
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         authorization_service=authorization_service
+    )
+
+
+def get_cancelar_poliza_use_case():
+    repositorio_polizas = RepositorioPolizasPostgres()
+
+    return CancelarPolizaUseCase(
+        repositorio_polizas=repositorio_polizas
+    )
+
+
+def get_reactivar_poliza_use_case():
+    repositorio_polizas = RepositorioPolizasPostgres()
+
+    return ReactivarPolizaUseCase(
+        repositorio_polizas=repositorio_polizas
     )

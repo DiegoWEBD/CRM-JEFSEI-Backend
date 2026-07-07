@@ -63,7 +63,8 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 query = '''
                     select id,
                     rut_ej_renovacion_asignado, 
-                    rut_as_renovacion_asignado
+                    rut_as_renovacion_asignado,
+                    rut_ej_cobranza_asignado
                     from Cliente
                     where id_prospecto = %(id_prospecto)s
                 '''
@@ -80,7 +81,8 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
 
                 return any([
                     row['rut_ej_renovacion_asignado'] == rut_usuario,
-                    row['rut_as_renovacion_asignado'] == rut_usuario
+                    row['rut_as_renovacion_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
                 ])
 
     def usuario_puede_ver_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
@@ -414,7 +416,8 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     select PR.rut_ej_comercial_asignado,
                     PR.rut_ej_evaluacion_asignado,
                     C.rut_ej_renovacion_asignado,
-                    C.rut_as_renovacion_asignado
+                    C.rut_as_renovacion_asignado,
+                    C.rut_ej_cobranza_asignado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
@@ -437,7 +440,8 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     row['rut_ej_comercial_asignado'] == rut_usuario,
                     row['rut_ej_evaluacion_asignado'] == rut_usuario,
                     row['rut_ej_renovacion_asignado'] == rut_usuario,
-                    row['rut_as_renovacion_asignado'] == rut_usuario
+                    row['rut_as_renovacion_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
                 ])
             
     def usuario_puede_ver_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:

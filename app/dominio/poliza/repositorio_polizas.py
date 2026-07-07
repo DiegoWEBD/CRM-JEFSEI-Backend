@@ -24,4 +24,8 @@ class RepositorioPolizas(ABC):
     def polizas_gestionadas_ej_comercial_mes_actual(self, rut_ejecutivo: str) -> list[Poliza]:
         pass
 
+    @abstractmethod
+    def actualizar_cancelada(self, numero_poliza: str, cancelada: bool) -> None:
+        pass
+
     

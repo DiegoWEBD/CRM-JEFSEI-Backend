@@ -23,8 +23,6 @@ class ProspectoCondominio(Prospecto):
         registrado_por: Usuario, 
         ejecutivo_comercial_asignado: Usuario | None,
         ejecutivo_evaluacion_asignado: Usuario | None,
-        #companies_sugeridas: list[CompanySeguros],     
-        #proceso_comercial: ProcesoComercial,
         uf_por_metro_cuadrado: float | None,
         porcentaje_depreciacion: float | None,
         porcentaje_espacios_comunes: float | None,
@@ -46,6 +44,8 @@ class ProspectoCondominio(Prospecto):
         tiene_sprinklers: bool | None,
         year_construccion: int | None,
         metros_cuadrados: float | None,
+        ejecutivo_cobranza_asignado: Usuario | None = None,
+        ejecutivo_renovacion_asignado: Usuario | None = None,
         id: int | None = None,
         ultima_actualizacion: datetime = datetime.now(),
     ):
@@ -64,6 +64,8 @@ class ProspectoCondominio(Prospecto):
             registrado_por=registrado_por,
             ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
             ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado,
+            ejecutivo_cobranza_asignado=ejecutivo_cobranza_asignado,
+            ejecutivo_renovacion_asignado=ejecutivo_renovacion_asignado,
             planificacion_prospecto=planificacion_prospecto,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa

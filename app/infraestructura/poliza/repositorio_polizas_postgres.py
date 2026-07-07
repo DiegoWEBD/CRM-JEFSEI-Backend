@@ -200,13 +200,13 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         'id_prospecto': id_prospecto
                     }
 
-                    cur.execute(query, params)
-                    row = cur.fetchone()
+                cur.execute(query, params)
+                row = cur.fetchone()
 
-                    if not row:
-                        return
-                    
-                    id_cliente = row['id']
+                if not row:
+                    return
+                
+                id_cliente = row['id']
 
                 # Registrar póliza
                 query = '''
@@ -397,6 +397,23 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     'id_proceso_comercial': poliza.id_proceso_comercial,
                     'codigo_estado': ESTADO_POLIZA_REGISTRADA,
                     'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+    def actualizar_cancelada(self, numero_poliza: str, cancelada: bool) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update Poliza
+                    set cancelada = %(cancelada)s
+                    where numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza,
+                    'cancelada': cancelada
                 }
 
                 cur.execute(query, params)

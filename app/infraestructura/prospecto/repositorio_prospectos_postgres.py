@@ -482,6 +482,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_registrado_por, U.nombre as nombre_registrado_por,
                     P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
+                    CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
+                    CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.informacion_completa,
@@ -526,6 +528,10 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on P.rut_ej_comercial_asignado = EJ_COM.rut
                     left join Usuario EJ_EV
                     on P.rut_ej_evaluacion_asignado = EJ_EV.rut
+                    left join Usuario EJ_CB
+                    on CL.rut_ej_cobranza_asignado = EJ_CB.rut
+                    left join Usuario EJ_RN
+                    on CL.rut_ej_renovacion_asignado = EJ_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join AdministradorCondominio AC
