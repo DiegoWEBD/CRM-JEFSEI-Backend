@@ -1,6 +1,7 @@
 from app.aplicacion.recordatorio.use_cases.actualizar_recordatorio import ActualizarRecordatorioUseCase
 from app.aplicacion.recordatorio.use_cases.completar_recordatorio import CompletarRecordatorioUseCase
 from app.aplicacion.recordatorio.use_cases.eliminar_recordatorio import EliminarRecordatorioUseCase
+from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
 from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerRecordatoriosUsuarioUseCase
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
@@ -31,3 +32,8 @@ def get_completar_recordatorio_use_case():
 def get_eliminar_recordatorio_use_case():
     repositorio_recordatorios = RepositorioRecordatoriosPostgres()
     return EliminarRecordatorioUseCase(repositorio_recordatorios)
+
+
+def get_obtener_proximo_contacto_use_case():
+    repositorio_recordatorios = RepositorioRecordatoriosPostgres()
+    return ObtenerProximoContactoUseCase(repositorio_recordatorios)

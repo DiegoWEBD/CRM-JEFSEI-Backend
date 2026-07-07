@@ -83,6 +83,46 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 return [DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()for row in rows]
             
+    def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select R.id,
+                    RU.id_prospecto,
+                    P.nombre_riesgo,
+                    R.titulo,
+                    R.detalle,
+                    R.completado,
+                    R.tipo_gestion,
+                    R.prioridad,
+                    R.fecha_recordatorio
+                    from RecordatorioUsuario RU
+                    inner join Recordatorio R
+                    on RU.id = R.id
+                    left join Prospecto P
+                    on RU.id_prospecto = P.id
+                    where RU.rut_usuario = %(rut_usuario)s
+                    and RU.id_prospecto = %(id_prospecto)s
+                    and R.completado = false
+                    and R.tipo_gestion IN ('llamada', 'correo', 'mensaje')
+                    and R.fecha_recordatorio > NOW()
+                    order by R.fecha_recordatorio
+                    limit 1
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario,
+                    'id_prospecto': str(id_prospecto),
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                return DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()
+            
     def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioRenovacionPoliza]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

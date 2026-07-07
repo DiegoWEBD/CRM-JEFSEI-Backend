@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
+from app.presentacion.api.recordatorio.dependencias.deps import get_obtener_proximo_contacto_use_case
 from app.presentacion.api.usuario.deps import get_actualizar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
 from app.presentacion.api.usuario.dto.actualizar_usuario_request import ActualizarUsuarioRequest
 from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
@@ -32,6 +34,16 @@ def obtener_usuario(
     return {
         'data': UsuarioJsonAdapter.Adapt(usuario)
     }
+
+
+@router.get('/{rut}/recordatorios/proximo-contacto', status_code=status.HTTP_200_OK)
+def obtener_proximo_contacto(
+    rut: str,
+    id_prospecto: int = Query(),
+    use_case: ObtenerProximoContactoUseCase = Depends(get_obtener_proximo_contacto_use_case),
+):
+    recordatorio = use_case.ejecutar(rut_usuario=rut, id_prospecto=id_prospecto)
+    return {'data': recordatorio}
     
 
 @router.post('/', status_code = status.HTTP_201_CREATED)

@@ -29,3 +29,7 @@ class RepositorioRecordatorios(ABC):
     @abstractmethod
     def eliminar(self, id: int) -> None:
         pass
+
+    @abstractmethod
+    def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
+        pass

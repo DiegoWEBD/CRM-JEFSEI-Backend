@@ -76,7 +76,7 @@ class RegistrarGestionComercialUseCase:
 
             self.repositorio_recordatorios.registrar(
                 rut_usuario=rut_usuario,
-                titulo=titulo,
+                titulo=f'Seguimiento: {titulo}',
                 detalle=observacion,
                 prioridad='alta',
                 tipo_gestion='llamada',
