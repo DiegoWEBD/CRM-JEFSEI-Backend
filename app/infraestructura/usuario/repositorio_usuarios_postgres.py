@@ -19,7 +19,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     U.fecha_registro,
                     U.habilitado, U.eliminado,
                     U.porcentaje_comision,
-                    U.junior,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
                     RU.codigo_rol,
@@ -51,6 +50,44 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
 
                 return TupleRowsUsuarioAdapter(rows).to_usuario()
             
+    def existe_correo(self, correo: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select correo
+                    from Usuario
+                    where correo = %(correo)s
+                '''
+                params = {
+                    'correo': correo
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row is not None
+
+
+    def existe_telefono(self, telefono: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select telefono
+                    from Usuario
+                    where telefono = %(telefono)s
+                '''
+                params = {
+                    'telefono': telefono
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row is not None
+
+            
     def obtener_todos(self) -> list[Usuario]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -63,7 +100,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     U.fecha_registro,
                     U.habilitado, U.eliminado,
                     U.porcentaje_comision,
-                    U.junior,
                     S.id as id_sucursal,
                     S.nombre as nombre_sucursal, 
                     RU.codigo_rol,
@@ -112,8 +148,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
-                    insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash, meta_mensual_uf, porcentaje_comision, junior)
-                    values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s, %(meta_mensual_uf)s, %(porcentaje_comision)s, %(junior)s)
+                    insert into Usuario (rut, nombre, correo, telefono, id_sucursal, password_hash, meta_mensual_uf, porcentaje_comision)
+                    values (%(rut)s, %(nombre)s, %(correo)s, %(telefono)s, %(id_sucursal)s, %(password_hash)s, %(meta_mensual_uf)s, %(porcentaje_comision)s)
                 '''
                 params = {
                     'rut': usuario.rut,
@@ -124,7 +160,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     'password_hash': usuario.password_hash,
                     'meta_mensual_uf': usuario.meta_mensual_uf,
                     'porcentaje_comision': usuario.porcentaje_comision,
-                    'junior': usuario.junior
                 }
 
                 cur.execute(query, params)
@@ -156,7 +191,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                         password_hash = %(password_hash)s,
                         meta_mensual_uf = %(meta_mensual_uf)s,
                         porcentaje_comision = %(porcentaje_comision)s,
-                        junior = %(junior)s,
                         habilitado = %(habilitado)s
                     where rut = %(rut)s
                 '''
@@ -169,7 +203,6 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     'password_hash': usuario.password_hash,
                     'meta_mensual_uf': usuario.meta_mensual_uf,
                     'porcentaje_comision': usuario.porcentaje_comision,
-                    'junior': usuario.junior,
                     'habilitado': usuario.habilitado
                 }
 

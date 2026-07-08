@@ -14,6 +14,7 @@ class DictRowsPlanPagoAdapter:
         id = self.rows[0]['id_plan_pago']
         cuotas: list[Cuota] = []
 
+        # para commits
         for row in self.rows:
             id = row['id']
             numero_cuota = row['numero_cuota']

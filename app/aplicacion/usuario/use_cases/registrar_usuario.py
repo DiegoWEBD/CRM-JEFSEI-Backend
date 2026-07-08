@@ -23,15 +23,20 @@ class RegistrarUsuarioUseCase:
         meta_mensual_uf: int | None,
         codigo_roles: list[str],
         porcentaje_comision: float | None,
-        junior: bool
     ) -> bool:
-        if not codigo_roles:
+        if len(codigo_roles) == 0:
             raise ConflictoEnAccionException("Debe asignar al menos un rol")
 
         usuario = self.repositorio_usuarios.buscar(rut)
 
         if usuario:
             raise RecursoYaExisteException("El usuario ya existe")
+        
+        if correo and self.repositorio_usuarios.existe_correo(correo):
+            raise RecursoYaExisteException("El correo ya está en uso")
+        
+        if telefono and self.repositorio_usuarios.existe_telefono(telefono):
+            raise RecursoYaExisteException("El teléfono ya está en uso")
         
         password_hash = self.authentication_service.hash_password(password)
         
@@ -50,7 +55,6 @@ class RegistrarUsuarioUseCase:
             habilitado=True,
             eliminado=False,
             porcentaje_comision=porcentaje_comision,
-            junior=junior
         )
 
         return self.repositorio_usuarios.registrar(nuevo_usuario)

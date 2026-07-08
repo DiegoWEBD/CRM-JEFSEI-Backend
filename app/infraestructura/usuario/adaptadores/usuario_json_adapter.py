@@ -19,5 +19,4 @@ class UsuarioJsonAdapter:
             eliminado=usuario.eliminado,
             habilitado=usuario.habilitado,
             porcentaje_comision=usuario.porcentaje_comision,
-            junior=usuario.junior
         )
