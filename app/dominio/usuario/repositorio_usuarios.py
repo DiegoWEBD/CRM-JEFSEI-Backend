@@ -8,6 +8,14 @@ class RepositorioUsuarios(ABC):
         pass
 
     @abstractmethod
+    def existe_correo(self, correo: str) -> bool:
+        pass
+
+    @abstractmethod
+    def existe_telefono(self, telefono: str) -> bool:
+        pass
+
+    @abstractmethod
     def obtener_todos(self) -> list[Usuario]:
         pass
 

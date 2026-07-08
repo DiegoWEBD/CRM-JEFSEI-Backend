@@ -62,7 +62,6 @@ def registrar_usuario(
         codigo_roles=request.codigo_roles,
         meta_mensual_uf=request.meta_mensual_uf,
         porcentaje_comision=request.porcentaje_comision,
-        junior=request.junior
     )
 
     if not registrado:
@@ -93,7 +92,6 @@ def actualizar_usuario(
         codigo_roles=request.codigo_roles,
         meta_mensual_uf=request.meta_mensual_uf,
         porcentaje_comision=request.porcentaje_comision,
-        junior=request.junior,
         habilitado=request.habilitado
     )
 

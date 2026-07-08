@@ -13,7 +13,6 @@ class RegistrarUsuarioRequest(BaseModel):
     meta_mensual_uf: int | None
     codigo_roles: list[str]
     porcentaje_comision: float | None
-    junior: bool
 
     @field_validator('rut')
     @classmethod

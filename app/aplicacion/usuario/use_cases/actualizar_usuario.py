@@ -1,6 +1,7 @@
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -23,7 +24,6 @@ class ActualizarUsuarioUseCase:
         meta_mensual_uf: int | None,
         codigo_roles: list[str],
         porcentaje_comision: float | None,
-        junior: bool,
         habilitado: bool
     ) -> bool:
         if not codigo_roles:
@@ -33,6 +33,12 @@ class ActualizarUsuarioUseCase:
 
         if not existente:
             raise RecursoNoEncontradoException("El usuario no existe")
+        
+        if correo and self.repositorio_usuarios.existe_correo(correo):
+            raise RecursoYaExisteException("El correo ya está en uso")
+        
+        if telefono and self.repositorio_usuarios.existe_telefono(telefono):
+            raise RecursoYaExisteException("El teléfono ya está en uso")
 
         if password:
             password_hash = self.authentication_service.hash_password(password)
@@ -54,7 +60,6 @@ class ActualizarUsuarioUseCase:
             habilitado=habilitado,
             eliminado=existente.eliminado,
             porcentaje_comision=porcentaje_comision,
-            junior=junior
         )
 
         if not self.repositorio_usuarios.actualizar(usuario):
