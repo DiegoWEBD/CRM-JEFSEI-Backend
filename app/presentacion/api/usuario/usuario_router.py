@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
+from app.aplicacion.usuario.use_cases.eliminar_usuario import EliminarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.recordatorio.dependencias.deps import get_obtener_proximo_contacto_use_case
-from app.presentacion.api.usuario.deps import get_actualizar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
+from app.presentacion.api.usuario.deps import get_actualizar_usuario_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
 from app.presentacion.api.usuario.dto.actualizar_usuario_request import ActualizarUsuarioRequest
 from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
 
@@ -103,4 +104,17 @@ def actualizar_usuario(
 
     return {
         'message': 'Usuario actualizado correctamente'
+    }
+
+
+@router.delete('/{rut}', status_code=status.HTTP_200_OK)
+def eliminar_usuario(
+    rut: str,
+    _ = Depends(permisos_requeridos('ADMINISTRAR_USUARIOS')),
+    use_case: EliminarUsuarioUseCase = Depends(get_eliminar_usuario_use_case)
+):
+    use_case.ejecutar(rut)
+
+    return {
+        'message': 'Usuario eliminado correctamente'
     }

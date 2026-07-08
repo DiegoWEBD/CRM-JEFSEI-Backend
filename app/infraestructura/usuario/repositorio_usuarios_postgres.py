@@ -175,9 +175,24 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                         'codigo_rol': rol.codigo
                     }
 
-                    cur.execute(query, params)
+                cur.execute(query, params)
 
                 return True
+
+    def eliminar(self, rut: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Usuario
+                    set eliminado = true
+                    where rut = %(rut)s
+                '''
+                params = {
+                    'rut': rut
+                }
+
+                cur.execute(query, params)
+                return cur.rowcount > 0
             
     def actualizar(self, usuario: Usuario) -> bool:
         with obtener_conexion() as conn:

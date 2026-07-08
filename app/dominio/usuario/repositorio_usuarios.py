@@ -30,3 +30,7 @@ class RepositorioUsuarios(ABC):
     @abstractmethod
     def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
         pass
+
+    @abstractmethod
+    def eliminar(self, rut: str) -> bool:
+        pass
