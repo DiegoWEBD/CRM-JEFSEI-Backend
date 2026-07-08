@@ -34,10 +34,10 @@ class ActualizarUsuarioUseCase:
         if not existente:
             raise RecursoNoEncontradoException("El usuario no existe")
         
-        if correo and self.repositorio_usuarios.existe_correo(correo):
+        if correo and correo != existente.correo and self.repositorio_usuarios.existe_correo(correo):
             raise RecursoYaExisteException("El correo ya está en uso")
         
-        if telefono and self.repositorio_usuarios.existe_telefono(telefono):
+        if telefono and telefono != existente.telefono and self.repositorio_usuarios.existe_telefono(telefono):
             raise RecursoYaExisteException("El teléfono ya está en uso")
 
         if password:
