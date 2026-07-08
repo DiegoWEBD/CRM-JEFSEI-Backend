@@ -5,9 +5,9 @@ class Cuota:
 
     def __init__(
         self,
+        fecha_vencimiento: datetime,
         id: int | None = None,
         numero_cuota: int = 0,
-        fecha_vencimiento: datetime | None = None,
         pagado: bool = False,
         fecha_pago: datetime | None = None
     ):

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.dominio.cuota.cuota import Cuota
 from app.dominio.plan_pago.plan_pago import PlanPago
@@ -97,6 +97,7 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     query = '''
                         insert into Cuota (id_plan_pago, numero_cuota, fecha_vencimiento, pagado, fecha_pago)
                         values (%(id_plan_pago)s, %(numero_cuota)s, %(fecha_vencimiento)s, %(pagado)s, %(fecha_pago)s)
+                        returning id
                     '''
 
                     params = {
@@ -107,7 +108,63 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                         'fecha_pago': cuota.fecha_pago
                     }
 
-                cur.execute(query, params)
+                    cur.execute(query, params)
+                    id_cuota = cur.fetchone()['id']  # type: ignore
+
+                    # Insertar recordatorio de cobranza
+
+                    fecha_recordatorio = cuota.fecha_vencimiento - timedelta(days=20)
+
+                    query = '''
+                        insert into Recordatorio (
+                            titulo,
+                            detalle,
+                            prioridad,
+                            completado,
+                            tipo_gestion,
+                            fecha_recordatorio
+                        )
+                        values (
+                            %(titulo)s,
+                            %(detalle)s,
+                            %(prioridad)s,
+                            %(completado)s,
+                            %(tipo_gestion)s,
+                            %(fecha_recordatorio)s
+                        )
+                        returning id
+                    '''
+
+                    params = {
+                        'titulo': 'Programado: Cobranza anticipada',
+                        'detalle': f'El día {cuota.fecha_vencimiento.strftime("%d-%m-%Y")} vence el pago de la cuota {cuota.numero_cuota} de la póliza {poliza.numero_poliza}, se debe comenzar a gestionar su cobranza anticipada.',
+                        'prioridad': 'alta',
+                        'completado': False,
+                        'tipo_gestion': 'cobranza_anticipada',
+                        'fecha_recordatorio': fecha_recordatorio
+                    }
+
+                    cur.execute(query, params)
+                    row = cur.fetchone()
+                    id_recordatorio = row['id'] # type: ignore
+
+                    query = '''
+                        insert into RecordatorioCobranzaCuotaPoliza (
+                            id,
+                            id_cuota
+                        )
+                        values (
+                            %(id)s,
+                            %(id_cuota)s
+                        )
+                    '''
+
+                    params = {
+                        'id': id_recordatorio,
+                        'id_cuota': id_cuota
+                    }
+
+                    cur.execute(query, params)
 
                 # Registro de historial
 
@@ -156,6 +213,25 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     'id': id_cuota,
                     'pagado': pagado,
                     'fecha_pago': fecha_pago
+                }
+
+                cur.execute(query, params)
+
+                if not pagado:
+                    return
+
+                # Completar recordatorio
+
+                query = '''
+                    update Recordatorio ru
+                    set completado = true
+                    from RecordatorioCobranzaCuotaPoliza rccp
+                    where ru.id = rccp.id
+                    and rccp.id_cuota = %(id_cuota)s
+                '''
+
+                params = {
+                    'id_cuota': id_cuota
                 }
 
                 cur.execute(query, params)

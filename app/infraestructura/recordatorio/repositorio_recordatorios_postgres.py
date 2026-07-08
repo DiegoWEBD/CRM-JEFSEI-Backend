@@ -1,8 +1,10 @@
+from app.dominio.recordatorio.recordatorio_cobranza_cuota_poliza.recordatorio_cobranza_cuota_poliza import RecordatorioCobranzaCuotaPoliza
 from app.dominio.recordatorio.recordatorio_renovacion_poliza.recordatorio_renovacion_poliza import RecordatorioRenovacionPoliza
 from app.dominio.recordatorio.recordatorio_usuario.recordatorio_usuario import RecordatorioUsuario
 from app.dominio.recordatorio.repositorio_recordatorios import RepositorioRecordatorios
 
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_cobranza_adapter import DictRowRecordatorioCobranzaAdapter
 from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_renovacion_poliza_adapter import DictRowRecordatorioRenovacionPolizaAdapter
 from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_usuario_adapter import DictRowRecordatorioUsuarioAdapter
 
@@ -166,6 +168,56 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                 rows = cur.fetchall()
 
                 return [DictRowRecordatorioRenovacionPolizaAdapter(row).to_recordatorio()for row in rows]
+            
+    def obtener_recordatorios_cobranza(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioCobranzaCuotaPoliza]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select R.id,
+                    C.id_prospecto,
+                    PR.nombre_riesgo,
+                    P.numero_poliza,
+                    R.titulo,
+                    R.detalle,
+                    R.completado,
+                    R.tipo_gestion,
+                    R.prioridad,
+                    R.fecha_recordatorio
+                    from RecordatorioCobranzaCuotaPoliza RC
+                    inner join Recordatorio R
+                    on RC.id = R.id
+                    inner join Cuota CU
+                    on RC.id_cuota = CU.id
+                    inner join PlanPago PP
+                    on CU.id_plan_pago = PP.id
+                    inner join Poliza P
+                    on PP.numero_poliza = P.numero_poliza
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PR
+                    on C.id_prospecto = PR.id
+                    where R.completado = false
+                    and P.cancelada = false
+                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and C.rut_ej_cobranza_asignado = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario,
+                    'fecha': fecha
+                }
+
+                if id_prospecto is not None:
+                    query += ' and C.id_prospecto = %(id_prospecto)s'
+                    params['id_prospecto'] = str(id_prospecto)
+
+                query += ' order by R.fecha_recordatorio'
+                cur.execute(query, params)
+
+                rows = cur.fetchall()
+
+                return [DictRowRecordatorioCobranzaAdapter(row).to_recordatorio() for row in rows]
 
     def actualizar(self, id: int, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None = None) -> None:
         with obtener_conexion() as conn:

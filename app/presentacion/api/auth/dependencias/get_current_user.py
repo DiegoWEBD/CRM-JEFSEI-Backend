@@ -50,4 +50,16 @@ def get_current_user(
             detail="Usuario no autenticado"
         )
 
+    if not usuario.habilitado:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario deshabilitado"
+        )
+
+    if usuario.eliminado:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario eliminado"
+        )
+
     return usuario

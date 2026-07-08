@@ -11,11 +11,15 @@ class ObtenerRecordatoriosUsuarioUseCase:
         recordatorios: list[Recordatorio] = []
         recordatorios_usuario = self.repositorio_recordatorio.obtener_recordatorios_usuario(rut_usuario, fecha, id_prospecto)
         recordatorios_renovacion = self.repositorio_recordatorio.obtener_recordatorios_renovacion(rut_usuario, fecha, id_prospecto)
+        recordatorios_cobranza = self.repositorio_recordatorio.obtener_recordatorios_cobranza(rut_usuario, fecha, id_prospecto)
         
         for recordatorio in recordatorios_usuario:
             recordatorios.append(recordatorio)
 
         for recordatorio in recordatorios_renovacion:
+            recordatorios.append(recordatorio)
+
+        for recordatorio in recordatorios_cobranza:
             recordatorios.append(recordatorio)
         
         return recordatorios

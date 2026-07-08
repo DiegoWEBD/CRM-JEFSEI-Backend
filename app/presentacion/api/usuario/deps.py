@@ -1,4 +1,5 @@
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
+from app.aplicacion.usuario.use_cases.eliminar_usuario import EliminarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
@@ -23,3 +24,7 @@ def get_actualizar_usuario_use_case():
     repositorio = RepositorioUsuariosPostgres()
     authentication_service = JwtAuthenticationService()
     return ActualizarUsuarioUseCase(repositorio, authentication_service)
+
+def get_eliminar_usuario_use_case():
+    repositorio = RepositorioUsuariosPostgres()
+    return EliminarUsuarioUseCase(repositorio)
