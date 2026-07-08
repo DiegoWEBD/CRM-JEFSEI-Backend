@@ -1,4 +1,26 @@
 .env
+
+# Python
 __pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Respaldos
 respaldo.sql
+
+# Documentos
 documentos/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
