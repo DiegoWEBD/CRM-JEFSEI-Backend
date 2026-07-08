@@ -216,3 +216,22 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                 }
 
                 cur.execute(query, params)
+
+                if not pagado:
+                    return
+
+                # Completar recordatorio
+
+                query = '''
+                    update Recordatorio ru
+                    set completado = true
+                    from RecordatorioCobranzaCuotaPoliza rccp
+                    where ru.id = rccp.id
+                    and rccp.id_cuota = %(id_cuota)s
+                '''
+
+                params = {
+                    'id_cuota': id_cuota
+                }
+
+                cur.execute(query, params)
