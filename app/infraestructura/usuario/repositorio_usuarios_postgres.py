@@ -117,6 +117,7 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     on R.codigo = PR.codigo_rol
                     left join Permiso P
                     on PR.codigo_permiso = P.codigo
+                    where U.eliminado = false
                 '''
 
                 cur.execute(query)
