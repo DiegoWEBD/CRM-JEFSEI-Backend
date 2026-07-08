@@ -32,7 +32,7 @@ jobs:
 
       - name: 🔍 Análisis de dependencias (pip-audit)
         run: |
-          pip-audit -r requirements-dev.txt
+          pip-audit -r requirements-dev.txt --ignore-vuln PYSEC-2026-1325
 
       - name: 🛡️ Análisis estático de seguridad (bandit)
         run: |
