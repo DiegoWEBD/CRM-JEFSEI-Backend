@@ -6,6 +6,8 @@ from app.presentacion.api.company_seguros.dto.company_seguros_json import Compan
 
 class PolizaJson(BaseModel):
     numero_poliza: str 
+    id_prospecto: int
+    nombre_cliente: str
     id_proceso_comercial: int
     tipo: str 
     nombre_producto: str

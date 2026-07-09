@@ -1,6 +1,5 @@
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.dominio.usuario.usuario import Usuario
-from app.infraestructura.lib.uf_api import obtener_valor_uf
 
 
 class ObtenerProgresoComisionMensualEjComercialUseCase:
@@ -23,5 +22,5 @@ class ObtenerProgresoComisionMensualEjComercialUseCase:
             comision_uf += poliza.prima_neta * poliza.comision_corredora_pct * ejecutivo_comercial.porcentaje_comision
     
         comision_uf -= comision_uf * porcentaje_impuesto
-        valor_uf = obtener_valor_uf()
-        return round(comision_uf * valor_uf)
+
+        return round(comision_uf, 2)

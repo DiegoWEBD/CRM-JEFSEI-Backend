@@ -11,6 +11,8 @@ class PolizaJsonAdapter:
     def to_json(self) -> PolizaJson:
         return PolizaJson(
             numero_poliza=self.poliza.numero_poliza,
+            id_prospecto=self.poliza.id_prospecto,
+            nombre_cliente=self.poliza.nombre_cliente,
             id_proceso_comercial=self.poliza.id_proceso_comercial,
             tipo=self.poliza.tipo,
             nombre_producto=self.poliza.nombre_producto,
