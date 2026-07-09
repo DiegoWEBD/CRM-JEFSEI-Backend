@@ -27,7 +27,8 @@ class Prospecto:
         ultima_actualizacion: datetime = datetime.now(),
         planificacion_prospecto: PlanificacionProspecto | None = None,
         id: int | None = None,
-        id_cliente: int | None = None
+        id_cliente: int | None = None,
+        estado_general_cliente: str | None = None
     ):
         self.rut_riesgo = rut_riesgo
         self.nombre_riesgo = nombre_riesgo
@@ -48,3 +49,4 @@ class Prospecto:
         self.planificacion_prospecto = planificacion_prospecto
         self.ultima_actualizacion = ultima_actualizacion
         self.informacion_completa = informacion_completa
+        self.estado_general_cliente = estado_general_cliente

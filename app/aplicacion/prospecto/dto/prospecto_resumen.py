@@ -12,3 +12,4 @@ class ProspectoResumen:
     ejecutivo_comercial: str | None
     id_cliente: int | None
     procesos_comerciales: list[ProcesoComercialResumen]
+    estado_general_cliente: str

@@ -19,7 +19,17 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         EJ_COM.nombre as ejecutivo_comercial,
         EI.codigo as codigo_estado,
         EI.nombre as nombre_estado,
-        HE.fecha_registro as fecha_ultima_accion
+        HE.fecha_registro as fecha_ultima_accion,
+        CASE
+            WHEN C.id IS NULL THEN 'prospecto'
+            WHEN EXISTS (
+                SELECT 1 FROM Poliza PZ
+                WHERE PZ.id_cliente = C.id
+                  AND PZ.cancelada = false
+                  AND PZ.fin_vigencia > CURRENT_TIMESTAMP
+            ) THEN 'cliente_activo'
+            ELSE 'cliente_inactivo'
+        END as estado_general_cliente
         from Prospecto P
         left join Cliente C
         on P.id = C.id_prospecto

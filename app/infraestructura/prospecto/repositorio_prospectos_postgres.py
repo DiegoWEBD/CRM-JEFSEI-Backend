@@ -356,7 +356,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PP.prima_vigente as prima_vigente_planificacion,
                     PP.termino_vigencia as termino_vigencia_planificacion,
                     PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
-                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
+                    CASE
+                        WHEN CL.id IS NULL THEN 'prospecto'
+                        WHEN EXISTS (
+                            SELECT 1 FROM Poliza PZ
+                            WHERE PZ.id_cliente = CL.id
+                              AND PZ.cancelada = false
+                              AND PZ.fin_vigencia > CURRENT_TIMESTAMP
+                        ) THEN 'cliente_activo'
+                        ELSE 'cliente_inactivo'
+                    END as estado_general_cliente
                     from Prospecto P
                     left join Cliente CL
                     on P.id = CL.id_prospecto
@@ -414,7 +424,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PP.prima_vigente as prima_vigente_planificacion,
                     PP.termino_vigencia as termino_vigencia_planificacion,
                     PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
-                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
+                    CASE
+                        WHEN CL.id IS NULL THEN 'prospecto'
+                        WHEN EXISTS (
+                            SELECT 1 FROM Poliza PZ
+                            WHERE PZ.id_cliente = CL.id
+                              AND PZ.cancelada = false
+                              AND PZ.fin_vigencia > CURRENT_TIMESTAMP
+                        ) THEN 'cliente_activo'
+                        ELSE 'cliente_inactivo'
+                    END as estado_general_cliente
                     from Prospecto P
                     left join Cliente CL
                     on P.id = CL.id_prospecto
@@ -516,7 +536,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PP.prima_vigente as prima_vigente_planificacion,
                     PP.termino_vigencia as termino_vigencia_planificacion,
                     PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
-                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
+                    CASE
+                        WHEN CL.id IS NULL THEN 'prospecto'
+                        WHEN EXISTS (
+                            SELECT 1 FROM Poliza PZ
+                            WHERE PZ.id_cliente = CL.id
+                              AND PZ.cancelada = false
+                              AND PZ.fin_vigencia > CURRENT_TIMESTAMP
+                        ) THEN 'cliente_activo'
+                        ELSE 'cliente_inactivo'
+                    END as estado_general_cliente
                     from Prospecto P
                     inner join ProspectoCondominio PCO
                     on P.id = PCO.id

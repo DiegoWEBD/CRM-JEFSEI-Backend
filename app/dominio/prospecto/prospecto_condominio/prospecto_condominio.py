@@ -48,6 +48,7 @@ class ProspectoCondominio(Prospecto):
         ejecutivo_renovacion_asignado: Usuario | None = None,
         id: int | None = None,
         ultima_actualizacion: datetime = datetime.now(),
+        estado_general_cliente: str | None = None,
     ):
         super().__init__(
             id=id,
@@ -68,7 +69,8 @@ class ProspectoCondominio(Prospecto):
             ejecutivo_renovacion_asignado=ejecutivo_renovacion_asignado,
             planificacion_prospecto=planificacion_prospecto,
             ultima_actualizacion=ultima_actualizacion,
-            informacion_completa=informacion_completa
+            informacion_completa=informacion_completa,
+            estado_general_cliente=estado_general_cliente
         )
         
         self.tiene_locales_comerciales = tiene_locales_comerciales

@@ -46,6 +46,8 @@ class DictRowProspectoAdapter:
         monto_asegurado_vigente_planificacion = self.row['monto_asegurado_vigente_planificacion']
         fecha_envio_cotizacion_planificacion = self.row['fecha_envio_cotizacion_planificacion']
 
+        estado_general_cliente = self.row['estado_general_cliente']
+
         planificacion = None
 
         if id_company_planificacion:
@@ -127,5 +129,6 @@ class DictRowProspectoAdapter:
             ejecutivo_renovacion_asignado=ejecutivo_renovacion,
             planificacion_prospecto=planificacion,
             ultima_actualizacion=prospecto_updated_at,
-            informacion_completa=informacion_completa
+            informacion_completa=informacion_completa,
+            estado_general_cliente=estado_general_cliente
         )
