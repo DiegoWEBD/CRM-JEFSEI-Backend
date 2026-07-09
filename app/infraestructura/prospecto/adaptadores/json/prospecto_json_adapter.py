@@ -33,5 +33,6 @@ class ProspectoJsonAdapter:
             ejecutivo_comercial_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_comercial_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_comercial_asignado else None,
             ejecutivo_evaluacion_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_evaluacion_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_evaluacion_asignado else None,
             ejecutivo_cobranza_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_cobranza_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_cobranza_asignado else None,
-            ejecutivo_renovacion_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_renovacion_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_renovacion_asignado else None
+            ejecutivo_renovacion_asignado=UsuarioJsonResumenAdapter(self.prospecto.ejecutivo_renovacion_asignado).to_usuario_json_resumen() if self.prospecto.ejecutivo_renovacion_asignado else None,
+            estado_general_cliente=self.prospecto.estado_general_cliente or 'prospecto'
         )

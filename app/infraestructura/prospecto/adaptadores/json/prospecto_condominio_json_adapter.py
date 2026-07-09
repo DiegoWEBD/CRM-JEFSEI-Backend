@@ -53,5 +53,6 @@ class ProspectoCondominioJsonAdapter:
             year_construccion=self.prospecto.year_construccion,
             metros_cuadrados=self.prospecto.metros_cuadrados,
             ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
-            informacion_completa=self.prospecto.informacion_completa
+            informacion_completa=self.prospecto.informacion_completa,
+            estado_general_cliente=self.prospecto.estado_general_cliente or 'prospecto'
         )

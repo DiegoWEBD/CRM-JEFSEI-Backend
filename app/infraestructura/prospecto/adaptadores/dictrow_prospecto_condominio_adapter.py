@@ -69,6 +69,8 @@ class DictRowProspectoCondominioAdapter:
         monto_asegurado_vigente_planificacion = self.row['monto_asegurado_vigente_planificacion']
         fecha_envio_cotizacion_planificacion = self.row['fecha_envio_cotizacion_planificacion']
 
+        estado_general_cliente = self.row['estado_general_cliente']
+
         uf_por_metro_cuadrado = self.row['uf_por_metro_cuadrado']
         porcentaje_depreciacion = self.row['porcentaje_depreciacion']
         porcentaje_espacios_comunes = self.row['porcentaje_espacios_comunes']
@@ -184,5 +186,6 @@ class DictRowProspectoCondominioAdapter:
             porcentaje_depreciacion=porcentaje_depreciacion,
             porcentaje_espacios_comunes=porcentaje_espacios_comunes,
             ultima_actualizacion=ultima_actualizacion,
-            informacion_completa=informacion_completa
+            informacion_completa=informacion_completa,
+            estado_general_cliente=estado_general_cliente
         )

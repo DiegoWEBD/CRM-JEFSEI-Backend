@@ -25,3 +25,4 @@ class ProspectoJson(BaseModel):
     ultima_actualizacion: str
     informacion_completa: bool
     planificacion_prospecto: PlanificacionProspectoJson | None
+    estado_general_cliente: str
