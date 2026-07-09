@@ -1,7 +1,4 @@
 from dateutil.relativedelta import relativedelta
-from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.infraestructura.db.conexion import obtener_conexion
@@ -16,6 +13,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 
                 query = '''
                     select P.numero_poliza, 
+                    PRO.nombre_riesgo as nombre_cliente,
+                    PRO.id as id_prospecto,
                     P.tipo, P.prima_neta, 
                     P.id_proceso_comercial,
                     P.comision_corredora_pct,
@@ -28,6 +27,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.cancelada,
                     P.renovacion_cotizada
                     from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
                     inner join ProcesoComercial PC
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
@@ -52,6 +55,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 
                 query = '''
                     select P.numero_poliza, 
+                    PRO.nombre_riesgo as nombre_cliente,
+                    PRO.id as id_prospecto,
                     P.tipo, P.prima_neta, 
                     P.id_proceso_comercial,
                     P.comision_corredora_pct,
@@ -64,6 +69,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.cancelada,
                     P.renovacion_cotizada
                     from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
                     inner join ProcesoComercial PC
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
@@ -88,6 +97,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 query = '''
                     select P.numero_poliza, 
+                    PRO.nombre_riesgo as nombre_cliente,
+                    PRO.id as id_prospecto,
                     P.tipo, P.prima_neta, 
                     P.id_proceso_comercial,
                     P.comision_corredora_pct,
@@ -100,6 +111,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.cancelada,
                     P.renovacion_cotizada
                     from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
                     inner join ProcesoComercial PC
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
@@ -124,6 +139,8 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 query = '''
                     select P.numero_poliza, 
+                    PRO.nombre_riesgo as nombre_cliente,
+                    PRO.id as id_prospecto,
                     P.tipo, P.prima_neta, 
                     P.id_proceso_comercial,
                     P.comision_corredora_pct,
@@ -137,6 +154,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.cancelada,
                     P.renovacion_cotizada
                     from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
                     inner join ProcesoComercial PC
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
@@ -200,13 +221,13 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         'id_prospecto': id_prospecto
                     }
 
-                cur.execute(query, params)
-                row = cur.fetchone()
+                    cur.execute(query, params)
+                    row = cur.fetchone()
 
-                if not row:
-                    return
-                
-                id_cliente = row['id']
+                    if not row:
+                        return
+                    
+                    id_cliente = row['id']
 
                 # Registrar póliza
                 query = '''

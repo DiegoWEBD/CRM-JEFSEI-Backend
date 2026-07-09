@@ -9,4 +9,3 @@ pydantic-settings
 docxtpl
 python-multipart
 python-dateutil
-requests

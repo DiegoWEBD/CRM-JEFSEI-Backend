@@ -7,6 +7,8 @@ from app.dominio.poliza.estado_poliza.estado_poliza import EstadoPoliza
 class Poliza:
     def __init__(
         self, 
+        id_prospecto: int,
+        nombre_cliente: str,
         numero_poliza: str, 
         id_proceso_comercial: int,
         tipo: str, 
@@ -20,6 +22,8 @@ class Poliza:
         estado: EstadoPoliza,
         renovacion_cotizada: bool
     ):
+        self.id_prospecto = id_prospecto
+        self.nombre_cliente = nombre_cliente
         self.numero_poliza = numero_poliza
         self.id_proceso_comercial = id_proceso_comercial
         self.tipo = tipo

@@ -58,6 +58,8 @@ class RegistrarPolizaAProcesoComercialUseCase:
         
         poliza = Poliza(
             numero_poliza=numero_poliza,
+            id_prospecto=0,         # arbitrario
+            nombre_cliente='',      # arbitrario
             id_proceso_comercial=id_proceso_comercial,
             tipo=tipo,
             nombre_producto='',
