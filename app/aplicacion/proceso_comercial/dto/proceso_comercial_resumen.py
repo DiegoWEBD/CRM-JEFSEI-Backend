@@ -8,4 +8,3 @@ class ProcesoComercialResumen:
     codigo_estado: str
     nombre_estado: str
     fecha_ultima_accion: datetime
-    informacion_completa: bool
