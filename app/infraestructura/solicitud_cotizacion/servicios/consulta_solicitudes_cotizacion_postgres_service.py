@@ -21,8 +21,11 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                     SC.motivo_recotizacion,
                     PR.nombre as producto, 
                     SC.prioridad, SC.fecha,
+                    ECC.id as id_estudio,
                     count(C.id) as cantidad_cotizaciones
                     from SolicitudCotizacion SC
+                    left join EstudioComercialCondominio ECC
+                    on SC.id = ECC.id_solicitud
                     left join Cotizacion C
                     on SC.id = C.id_solicitud
                     inner join ProcesoComercial PC
@@ -47,7 +50,8 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                         EJ_COM.nombre,
                         PR.nombre,
                         SC.prioridad,
-                        SC.fecha
+                        SC.fecha,
+                        ECC.id
                     order by SC.fecha desc
                 '''
 

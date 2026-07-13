@@ -30,14 +30,29 @@ class ActualizarProspectoUseCase:
         
         if not prospecto.ejecutivo_comercial_asignado or prospecto.ejecutivo_comercial_asignado.rut != rut_usuario:
             raise UsuarioNoAutorizadoException
+        
+        prospecto_condominio = self.repositorio_prospectos.buscar_prospecto_condominio(id)
+        
+        if prospecto_condominio:
+            prospecto_condominio.rut_riesgo = rut_riesgo
+            prospecto_condominio.nombre_riesgo = nombre_riesgo
+            prospecto_condominio.telefono_contacto = telefono_contacto
+            prospecto_condominio.correo_contacto = correo_contacto
+            prospecto_condominio.direccion = direccion
+            prospecto_condominio.region = region
+            prospecto_condominio.comuna = comuna
+            prospecto_condominio.observaciones = observaciones
 
-        prospecto.rut_riesgo = rut_riesgo
-        prospecto.nombre_riesgo = nombre_riesgo
-        prospecto.telefono_contacto = telefono_contacto
-        prospecto.correo_contacto = correo_contacto
-        prospecto.direccion = direccion
-        prospecto.region = region
-        prospecto.comuna = comuna
-        prospecto.observaciones = observaciones
+            self.repositorio_prospectos.actualizar_prospecto_condominio(prospecto_condominio)
+        else:
+            prospecto.rut_riesgo = rut_riesgo
+            prospecto.nombre_riesgo = nombre_riesgo
+            prospecto.telefono_contacto = telefono_contacto
+            prospecto.correo_contacto = correo_contacto
+            prospecto.direccion = direccion
+            prospecto.region = region
+            prospecto.comuna = comuna
+            prospecto.observaciones = observaciones
 
-        self.repositorio_prospectos.actualizar_prospecto(prospecto)
+            self.repositorio_prospectos.actualizar_prospecto(prospecto)
+            
