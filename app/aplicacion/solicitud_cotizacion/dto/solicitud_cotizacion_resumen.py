@@ -17,3 +17,4 @@ class SolicitudCotizacionResumen:
     fecha: datetime
     cantidad_cotizaciones: int
     campos_faltantes: list[str]
+    estudio_disponible: bool
