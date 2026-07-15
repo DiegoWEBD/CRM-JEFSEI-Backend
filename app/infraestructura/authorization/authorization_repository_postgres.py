@@ -205,9 +205,12 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 query = '''
-                    select rut_ej_comercial_asignado
-                    from Prospecto
-                    where id = %(id_prospecto)s
+                    select P.rut_ej_comercial_asignado,
+                    C.rut_ej_renovacion_asignado
+                    from Prospecto P
+                    inner join Cliente C
+                    on P.id = C.id_prospecto
+                    where P.id = %(id_prospecto)s
                 '''
 
                 params = {
@@ -219,10 +222,11 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
 
                 if row is None:
                     return False
-                
-                rut_ej_comercial_asignado = row['rut_ej_comercial_asignado']
 
-                return rut_ej_comercial_asignado == rut_usuario
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_renovacion_asignado'] == rut_usuario,
+                ])
             
     def usuario_puede_solicitar_cotizacion(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
         with obtener_conexion() as conn:
@@ -306,11 +310,14 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 query = '''
-                    select rut_registrado_por,
-                    rut_ej_comercial_asignado,
-                    rut_ej_evaluacion_asignado
-                    from Prospecto
-                    where id = %(id_prospecto)s
+                    select P.rut_registrado_por,
+                    P.rut_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado,
+                    C.rut_ej_renovacion_asignado
+                    from Prospecto P
+                    inner join Cliente C
+                    on P.id = C.id_prospecto
+                    where P.id = %(id_prospecto)s
                 '''
 
                 params = {
@@ -326,7 +333,8 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 return any([
                     row['rut_registrado_por'] == rut_usuario,
                     row['rut_ej_comercial_asignado'] == rut_usuario,
-                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario,
+                    row['rut_ej_renovacion_asignado'] == rut_usuario
                 ])
 
             
@@ -362,10 +370,13 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 query = '''
-                    select P.rut_ej_comercial_asignado
+                    select P.rut_ej_comercial_asignado,
+                    C.rut_ej_renovacion_asignado
                     from ProcesoComercial PC 
                     inner join Prospecto P
                     on PC.id_prospecto = P.id
+                    inner join Cliente C
+                    on P.id = C.id_prospecto
                     where PC.id = %(id_proceso_comercial)s
                 '''
 
@@ -379,7 +390,10 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                 if row is None:
                     return False
 
-                return row['rut_ej_comercial_asignado'] == rut_usuario
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_renovacion_asignado'] == rut_usuario
+                ])
             
     def usuario_puede_ver_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
         with obtener_conexion() as conn:
