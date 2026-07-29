@@ -208,7 +208,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     select P.rut_ej_comercial_asignado,
                     C.rut_ej_renovacion_asignado
                     from Prospecto P
-                    inner join Cliente C
+                    left join Cliente C
                     on P.id = C.id_prospecto
                     where P.id = %(id_prospecto)s
                 '''
@@ -315,7 +315,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     P.rut_ej_evaluacion_asignado,
                     C.rut_ej_renovacion_asignado
                     from Prospecto P
-                    inner join Cliente C
+                    left join Cliente C
                     on P.id = C.id_prospecto
                     where P.id = %(id_prospecto)s
                 '''
@@ -375,7 +375,7 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     from ProcesoComercial PC 
                     inner join Prospecto P
                     on PC.id_prospecto = P.id
-                    inner join Cliente C
+                    left join Cliente C
                     on P.id = C.id_prospecto
                     where PC.id = %(id_proceso_comercial)s
                 '''
