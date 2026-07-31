@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class ActualizarProspectoCondominioRequest(BaseModel):
+    id_administrador: int | None
     rut_riesgo: str | None
     nombre_riesgo: str 
     telefono_contacto: str | None
