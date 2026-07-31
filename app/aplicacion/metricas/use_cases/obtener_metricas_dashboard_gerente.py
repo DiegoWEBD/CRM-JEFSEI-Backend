@@ -34,16 +34,18 @@ class ObtenerMetricasDashboardGerenteUseCase:
     ):
         self.repositorio = repositorio
 
-    def ejecutar(self) -> MetricasDashboardGerenteDto:
+    def ejecutar(
+        self, mes: int | None = None, year: int | None = None
+    ) -> MetricasDashboardGerenteDto:
         hoy = date.today()
-        anio = hoy.year
-        mes = hoy.month
+        anio = year if year is not None else hoy.year
+        mes_val = mes if mes is not None else hoy.month
 
         return MetricasDashboardGerenteDto(
-            produccion=self._armar_produccion(anio, mes, hoy),
-            actividades_comerciales=self._armar_actividades(anio, mes),
-            reportes_polizas=self._armar_reportes_polizas(),
-            evaluacion_proyectos=self._armar_evaluacion_proyectos(),
+            produccion=self._armar_produccion(anio, mes_val, hoy),
+            actividades_comerciales=self._armar_actividades(anio, mes_val),
+            reportes_polizas=self._armar_reportes_polizas(anio, mes_val),
+            evaluacion_proyectos=self._armar_evaluacion_proyectos(anio, mes_val),
         )
 
     def _armar_produccion(
@@ -70,7 +72,7 @@ class ObtenerMetricasDashboardGerenteUseCase:
 
         mes_label = f"{MESES_ES[mes]} {anio}"
 
-        tendencia_raw = self.repositorio.obtener_tendencia_12_meses()
+        tendencia_raw = self.repositorio.obtener_tendencia_12_meses(anio, mes)
         tendencia = [
             TendenciaMesDto(mes=r["mes"], prima_neta=float(r["prima_neta"]))
             for r in tendencia_raw
@@ -151,14 +153,16 @@ class ObtenerMetricasDashboardGerenteUseCase:
             por_tipo=por_tipo, resumen=resumen
         )
 
-    def _armar_reportes_polizas(self) -> ReportesPolizasDto:
-        por_comuna_raw = self.repositorio.obtener_polizas_por_comuna()
+    def _armar_reportes_polizas(
+        self, anio: int, mes: int
+    ) -> ReportesPolizasDto:
+        por_comuna_raw = self.repositorio.obtener_polizas_por_comuna(anio, mes)
         por_comuna = [
             ItemCantidadDto(nombre=r["nombre"], cantidad=r["cantidad"])
             for r in por_comuna_raw
         ]
 
-        por_ramo_raw = self.repositorio.obtener_polizas_por_producto()
+        por_ramo_raw = self.repositorio.obtener_polizas_por_producto(anio, mes)
         por_ramo = [
             ItemCantidadDto(nombre=r["nombre"], cantidad=r["cantidad"])
             for r in por_ramo_raw
@@ -171,8 +175,10 @@ class ObtenerMetricasDashboardGerenteUseCase:
             por_ramo=por_ramo,
         )
 
-    def _armar_evaluacion_proyectos(self) -> EvaluacionProyectosDto:
-        kpis_raw = self.repositorio.obtener_kpis_evaluacion()
+    def _armar_evaluacion_proyectos(
+        self, anio: int, mes: int
+    ) -> EvaluacionProyectosDto:
+        kpis_raw = self.repositorio.obtener_kpis_evaluacion(anio, mes)
         kpis = KpisEvaluacionDto(
             total_proyectos=kpis_raw["total_proyectos"],
             monto_total_uf=float(kpis_raw["monto_total_uf"]),

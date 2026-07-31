@@ -50,7 +50,9 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
 
                 return float(row['total'])
 
-    def obtener_tendencia_12_meses(self) -> list[dict]:
+    def obtener_tendencia_12_meses(
+        self, year: int, mes: int
+    ) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -61,11 +63,13 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                       extract(year from fecha_emision) as year,
                       coalesce(sum(prima_neta), 0) as prima_neta
                     from Poliza
-                    where fecha_emision >= date_trunc('month', current_date - interval '11 months')
+                    where fecha_emision >= date_trunc('month', make_date(%(year)s, %(mes)s, 1)) - interval '11 months'
+                      and fecha_emision < make_date(%(year)s, %(mes)s, 1) + interval '1 month'
                       and (cancelada is null or cancelada = false)
                     group by year, mes_num, mes
                     order by year, mes_num
-                    '''
+                    ''',
+                    {'year': year, 'mes': mes},
                 )
                 return cur.fetchall()
 
@@ -188,7 +192,9 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
 
                 return row
 
-    def obtener_polizas_por_comuna(self) -> list[dict]:
+    def obtener_polizas_por_comuna(
+        self, year: int, mes: int
+    ) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -200,14 +206,19 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                         on P.id_cliente = C.id
                         inner join Prospecto PR
                         on C.id_prospecto = PR.id
-                        where P.cancelada is null or P.cancelada = false
+                        where (P.cancelada is null or P.cancelada = false)
+                          and extract(year from P.fecha_emision) = %(year)s
+                          and extract(month from P.fecha_emision) = %(mes)s
                         group by coalesce(PR.comuna, 'Desconocida')
                         order by cantidad desc
-                    '''
+                    ''',
+                    {'year': year, 'mes': mes},
                 )
                 return cur.fetchall()
 
-    def obtener_polizas_por_producto(self) -> list[dict]:
+    def obtener_polizas_por_producto(
+        self, year: int, mes: int
+    ) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -217,13 +228,16 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                         join ProcesoComercial pc on p.id_proceso_comercial = pc.id
                         join Producto pr on pc.id_producto = pr.id
                         where p.cancelada is null or p.cancelada = false
+                          and extract(year from p.fecha_emision) = %(year)s
+                          and extract(month from p.fecha_emision) = %(mes)s
                         group by pr.nombre
                         order by cantidad desc
-                    '''
+                    ''',
+                    {'year': year, 'mes': mes},
                 )
                 return cur.fetchall()
 
-    def obtener_kpis_evaluacion(self) -> dict:
+    def obtener_kpis_evaluacion(self, year: int, mes: int) -> dict:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -233,19 +247,24 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                     from ProcesoComercial pc
                     join SolicitudCotizacion sc
                         on pc.id = sc.id_proceso_comercial
+                    where extract(year from sc.fecha) = %(year)s
+                      and extract(month from sc.fecha) = %(mes)s
                     ),
                     procesos_con_poliza as (
                     select distinct pc.id
                     from ProcesoComercial pc
                     join Poliza p on pc.id = p.id_proceso_comercial
                     where p.cancelada is null or p.cancelada = false
+                      and extract(year from p.fecha_emision) = %(year)s
+                      and extract(month from p.fecha_emision) = %(mes)s
                     )
                     select
                     count(pe.id) as total_proyectos,
                     count(pp.id) as convertidos
                     from procesos_con_evaluacion pe
                     left join procesos_con_poliza pp on pe.id = pp.id
-                    '''
+                    ''',
+                    {'year': year, 'mes': mes},
                 )
                 row = cur.fetchone()
 

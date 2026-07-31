@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.aplicacion.metricas.use_cases.obtener_metricas_dashboard_gerente import ObtenerMetricasDashboardGerenteUseCase
 from app.aplicacion.metricas.use_cases.obtener_prima_vendida_mensual_ej_comercial import ObtenerPrimaVendidaMensualEjComercialUseCase
@@ -13,11 +13,13 @@ router = APIRouter(prefix='/metricas', tags=['Metricas'])
 
 @router.get('/dashboard-gerente', status_code=status.HTTP_200_OK)
 def obtener_metricas_dashboard_gerente(
+    mes: int | None = Query(None, ge=1, le=12),
+    year: int | None = Query(None, ge=2000),
     use_case: ObtenerMetricasDashboardGerenteUseCase = Depends(
         get_obtener_metricas_dashboard_gerente_use_case
     ),
 ):
-    return use_case.ejecutar()
+    return use_case.ejecutar(mes=mes, year=year)
 
 @router.get('/ejecutivos-comerciales', status_code=status.HTTP_200_OK)
 def obtener_usuarios(
