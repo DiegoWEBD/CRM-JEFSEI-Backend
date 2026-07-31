@@ -60,6 +60,8 @@ class ActualizarProspectoCondominioUseCase:
                 telefono='',
                 correo=''
             )
+        else:
+            prospecto.administrador = None
 
         prospecto.rut_riesgo = rut_riesgo
         prospecto.nombre_riesgo = nombre_riesgo
