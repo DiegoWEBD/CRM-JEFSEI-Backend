@@ -21,7 +21,6 @@ class DictRowsPlanPagoAdapter:
             fecha_vencimiento = row['fecha_vencimiento']
             pagado = row['pagado']
             fecha_pago = row['fecha_pago']
-            print(fecha_pago)
 
             cuotas.append(Cuota(
                 id=id,

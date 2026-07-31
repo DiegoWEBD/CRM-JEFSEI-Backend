@@ -42,7 +42,7 @@ def obtener_reportes_procesos_comerciales(
 
     reportes: list[ReportesProcesoComercialDTO | ReportesProcesoComercialCerradoDTO] = []
     total_procesos = len(procesos_comerciales)
-    print(total_procesos)
+
     abiertos = 0
     ganados = 0
     perdidos = 0

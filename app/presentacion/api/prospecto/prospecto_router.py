@@ -246,11 +246,11 @@ def actualizar_prospecto_condominio(
     usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
     use_case: ActualizarProspectoCondominioUseCase = Depends(get_actualizar_prospecto_condominio_use_case)
 ):
-    print(request)
     try:
         use_case.ejecutar(
             id=id,
             rut_usuario=usuario.rut,
+            id_administrador=request.id_administrador,
             rut_riesgo=request.rut_riesgo,
             nombre_riesgo=request.nombre_riesgo,
             telefono_contacto=request.telefono_contacto,

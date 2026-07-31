@@ -1,3 +1,4 @@
+from app.dominio.administrador_condominio.administrador_condominio import AdministradorCondominio
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
@@ -13,6 +14,7 @@ class ActualizarProspectoCondominioUseCase:
         self,
         id: int,
         rut_usuario: str,
+        id_administrador: int | None,
         rut_riesgo: str | None,
         nombre_riesgo: str,
         telefono_contacto: str | None, 
@@ -49,6 +51,15 @@ class ActualizarProspectoCondominioUseCase:
         
         if not prospecto.ejecutivo_comercial_asignado or prospecto.ejecutivo_comercial_asignado.rut != rut_usuario:
             raise UsuarioNoAutorizadoException
+
+        if id_administrador is not None:
+            prospecto.administrador = AdministradorCondominio(
+                id=id_administrador,
+                nombre_administrador='',
+                nombre_contacto='',
+                telefono='',
+                correo=''
+            )
 
         prospecto.rut_riesgo = rut_riesgo
         prospecto.nombre_riesgo = nombre_riesgo

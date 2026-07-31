@@ -66,8 +66,4 @@ def informacion_completa_prospecto_condominio(prospecto: ProspectoCondominio) ->
         "planificacion": datos_completos_planificacion,
     }
 
-    print("=== Validaciones ===")
-    for nombre, resultado in validaciones.items():
-        print(f"{nombre:40}: {'✅' if resultado else '❌'}")
-
     return all(validaciones.values())

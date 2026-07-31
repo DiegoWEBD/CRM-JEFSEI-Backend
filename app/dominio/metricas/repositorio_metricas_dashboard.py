@@ -15,7 +15,9 @@ class RepositorioMetricasDashboard(ABC):
         pass
 
     @abstractmethod
-    def obtener_tendencia_12_meses(self) -> list[dict]:
+    def obtener_tendencia_12_meses(
+        self, year: int, mes: int
+    ) -> list[dict]:
         pass
 
     @abstractmethod
@@ -49,15 +51,19 @@ class RepositorioMetricasDashboard(ABC):
         pass
 
     @abstractmethod
-    def obtener_polizas_por_comuna(self) -> list[dict]:
+    def obtener_polizas_por_comuna(
+        self, year: int, mes: int
+    ) -> list[dict]:
         pass
 
     @abstractmethod
-    def obtener_polizas_por_producto(self) -> list[dict]:
+    def obtener_polizas_por_producto(
+        self, year: int, mes: int
+    ) -> list[dict]:
         pass
 
     @abstractmethod
-    def obtener_kpis_evaluacion(self) -> dict:
+    def obtener_kpis_evaluacion(self, year: int, mes: int) -> dict:
         pass
 
     @abstractmethod

@@ -94,9 +94,7 @@ class SolicitarRecotizacionUseCase:
             )
 
         elif request.tipo == 'vida_guardia':
-            print('VIDA GUARDIA')
             request = cast(SolicitudCotizacionVidaGuardiaRequest, request)
-            print(request)
 
             solicitud = SolicitudCotizacionVidaGuardia(
                 id=None,

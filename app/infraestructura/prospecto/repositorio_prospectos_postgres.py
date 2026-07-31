@@ -302,7 +302,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     metros_cuadrados = %(metros_cuadrados)s,
                     uf_por_metro_cuadrado = %(uf_por_metro_cuadrado)s,
                     porcentaje_depreciacion = %(porcentaje_depreciacion)s,
-                    porcentaje_espacios_comunes = %(porcentaje_espacios_comunes)s
+                    porcentaje_espacios_comunes = %(porcentaje_espacios_comunes)s,
+                    id_administrador = %(id_administrador)s
                     where id = %(id)s
                 '''
 
@@ -325,6 +326,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'uf_por_metro_cuadrado': prospecto.uf_por_metro_cuadrado,
                     'porcentaje_depreciacion': prospecto.porcentaje_depreciacion,
                     'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
+                    'id_administrador': prospecto.administrador.id if prospecto.administrador else None,
                     'id': prospecto.id
                 }
 
