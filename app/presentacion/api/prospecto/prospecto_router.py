@@ -2,12 +2,20 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.aplicacion.contacto.use_cases.obtener_contactos_prospecto import ObtenerContactosProspectoUseCase
+from app.aplicacion.contacto.use_cases.registrar_contacto import RegistrarContactoUseCase
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.infraestructura.contacto.adaptadores.contacto_json_adapter import ContactoJsonAdapter
+from app.presentacion.api.contacto.dependencias.deps import (
+    get_obtener_contactos_prospecto_use_case,
+    get_registrar_contacto_use_case,
+)
+from app.presentacion.api.contacto.dto.registrar_contacto_request import RegistrarContactoRequest
 from app.infraestructura.lib.normalizar_texto import normalizar_texto
 from app.infraestructura.proceso_comercial.adaptadores.proceso_comercial_json_adapter import ProcesoComercialJsonAdapter
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
@@ -304,4 +312,42 @@ def actualizar_prospecto_condominio(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         )
+
+
+@router.get('/{id}/contactos', status_code=status.HTTP_200_OK)
+def obtener_contactos_prospecto(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('OBTENER_CONTACTOS_TODOS', 'OBTENER_CONTACTOS_PROPIOS')),
+    use_case: ObtenerContactosProspectoUseCase = Depends(get_obtener_contactos_prospecto_use_case)
+):
+    contactos = use_case.ejecutar(
+        id_prospecto=id,
+        rut_usuario=usuario.rut
+    )
+
+    return {
+        'data': [ContactoJsonAdapter(c).to_json() for c in contactos]
+    }
+
+
+@router.post('/{id}/contactos', status_code=status.HTTP_201_CREATED)
+def registrar_contacto(
+    id: int,
+    request: RegistrarContactoRequest,
+    usuario: Usuario = Depends(permisos_requeridos('REGISTRAR_CONTACTO_TODOS', 'REGISTRAR_CONTACTO_PROPIOS')),
+    use_case: RegistrarContactoUseCase = Depends(get_registrar_contacto_use_case)
+):
+    contacto = use_case.ejecutar(
+        id_prospecto=id,
+        nombre=request.nombre,
+        telefono=request.telefono,
+        correo=request.correo,
+        cargo=request.cargo,
+        rut_usuario=usuario.rut
+    )
+
+    return {
+        'data': ContactoJsonAdapter(contacto).to_json(),
+        'message': 'Contacto registrado correctamente'
+    }
     
