@@ -44,7 +44,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐳 Build Docker image
-        run: docker build -t fastapi-app .
+        run: |
+          echo "=== requirements.txt ==="
+          cat requirements.txt
+
+          echo "=== Dockerfile ==="
+          cat Dockerfile
+
+          echo "=== Build ==="
+          docker build --no-cache -t fastapi-app .
+
+      - name: 🔬 Verificar dependencias de la imagen
+        run: |
+          echo "=== setuptools ==="
+          docker run --rm fastapi-app pip show setuptools
+
+          echo "=== msgpack ==="
+          docker run --rm fastapi-app pip show msgpack
 
       - name: 🔎 Escaneo de imagen Docker (Trivy)
         uses: aquasecurity/trivy-action@master
