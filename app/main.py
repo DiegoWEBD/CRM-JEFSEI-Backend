@@ -12,6 +12,7 @@ from app.presentacion.api.auth.dependencias.get_current_user import get_current_
 from app.presentacion.api.comuna import comuna_router
 from app.presentacion.api.company_seguros import company_seguros_router
 from app.presentacion.api.comunicado_gerencia import comunicado_gerencia_router
+from app.presentacion.api.contacto import contacto_router
 from app.presentacion.api.cuota import cuota_router
 from app.presentacion.api.estudio_comercial import estudio_comercial_router
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
@@ -123,6 +124,13 @@ app.include_router(
 
 app.include_router(
     router=prospecto_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=contacto_router.router,
     dependencies=[
         Depends(get_current_user)
     ]
