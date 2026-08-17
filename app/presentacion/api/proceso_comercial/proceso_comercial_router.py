@@ -145,6 +145,7 @@ def crear_proceso_comercial(
     usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES', 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
     use_case: CrearProcesoComercialUseCase = Depends(get_crear_proceso_comercial_use_case)
 ):
+
     proceso = use_case.ejecutar(
         tipo=request.tipo,
         id_prospecto=request.id_prospecto,
