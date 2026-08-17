@@ -42,8 +42,6 @@ lxml==6.1.1
     #   python-docx
 markupsafe==3.0.3
     # via jinja2
-msgpack==1.2.1
-    # via -r requirements.in
 passlib==1.7.4
     # via -r requirements.in
 psycopg[binary]==3.3.4
@@ -107,6 +105,3 @@ watchfiles==1.2.0
     # via uvicorn
 websockets==16.1.1
     # via uvicorn
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
