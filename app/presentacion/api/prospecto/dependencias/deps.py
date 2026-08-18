@@ -1,3 +1,5 @@
+from fastapi import Query
+
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
@@ -16,10 +18,24 @@ from app.infraestructura.prospecto.repositorio_prospectos_postgres import Reposi
 from app.infraestructura.prospecto.servicios.consulta_prospectos_postgres_service import ConsultaProspectosPostgresService
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
+from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 
 
 def get_consulta_prospectos_service() -> ConsultaProspectosService:
     return ConsultaProspectosPostgresService()
+
+def get_filtros_prospectos(
+    pagina: int = Query(1, ge=1),
+    tamano_pagina: int = Query(25, ge=1, le=100),
+    filtro: str | None = Query(None),
+    texto_busqueda: str | None = Query(None),
+) -> FiltrosProspectos:
+    return FiltrosProspectos(
+        pagina=pagina,
+        tamano_pagina=tamano_pagina,
+        filtro=filtro,
+        texto_busqueda=texto_busqueda,
+    )
 
 def get_obtener_prospecto_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
