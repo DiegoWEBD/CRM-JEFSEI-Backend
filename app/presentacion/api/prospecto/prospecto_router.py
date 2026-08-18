@@ -39,65 +39,25 @@ router = APIRouter(prefix='/prospectos', tags=['Prospectos'])
 
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_prospectos(
-    rut_usuario: Optional[str] = Query(None),
     usuario: Usuario = Depends(get_current_user),
     consulta_prospectos_service: ConsultaProspectosService = Depends(get_consulta_prospectos_service)
 ):
-    try:
+    puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
+    puede_ver_propios = usuario_tiene_permiso('OBTENER_PROSPECTOS_PROPIOS', usuario)
+    prospectos = []
 
-        puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
-        puede_ver_propios = usuario_tiene_permiso('OBTENER_PROSPECTOS_PROPIOS', usuario)
-        prospectos = []
+    if puede_ver_todos:
+        prospectos = consulta_prospectos_service.obtener_todos()
 
-        # GET /prospectos?rut_usuario=xxxxx
-        if rut_usuario:
+    elif puede_ver_propios:
+        prospectos = consulta_prospectos_service.obtener_todos(usuario.rut)
 
-            if puede_ver_todos:
-                prospectos = consulta_prospectos_service.obtener_todos(rut_usuario)
+    else:
+        raise UsuarioNoAutorizadoException
 
-            elif puede_ver_propios:
-
-                if rut_usuario != usuario.rut:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail='Usuario no autorizado'
-                    )
-
-                prospectos = consulta_prospectos_service.obtener_todos(rut_usuario)
-
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail='Usuario no autorizado'
-                )
-
-        # GET /prospectos
-        else:
-
-            if puede_ver_todos:
-                prospectos = consulta_prospectos_service.obtener_todos()
-
-            elif puede_ver_propios:
-                prospectos = consulta_prospectos_service.obtener_todos(usuario.rut)
-
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail='Usuario no autorizado'
-                )
-
-        return {
-            'data': prospectos
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
+    return {
+        'data': prospectos
+    }
     
 
 @router.get('/{id}', status_code=status.HTTP_200_OK)
