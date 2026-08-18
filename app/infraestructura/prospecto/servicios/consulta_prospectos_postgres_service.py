@@ -1,6 +1,8 @@
 import math
 from typing import Optional
 
+from psycopg import sql
+
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.infraestructura.db.conexion import obtener_conexion
@@ -9,7 +11,7 @@ from app.infraestructura.prospecto.adaptadores.dictrows_prospectos_resumen_adapt
 
 class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
-    _BASE_QUERY = '''
+    _BASE_QUERY = sql.SQL('''
         select distinct on (P.nombre_riesgo, PC.id) 
         P.id,
         PC.id as id_proceso_comercial,
@@ -51,32 +53,35 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         on PC.rut_ej_comercial = EJ_COM.rut
         {where_clause}
         order by P.nombre_riesgo, PC.id, HE.fecha_registro desc
-    '''
+    ''')
 
     @staticmethod
-    def _filtrar_joins(texto_busqueda: Optional[str]) -> str:
-        joins = '''
+    def _filtrar_joins(texto_busqueda: Optional[str]) -> sql.Composable:
+        joins = sql.SQL('''
             left join Cliente C
             on P.id = C.id_prospecto
-        '''
+        ''')
 
         if texto_busqueda:
-            joins += '''
-                left join ProspectoCondominio PCO
-                on P.id = PCO.id
-                left join AdministradorCondominio AC
-                on PCO.id_administrador = AC.id
-                inner join LineaNegocio LN
-                on P.id_linea_negocio = LN.id
-                left join ProcesoComercial PC
-                on P.id = PC.id_prospecto
-                left join HistorialEstadoInformativoProcesoComercial HE
-                on PC.id = HE.id_proceso_comercial
-                left join EstadoInformativoProcesoComercial EI
-                on HE.codigo_estado = EI.codigo
-                left join Usuario EJ_COM
-                on PC.rut_ej_comercial = EJ_COM.rut
-            '''
+            joins = sql.Composed([
+                joins,
+                sql.SQL('''
+                    left join ProspectoCondominio PCO
+                    on P.id = PCO.id
+                    left join AdministradorCondominio AC
+                    on PCO.id_administrador = AC.id
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    left join ProcesoComercial PC
+                    on P.id = PC.id_prospecto
+                    left join HistorialEstadoInformativoProcesoComercial HE
+                    on PC.id = HE.id_proceso_comercial
+                    left join EstadoInformativoProcesoComercial EI
+                    on HE.codigo_estado = EI.codigo
+                    left join Usuario EJ_COM
+                    on PC.rut_ej_comercial = EJ_COM.rut
+                ''')
+            ])
 
         return joins
 
@@ -86,28 +91,28 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         texto_busqueda: Optional[str],
         rut_usuario: Optional[str],
         params: dict,
-    ) -> str:
-        condiciones = []
+    ) -> sql.Composable:
+        condiciones: list[sql.Composable] = []
 
         if rut_usuario:
-            condiciones.append('''
+            condiciones.append(sql.SQL('''
                 (
                     P.rut_ej_comercial_asignado = %(rut_usuario)s
                     or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
                     or C.rut_ej_renovacion_asignado = %(rut_usuario)s
                     or C.rut_ej_cobranza_asignado = %(rut_usuario)s
                 )
-            ''')
+            '''))
             params["rut_usuario"] = rut_usuario
 
         if filtro and filtro.lower() != 'todos':
             filtro_normalizado = filtro.lower()
 
             if filtro_normalizado == 'prospecto':
-                condiciones.append('C.id IS NULL')
+                condiciones.append(sql.SQL('C.id IS NULL'))
 
             elif filtro_normalizado == 'cliente_activo':
-                condiciones.append('''
+                condiciones.append(sql.SQL('''
                     (
                         C.id IS NOT NULL AND EXISTS (
                             SELECT 1 FROM Poliza PZ
@@ -117,10 +122,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                               AND PZ.fin_vigencia > CURRENT_TIMESTAMP
                         )
                     )
-                ''')
+                '''))
 
             elif filtro_normalizado == 'cliente_inactivo':
-                condiciones.append('''
+                condiciones.append(sql.SQL('''
                     (
                         C.id IS NOT NULL AND NOT EXISTS (
                             SELECT 1 FROM Poliza PZ
@@ -130,20 +135,20 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                               AND PZ.fin_vigencia > CURRENT_TIMESTAMP
                         )
                     )
-                ''')
+                '''))
 
             else:
-                condiciones.append('''
+                condiciones.append(sql.SQL('''
                     EXISTS (
                         SELECT 1 FROM ProcesoComercial PC2
                         WHERE PC2.id_prospecto = P.id
                           AND LOWER(PC2.codigo_estado_actual) = LOWER(%(filtro)s)
                     )
-                ''')
+                '''))
                 params["filtro"] = filtro
 
         if texto_busqueda:
-            condiciones.append('''
+            condiciones.append(sql.SQL('''
                 (
                     LOWER(P.nombre_riesgo) LIKE LOWER(%(texto_busqueda)s)
                     OR LOWER(LN.nombre) LIKE LOWER(%(texto_busqueda)s)
@@ -152,10 +157,12 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     OR LOWER(COALESCE(EI.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
                     OR LOWER(COALESCE(EI.codigo, '')) LIKE LOWER(%(texto_busqueda)s)
                 )
-            ''')
+            '''))
             params["texto_busqueda"] = f"%{texto_busqueda}%"
 
-        return " AND ".join(condiciones)
+        if condiciones:
+            return sql.SQL(' AND ').join(condiciones)
+        return sql.SQL('1=1')
 
     def _obtener_contadores(self, rut_usuario: Optional[str]) -> dict:
         contadores: dict = {}
@@ -164,19 +171,19 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_permisos = ""
+                where_permisos = sql.SQL('')
                 if rut_usuario:
-                    where_permisos = '''
+                    where_permisos = sql.SQL('''
                         where (
                             P.rut_ej_comercial_asignado = %(rut_usuario)s
                             or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
                             or C.rut_ej_renovacion_asignado = %(rut_usuario)s
                             or C.rut_ej_cobranza_asignado = %(rut_usuario)s
                         )
-                    '''
+                    ''')
                     params["rut_usuario"] = rut_usuario
 
-                query_estado_general = f'''
+                query_estado_general = sql.SQL('''
                     select
                         CASE
                             WHEN C.id IS NULL THEN 'prospecto'
@@ -195,12 +202,20 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     on P.id = C.id_prospecto
                     {where_permisos}
                     group by estado
-                '''
+                ''').format(where_permisos=where_permisos)
                 cur.execute(query_estado_general, params)
                 for row in cur.fetchall():
                     contadores[row['estado']] = row['total']
 
-                query_estado_comercial = f'''
+                if str(where_permisos):
+                    where_comercial = sql.Composed([
+                        where_permisos,
+                        sql.SQL(' and (PC.codigo_estado_actual is not null)'),
+                    ])
+                else:
+                    where_comercial = sql.SQL('where (PC.codigo_estado_actual is not null)')
+
+                query_estado_comercial = sql.SQL('''
                     select PC.codigo_estado_actual as estado,
                            count(distinct P.id) as total
                     from Prospecto P
@@ -208,11 +223,9 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     on P.id = C.id_prospecto
                     left join ProcesoComercial PC
                     on P.id = PC.id_prospecto
-                    {where_permisos.strip()}
-                    {' and ' if where_permisos else ' where '}
-                    (PC.codigo_estado_actual is not null)
+                    {where_comercial}
                     group by PC.codigo_estado_actual
-                '''
+                ''').format(where_comercial=where_comercial)
                 cur.execute(query_estado_comercial, params)
                 for row in cur.fetchall():
                     contadores[row['estado']] = row['total']
@@ -232,33 +245,38 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_clause = self._construir_where(filtro, texto_busqueda, rut_usuario, params)
-                if where_clause:
-                    where_clause = "where " + where_clause
+                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params)
+                where_clause = sql.SQL('where {}').format(where_condiciones)
 
                 filtrar_joins = self._filtrar_joins(texto_busqueda)
 
-                count_query = f'''
+                count_query = sql.SQL('''
                     select count(distinct P.id) as total
                     from Prospecto P
                     {filtrar_joins}
                     {where_clause}
-                '''
+                ''').format(
+                    filtrar_joins=filtrar_joins,
+                    where_clause=where_clause,
+                )
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 total_paginas = math.ceil(total / tamano_pagina) if total else 0
 
                 offset = (pagina - 1) * tamano_pagina
 
-                page_query = f'''
+                page_query = sql.SQL('''
                     select distinct P.id, P.nombre_riesgo
                     from Prospecto P
                     {filtrar_joins}
                     {where_clause}
                     order by P.nombre_riesgo, P.id
                     limit %(tamano_pagina)s offset %(offset)s
-                '''
+                ''').format(
+                    filtrar_joins=filtrar_joins,
+                    where_clause=where_clause,
+                )
                 page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
                 cur.execute(page_query, page_params)
                 page_rows = cur.fetchall()
@@ -269,7 +287,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     ids = [row['id'] for row in page_rows]
 
                     data_query = self._BASE_QUERY.format(
-                        where_clause="where P.id = ANY(%(ids)s)"
+                        where_clause=sql.SQL('where P.id = ANY(%(ids)s)')
                     )
                     cur.execute(data_query, {"ids": ids})
                     rows = cur.fetchall()
@@ -296,21 +314,23 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                where_clause = "where PCO.id_administrador = %(id_administrador)s"
+                where_fragments: list[sql.Composable] = [
+                    sql.SQL('where PCO.id_administrador = %(id_administrador)s')
+                ]
                 params: dict = {"id_administrador": id_administrador}
 
                 if rut_usuario:
-                    where_clause += '''
+                    where_fragments.append(sql.SQL('''
                         and (P.rut_registrado_por = %(rut_usuario)s
                         or P.rut_ej_comercial_asignado = %(rut_usuario)s
                         or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
                         or C.rut_ej_renovacion_asignado = %(rut_usuario)s)
-                    '''
+                    '''))
                     params["rut_usuario"] = rut_usuario
 
-                query = self._BASE_QUERY.format(
-                    where_clause=where_clause
-                )
+                where_clause = sql.SQL(' ').join(where_fragments)
+
+                query = self._BASE_QUERY.format(where_clause=where_clause)
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
