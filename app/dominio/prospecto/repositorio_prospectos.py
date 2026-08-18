@@ -28,6 +28,10 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
+    def buscar_prospecto_por_nombre(self, nombre: str) -> Prospecto | None:
+        pass
+
+    @abstractmethod
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass
 

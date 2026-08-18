@@ -1,5 +1,6 @@
 from app.dominio.administrador_condominio.administrador_condominio import AdministradorCondominio
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
@@ -57,6 +58,12 @@ class RegistrarProspectoUseCase:
         year_construccion: int | None = None,
         metros_cuadrados: float | None = None
     ) -> int:
+
+        existente = self.repositorio_prospectos.buscar_prospecto_por_nombre(nombre_riesgo)
+
+        if existente:
+            es_cliente = existente.id_cliente is not None
+            raise RecursoYaExisteException(f'El {'cliente' if es_cliente else 'prospecto'} ya existe')
 
         if id_linea_negocio == ID_LINEAS_PERSONALES:
             return self._registrar_lineas_personales(
