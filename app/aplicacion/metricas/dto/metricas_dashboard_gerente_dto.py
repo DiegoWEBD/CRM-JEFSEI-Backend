@@ -21,6 +21,12 @@ class MesActualDto:
 
 
 @dataclass
+class ComisionMesActualDto:
+    total_comision: float
+    mes_label: str
+
+
+@dataclass
 class CompaniaTopDto:
     nombre: str
     prima_neta: float
@@ -29,6 +35,7 @@ class CompaniaTopDto:
 @dataclass
 class ProduccionDto:
     mes_actual: MesActualDto
+    comision_mes_actual: ComisionMesActualDto
     tendencia_12_meses: list[TendenciaMesDto] = field(default_factory=list)
     por_compania: list[ItemValorDto] = field(default_factory=list)
     por_ejecutivo: list[ItemValorDto] = field(default_factory=list)

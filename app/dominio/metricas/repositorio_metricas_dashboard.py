@@ -9,6 +9,10 @@ class RepositorioMetricasDashboard(ABC):
         pass
 
     @abstractmethod
+    def obtener_comision_mes(self, year: int, mes: int) -> float:
+        pass
+
+    @abstractmethod
     def obtener_prima_neta_rango(
         self, desde: date, hasta: date
     ) -> float:

@@ -28,6 +28,26 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
 
                 return float(row['total'])
 
+    def obtener_comision_mes(self, year: int, mes: int) -> float:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    '''
+                    select coalesce(sum(prima_neta * comision_corredora_pct), 0) as total
+                    from Poliza
+                    where extract(year from fecha_emision) = %(year)s
+                      and extract(month from fecha_emision) = %(mes)s
+                      and (cancelada is null or cancelada = false)
+                    ''',
+                    {'year': year, 'mes': mes},
+                )
+                row = cur.fetchone()
+
+                if row is None:
+                    return 0
+
+                return float(row['total'])
+
     def obtener_prima_neta_rango(
         self, desde: date, hasta: date
     ) -> float:
