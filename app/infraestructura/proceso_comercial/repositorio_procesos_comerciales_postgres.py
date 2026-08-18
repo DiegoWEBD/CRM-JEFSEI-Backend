@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
@@ -286,7 +286,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id,
                     'codigo_estado': codigo_estado,
-                    'fecha_registro': datetime.now(),
+                    'fecha_registro': datetime.now(tz=timezone.utc),
                     'observacion': observacion,
                     'rut_registrado_por': rut_usuario
                 }

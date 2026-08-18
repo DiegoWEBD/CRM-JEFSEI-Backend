@@ -3,6 +3,7 @@ from datetime import date, datetime
 from app.aplicacion.metricas.dto.metricas_dashboard_gerente_dto import (
     ActividadTipoDto,
     ActividadesComercialesDto,
+    ComisionMesActualDto,
     CompaniaTopDto,
     EvaluacionProyectosDto,
     ItemCantidadDto,
@@ -72,6 +73,13 @@ class ObtenerMetricasDashboardGerenteUseCase:
 
         mes_label = f"{MESES_ES[mes]} {anio}"
 
+        # comisión
+
+        comision_mes_actual = ComisionMesActualDto(
+            total_comision=self.repositorio.obtener_comision_mes(anio, mes),
+            mes_label=mes_label
+        )
+
         tendencia_raw = self.repositorio.obtener_tendencia_12_meses(anio, mes)
         tendencia = [
             TendenciaMesDto(mes=r["mes"], prima_neta=float(r["prima_neta"]))
@@ -117,6 +125,7 @@ class ObtenerMetricasDashboardGerenteUseCase:
                 variacion_mes_anterior=variacion,
                 mes_label=mes_label,
             ),
+            comision_mes_actual=comision_mes_actual,
             tendencia_12_meses=tendencia,
             por_compania=por_compania,
             por_ejecutivo=por_ejecutivo,

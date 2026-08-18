@@ -25,7 +25,8 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
@@ -40,24 +41,30 @@ router = APIRouter(prefix='/prospectos', tags=['Prospectos'])
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_prospectos(
     usuario: Usuario = Depends(get_current_user),
+    filtros: FiltrosProspectos = Depends(get_filtros_prospectos),
     consulta_prospectos_service: ConsultaProspectosService = Depends(get_consulta_prospectos_service)
 ):
     puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
     puede_ver_propios = usuario_tiene_permiso('OBTENER_PROSPECTOS_PROPIOS', usuario)
-    prospectos = []
 
     if puede_ver_todos:
-        prospectos = consulta_prospectos_service.obtener_todos()
+        return consulta_prospectos_service.obtener_todos(
+            filtro=filtros.filtro,
+            texto_busqueda=filtros.texto_busqueda,
+            pagina=filtros.pagina,
+            tamano_pagina=filtros.tamano_pagina,
+        )
 
-    elif puede_ver_propios:
-        prospectos = consulta_prospectos_service.obtener_todos(usuario.rut)
+    if puede_ver_propios:
+        return consulta_prospectos_service.obtener_todos(
+            rut_usuario=usuario.rut,
+            filtro=filtros.filtro,
+            texto_busqueda=filtros.texto_busqueda,
+            pagina=filtros.pagina,
+            tamano_pagina=filtros.tamano_pagina,
+        )
 
-    else:
-        raise UsuarioNoAutorizadoException
-
-    return {
-        'data': prospectos
-    }
+    raise UsuarioNoAutorizadoException
     
 
 @router.get('/{id}', status_code=status.HTTP_200_OK)
