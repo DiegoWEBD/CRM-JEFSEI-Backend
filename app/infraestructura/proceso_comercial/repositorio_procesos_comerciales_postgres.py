@@ -353,7 +353,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
                     'codigo_estado': ESTADO_OPORTUNIDAD_CREADA,
-                    'fecha_registro': datetime.now(),
+                    'fecha_registro': datetime.now(tz=timezone.utc),
                     'rut_registrado_por': rut_usuario
                 }
 
@@ -390,7 +390,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id,
                     'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
-                    'fecha_registro': datetime.now(),
+                    'fecha_registro': datetime.now(tz=timezone.utc),
                     'rut_registrado_por': rut_usuario
                 }
 

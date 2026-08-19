@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
@@ -24,7 +24,7 @@ class Prospecto:
         ejecutivo_evaluacion_asignado: Usuario | None = None,
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
-        ultima_actualizacion: datetime = datetime.now(),
+        ultima_actualizacion: datetime = datetime.now(tz=timezone.utc),
         planificacion_prospecto: PlanificacionProspecto | None = None,
         id: int | None = None,
         id_cliente: int | None = None,

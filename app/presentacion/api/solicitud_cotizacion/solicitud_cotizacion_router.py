@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -126,7 +126,7 @@ def subir_estudio_comercial(
         raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
 
     from datetime import datetime
-    timestamp_ms = int(datetime.now().timestamp() * 1000)
+    timestamp_ms = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
     nombre_unico = f'estudio_comercial_{id}_{timestamp_ms}.pdf'
     ruta = f'documentos/estudios_finales/{nombre_unico}'
 

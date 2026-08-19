@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
@@ -74,7 +74,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
                     'codigo_estado': 'ESTUDIO_DISPONIBLE',
-                    'fecha_registro': datetime.now(),
+                    'fecha_registro': datetime.now(tz=timezone.utc),
                     'observacion': None,
                     'rut_registrado_por': rut_usuario
                 }

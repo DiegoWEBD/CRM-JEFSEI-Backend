@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.dominio.comunicado_gerencia.comunicado_gerencia import ComunicadoGerencia
 from app.dominio.comunicado_gerencia.repositorio_comunicados_gerencia import RepositorioComunicadosGerencia
@@ -22,7 +22,7 @@ class RegistrarComunicadoGerenciaUseCase:
             titulo=titulo,
             descripcion=descripcion,
             prioridad=prioridad,
-            fecha=datetime.now(),
+            fecha=datetime.now(tz=timezone.utc),
             caducidad=caducidad,
             nombre_gerente=usuario.nombre
         )

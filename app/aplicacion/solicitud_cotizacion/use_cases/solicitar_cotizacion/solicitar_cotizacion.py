@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import cast
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
@@ -59,7 +59,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionAccidentesPersonales(
                 id=None,
-                fecha=datetime.now(),
+                fecha=datetime.now(tz=timezone.utc),
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -78,7 +78,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionUnidades(
                 id=None,
-                fecha=datetime.now(),
+                fecha=datetime.now(tz=timezone.utc),
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -98,7 +98,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionVidaGuardia(
                 id=None,
-                fecha=datetime.now(),
+                fecha=datetime.now(tz=timezone.utc),
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -117,7 +117,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionResponsabilidadCivil(
                 id=None,
-                fecha=datetime.now(),
+                fecha=datetime.now(tz=timezone.utc),
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -135,7 +135,7 @@ class SolicitarCotizacionUseCase:
         else:
             solicitud = SolicitudCotizacion(
                 id=None,
-                fecha=datetime.now(),
+                fecha=datetime.now(tz=timezone.utc),
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
