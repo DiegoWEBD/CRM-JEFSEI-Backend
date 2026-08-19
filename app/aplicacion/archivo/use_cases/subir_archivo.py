@@ -36,7 +36,7 @@ class SubirArchivoUseCase:
         if not self.authorization_service.usuario_puede_ver_prospecto(rut_usuario, id_prospecto):
             raise UsuarioNoAutorizadoException
 
-        if self.repositorio_archivos.existe_nombre_almacenado(id_prospecto, nombre_almacenado):
+        if self.repositorio_archivos.existe_nombre_original(id_prospecto, nombre_original):
             raise RecursoYaExisteException("Ya existe un archivo con ese nombre para este prospecto")
 
         return self.repositorio_archivos.insertar(

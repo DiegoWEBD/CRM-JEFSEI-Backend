@@ -1,7 +1,7 @@
 from docxtpl import DocxTemplate, InlineImage, RichText
 from docx.shared import Mm
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
@@ -103,7 +103,7 @@ class ArmarEstudioComercialCondominioUseCase:
             'porcentaje_depreciacion': round(prospecto.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.porcentaje_espacios_comunes * 100),
             'cantidad_cuotas': cantidad_cuotas,
-            'year_actual': datetime.now().year,
+            'year_actual': datetime.now(tz=timezone.utc).year,
             'page_break': rt
         }
 

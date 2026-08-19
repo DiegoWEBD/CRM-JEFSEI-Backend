@@ -117,19 +117,19 @@ class RepositorioArchivosPostgres(RepositorioArchivos):
                 row = cur.fetchone()
                 return row is not None
 
-    def existe_nombre_almacenado(self, id_prospecto: int, nombre_almacenado: str) -> bool:
+    def existe_nombre_original(self, id_prospecto: int, nombre_original: str) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
                     select exists(
                         select 1 from Archivo
                         where id_prospecto = %(id_prospecto)s
-                        and unaccent(lower(nombre_almacenado)) = unaccent(lower(%(nombre_almacenado)s))
+                        and unaccent(lower(nombre_original)) = unaccent(lower(%(nombre_original)s))
                     )
                 '''
                 params = {
                     'id_prospecto': id_prospecto,
-                    'nombre_almacenado': nombre_almacenado,
+                    'nombre_original': nombre_original,
                 }
                 cur.execute(query, params)
                 row = cur.fetchone()

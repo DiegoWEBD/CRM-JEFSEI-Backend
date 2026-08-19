@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from app.dominio.administrador_condominio.administrador_condominio import AdministradorCondominio
@@ -47,7 +47,7 @@ class ProspectoCondominio(Prospecto):
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
         id: int | None = None,
-        ultima_actualizacion: datetime = datetime.now(),
+        ultima_actualizacion: datetime = datetime.now(tz=timezone.utc),
         estado_general_cliente: str | None = None,
     ):
         super().__init__(

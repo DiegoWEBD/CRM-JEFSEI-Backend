@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 
@@ -15,7 +15,7 @@ class Usuario:
         meta_mensual_uf: int | None = None,
         roles: list[Rol] = [], 
         password_hash: str | None = None,
-        fecha_registro: datetime = datetime.now(),
+        fecha_registro: datetime = datetime.now(tz=timezone.utc),
         porcentaje_comision: float | None = None,
     ):
         self.rut = rut

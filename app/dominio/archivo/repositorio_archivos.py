@@ -29,5 +29,5 @@ class RepositorioArchivos(ABC):
         pass
 
     @abstractmethod
-    def existe_nombre_almacenado(self, id_prospecto: int, nombre_almacenado: str) -> bool:
+    def existe_nombre_original(self, id_prospecto: int, nombre_original: str) -> bool:
         pass
