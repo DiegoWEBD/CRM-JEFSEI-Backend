@@ -73,12 +73,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     on P.id_linea_negocio = LN.id
                     left join ProcesoComercial PC
                     on P.id = PC.id_prospecto
-                    left join HistorialEstadoInformativoProcesoComercial HE
-                    on PC.id = HE.id_proceso_comercial
                     left join EstadoInformativoProcesoComercial EI
-                    on HE.codigo_estado = EI.codigo
+                    on PC.codigo_estado_actual = EI.codigo
                     left join Usuario EJ_COM
-                    on PC.rut_ej_comercial = EJ_COM.rut
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
                 ''')
             ])
 
@@ -152,9 +150,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             condiciones.append(sql.SQL('''
                 (
                     LOWER(P.nombre_riesgo) LIKE LOWER(%(texto_busqueda)s)
+                    OR LOWER(REPLACE(REPLACE(P.rut_riesgo, '.', ''), '-', '')) LIKE LOWER(REPLACE(REPLACE(%(texto_busqueda)s, '.', ''), '-', ''))
                     OR LOWER(LN.nombre) LIKE LOWER(%(texto_busqueda)s)
                     OR LOWER(COALESCE(AC.nombre_administrador, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EJ_COM.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
+                    OR LOWER(EJ_COM.nombre) LIKE LOWER(%(texto_busqueda)s)
                     OR LOWER(COALESCE(EI.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
                     OR LOWER(COALESCE(EI.codigo, '')) LIKE LOWER(%(texto_busqueda)s)
                 )
@@ -332,10 +331,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
                 if rut_usuario:
                     where_fragments.append(sql.SQL('''
-                        and (P.rut_registrado_por = %(rut_usuario)s
-                        or P.rut_ej_comercial_asignado = %(rut_usuario)s
+                        and (P.rut_ej_comercial_asignado = %(rut_usuario)s
                         or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
-                        or C.rut_ej_renovacion_asignado = %(rut_usuario)s)
+                        or C.rut_ej_renovacion_asignado = %(rut_usuario)s
+                        or C.rut_ej_cobranza_asignado = %(rut_usuario)s)
                     '''))
                     params["rut_usuario"] = rut_usuario
 
