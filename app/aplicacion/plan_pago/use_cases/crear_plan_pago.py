@@ -9,6 +9,7 @@ from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoExce
 from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.plan_pago.repositorio_planes_pago import RepositorioPlanesPago
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.usuario.usuario import Usuario
 
 
@@ -18,11 +19,13 @@ class CrearPlanPagoUseCase:
         self, 
         repositorio_polizas: RepositorioPolizas,
         repositorio_planes_pago: RepositorioPlanesPago,
-        authorization_service: AuthorizationService
+        authorization_service: AuthorizationService,
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales
     ) -> None:
         self.repositorio_polizas = repositorio_polizas
         self.repositorio_planes_pago = repositorio_planes_pago
         self.authorization_service = authorization_service
+        self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
 
     def ejecutar(self, numero_poliza: str, fecha_primera_cuota: datetime, numero_cuotas: int, usuario: Usuario):
         
@@ -56,5 +59,17 @@ class CrearPlanPagoUseCase:
         self.repositorio_planes_pago.registrar_plan_pago_poliza(
             poliza=poliza,
             plan_pago=plan_pago,
+            rut_usuario=usuario.rut
+        )
+
+        proceso_comercial = self.repositorio_procesos_comerciales.buscar(poliza.id_proceso_comercial)
+
+        if not proceso_comercial:
+            raise RecursoNoEncontradoException('No se pudo cerrar la oportunidad')
+
+        self.repositorio_procesos_comerciales.cerrar(
+            id=poliza.id_proceso_comercial,
+            ganado=True,
+            observacion=None,
             rut_usuario=usuario.rut
         )

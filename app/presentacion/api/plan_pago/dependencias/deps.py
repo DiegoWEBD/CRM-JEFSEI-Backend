@@ -4,6 +4,7 @@ from app.aplicacion.plan_pago.use_cases.obtener_plan_pago_poliza import ObtenerP
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 
 
 def get_obtener_plan_pago_poliza_use_case():
@@ -27,5 +28,6 @@ def get_crear_plan_pago_use_case():
     return CrearPlanPagoUseCase(
         authorization_service=authorization_service,
         repositorio_planes_pago=repositorio_planes_pago,
-        repositorio_polizas=repositorio_polizas
+        repositorio_polizas=repositorio_polizas,
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres()
     )
