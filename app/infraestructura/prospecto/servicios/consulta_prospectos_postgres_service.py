@@ -50,7 +50,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         left join EstadoInformativoProcesoComercial EI
         on HE.codigo_estado = EI.codigo
         left join Usuario EJ_COM
-        on PC.rut_ej_comercial = EJ_COM.rut
+        on P.rut_ej_comercial_asignado = EJ_COM.rut
         {where_clause}
         order by P.nombre_riesgo, PC.id, HE.fecha_registro desc
     ''')
