@@ -149,13 +149,13 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         if texto_busqueda:
             condiciones.append(sql.SQL('''
                 (
-                    LOWER(P.nombre_riesgo) LIKE LOWER(%(texto_busqueda)s)
+                    UNACCENT(LOWER(P.nombre_riesgo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR LOWER(REPLACE(REPLACE(P.rut_riesgo, '.', ''), '-', '')) LIKE LOWER(REPLACE(REPLACE(%(texto_busqueda)s, '.', ''), '-', ''))
-                    OR LOWER(LN.nombre) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(AC.nombre_administrador, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(EJ_COM.nombre) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EI.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EI.codigo, '')) LIKE LOWER(%(texto_busqueda)s)
+                    OR UNACCENT(LOWER(LN.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(AC.nombre_administrador)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EJ_COM.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EI.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EI.codigo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                 )
             '''))
             params["texto_busqueda"] = f"%{texto_busqueda}%"
