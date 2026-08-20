@@ -84,23 +84,12 @@ def crear_plan_pago(
     numero_poliza: str,
     request: CrearPlanPagoRequest,
     usuario: Usuario = Depends(permisos_requeridos('VER_PLAN_PAGO_GLOBAL', 'VER_PLAN_PAGO_PROPIOS')),
-    use_case_crear_plan: CrearPlanPagoUseCase = Depends(get_crear_plan_pago_use_case),
-    use_case_obtener_poliza: ObtenerPolizaUseCase = Depends(get_obtener_poliza_use_case),
-    use_case_cerrar_proceso: CerrarProcesoComercialUseCase = Depends(get_cerrar_proceso_comercial_use_case)
+    use_case_crear_plan: CrearPlanPagoUseCase = Depends(get_crear_plan_pago_use_case)
 ):
     use_case_crear_plan.ejecutar(
         numero_poliza=numero_poliza,
         numero_cuotas=request.numero_cuotas,
         fecha_primera_cuota=datetime.fromisoformat(request.fecha_primera_cuota),
-        usuario=usuario
-    )
-
-    poliza = use_case_obtener_poliza.ejecutar(numero_poliza, usuario)
-
-    use_case_cerrar_proceso.ejecutar(
-        id=poliza.id_proceso_comercial,
-        ganado=True,
-        observacion=None,
         usuario=usuario
     )
 

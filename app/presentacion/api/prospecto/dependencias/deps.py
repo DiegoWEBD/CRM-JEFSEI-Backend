@@ -29,12 +29,18 @@ def get_filtros_prospectos(
     tamano_pagina: int = Query(25, ge=1, le=100),
     filtro: str | None = Query(None),
     texto_busqueda: str | None = Query(None),
+    rut_usuario: str | None = Query(None),
+    region: str | None = Query(None),
+    comuna: str | None = Query(None),
 ) -> FiltrosProspectos:
     return FiltrosProspectos(
         pagina=pagina,
         tamano_pagina=tamano_pagina,
         filtro=filtro,
         texto_busqueda=texto_busqueda,
+        rut_usuario=rut_usuario,
+        region=region,
+        comuna=comuna,
     )
 
 def get_obtener_prospecto_use_case():

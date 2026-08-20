@@ -16,13 +16,14 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         P.id,
         PC.id as id_proceso_comercial,
         C.id as id_cliente,
+        P.rut_riesgo,
         P.nombre_riesgo,
+        P.comuna,
         AC.nombre_administrador,
         LN.nombre as linea_negocio,
         EJ_COM.nombre as ejecutivo_comercial,
         EI.codigo as codigo_estado,
         EI.nombre as nombre_estado,
-        HE.fecha_registro as fecha_ultima_accion,
         CASE
             WHEN C.id IS NULL THEN 'prospecto'
             WHEN EXISTS (
@@ -45,14 +46,12 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         on P.id_linea_negocio = LN.id
         left join ProcesoComercial PC
         on P.id = PC.id_prospecto
-        left join HistorialEstadoInformativoProcesoComercial HE
-        on PC.id = HE.id_proceso_comercial
         left join EstadoInformativoProcesoComercial EI
-        on HE.codigo_estado = EI.codigo
+        on PC.codigo_estado_actual = EI.codigo
         left join Usuario EJ_COM
-        on PC.rut_ej_comercial = EJ_COM.rut
+        on P.rut_ej_comercial_asignado = EJ_COM.rut
         {where_clause}
-        order by P.nombre_riesgo, PC.id, HE.fecha_registro desc
+        order by P.nombre_riesgo, PC.id
     ''')
 
     @staticmethod
@@ -74,12 +73,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     on P.id_linea_negocio = LN.id
                     left join ProcesoComercial PC
                     on P.id = PC.id_prospecto
-                    left join HistorialEstadoInformativoProcesoComercial HE
-                    on PC.id = HE.id_proceso_comercial
                     left join EstadoInformativoProcesoComercial EI
-                    on HE.codigo_estado = EI.codigo
+                    on PC.codigo_estado_actual = EI.codigo
                     left join Usuario EJ_COM
-                    on PC.rut_ej_comercial = EJ_COM.rut
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
                 ''')
             ])
 
@@ -91,6 +88,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         texto_busqueda: Optional[str],
         rut_usuario: Optional[str],
         params: dict,
+        region: Optional[str] = None,
+        comuna: Optional[str] = None,
     ) -> sql.Composable:
         condiciones: list[sql.Composable] = []
 
@@ -150,15 +149,24 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         if texto_busqueda:
             condiciones.append(sql.SQL('''
                 (
-                    LOWER(P.nombre_riesgo) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(LN.nombre) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(AC.nombre_administrador, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EJ_COM.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EI.nombre, '')) LIKE LOWER(%(texto_busqueda)s)
-                    OR LOWER(COALESCE(EI.codigo, '')) LIKE LOWER(%(texto_busqueda)s)
+                    UNACCENT(LOWER(P.nombre_riesgo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR LOWER(REPLACE(REPLACE(P.rut_riesgo, '.', ''), '-', '')) LIKE LOWER(REPLACE(REPLACE(%(texto_busqueda)s, '.', ''), '-', ''))
+                    OR UNACCENT(LOWER(LN.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(AC.nombre_administrador)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EJ_COM.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EI.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(EI.codigo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                 )
             '''))
             params["texto_busqueda"] = f"%{texto_busqueda}%"
+
+        if region:
+            condiciones.append(sql.SQL('LOWER(P.region) = LOWER(%(region)s)'))
+            params["region"] = region
+
+        if comuna:
+            condiciones.append(sql.SQL('LOWER(P.comuna) = LOWER(%(comuna)s)'))
+            params["comuna"] = comuna
 
         if condiciones:
             return sql.SQL(' AND ').join(condiciones)
@@ -239,13 +247,15 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         texto_busqueda: Optional[str] = None,
         pagina: int = 1,
         tamano_pagina: int = 25,
+        region: Optional[str] = None,
+        comuna: Optional[str] = None,
     ) -> dict:
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params)
+                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params, region, comuna)
                 where_clause = sql.SQL('where {}').format(where_condiciones)
 
                 filtrar_joins = self._filtrar_joins(texto_busqueda)
@@ -321,10 +331,10 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
                 if rut_usuario:
                     where_fragments.append(sql.SQL('''
-                        and (P.rut_registrado_por = %(rut_usuario)s
-                        or P.rut_ej_comercial_asignado = %(rut_usuario)s
+                        and (P.rut_ej_comercial_asignado = %(rut_usuario)s
                         or P.rut_ej_evaluacion_asignado = %(rut_usuario)s
-                        or C.rut_ej_renovacion_asignado = %(rut_usuario)s)
+                        or C.rut_ej_renovacion_asignado = %(rut_usuario)s
+                        or C.rut_ej_cobranza_asignado = %(rut_usuario)s)
                     '''))
                     params["rut_usuario"] = rut_usuario
 

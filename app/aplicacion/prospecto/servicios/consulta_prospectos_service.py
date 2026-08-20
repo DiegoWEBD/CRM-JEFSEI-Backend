@@ -13,6 +13,8 @@ class ConsultaProspectosService(ABC):
         texto_busqueda: str | None = None,
         pagina: int = 1,
         tamano_pagina: int = 25,
+        region: str | None = None,
+        comuna: str | None = None,
     ) -> dict:
         pass
 
