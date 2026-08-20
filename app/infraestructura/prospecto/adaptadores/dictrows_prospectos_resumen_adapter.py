@@ -17,6 +17,7 @@ class DictRowsProspectoResumenAdapter:
             id = row['id']
             id_proceso_comercial = row['id_proceso_comercial']
             id_cliente = row['id_cliente']
+            rut_riesgo = row['rut_riesgo']
             nombre_riesgo = row['nombre_riesgo']
             nombre_administrador = row['nombre_administrador']
             linea_negocio = row['linea_negocio']
@@ -25,17 +26,20 @@ class DictRowsProspectoResumenAdapter:
             nombre_estado = row['nombre_estado']
             fecha_ultima_accion = row['fecha_ultima_accion']
             estado_general_cliente = row['estado_general_cliente']
+            comuna = row['comuna']
 
             if id not in prospectos:
                 prospectos[id] = ProspectoResumen(
                     id=id,
                     id_cliente=id_cliente,
+                    rut_riesgo=rut_riesgo,
                     nombre_riesgo=nombre_riesgo,
                     nombre_administrador=nombre_administrador,
                     linea_negocio=linea_negocio,
                     ejecutivo_comercial=ejecutivo_comercial,
                     procesos_comerciales=[],
-                    estado_general_cliente=estado_general_cliente
+                    estado_general_cliente=estado_general_cliente,
+                    comuna=comuna
                 )
 
             prospectos[id].procesos_comerciales.append(ProcesoComercialResumen(

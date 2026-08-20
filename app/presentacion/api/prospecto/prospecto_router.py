@@ -49,19 +49,26 @@ def obtener_prospectos(
 
     if puede_ver_todos:
         return consulta_prospectos_service.obtener_todos(
+            rut_usuario=filtros.rut_usuario,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,
             pagina=filtros.pagina,
             tamano_pagina=filtros.tamano_pagina,
+            region=filtros.region,
+            comuna=filtros.comuna,
         )
 
     if puede_ver_propios:
+        if filtros.rut_usuario is not None:
+            raise UsuarioNoAutorizadoException
         return consulta_prospectos_service.obtener_todos(
             rut_usuario=usuario.rut,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,
             pagina=filtros.pagina,
             tamano_pagina=filtros.tamano_pagina,
+            region=filtros.region,
+            comuna=filtros.comuna,
         )
 
     raise UsuarioNoAutorizadoException

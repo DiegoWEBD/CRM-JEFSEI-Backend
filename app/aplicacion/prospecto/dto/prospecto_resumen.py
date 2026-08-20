@@ -6,6 +6,7 @@ from app.aplicacion.proceso_comercial.dto.proceso_comercial_resumen import Proce
 @dataclass
 class ProspectoResumen:
     id: int
+    rut_riesgo: str
     nombre_riesgo: str
     nombre_administrador: str | None
     linea_negocio: str
@@ -13,3 +14,4 @@ class ProspectoResumen:
     id_cliente: int | None
     procesos_comerciales: list[ProcesoComercialResumen]
     estado_general_cliente: str
+    comuna: str

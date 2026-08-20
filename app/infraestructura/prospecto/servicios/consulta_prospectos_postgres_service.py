@@ -16,7 +16,9 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         P.id,
         PC.id as id_proceso_comercial,
         C.id as id_cliente,
+        P.rut_riesgo,
         P.nombre_riesgo,
+        P.comuna,
         AC.nombre_administrador,
         LN.nombre as linea_negocio,
         EJ_COM.nombre as ejecutivo_comercial,
@@ -91,6 +93,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         texto_busqueda: Optional[str],
         rut_usuario: Optional[str],
         params: dict,
+        region: Optional[str] = None,
+        comuna: Optional[str] = None,
     ) -> sql.Composable:
         condiciones: list[sql.Composable] = []
 
@@ -159,6 +163,14 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 )
             '''))
             params["texto_busqueda"] = f"%{texto_busqueda}%"
+
+        if region:
+            condiciones.append(sql.SQL('LOWER(P.region) = LOWER(%(region)s)'))
+            params["region"] = region
+
+        if comuna:
+            condiciones.append(sql.SQL('LOWER(P.comuna) = LOWER(%(comuna)s)'))
+            params["comuna"] = comuna
 
         if condiciones:
             return sql.SQL(' AND ').join(condiciones)
@@ -239,13 +251,15 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         texto_busqueda: Optional[str] = None,
         pagina: int = 1,
         tamano_pagina: int = 25,
+        region: Optional[str] = None,
+        comuna: Optional[str] = None,
     ) -> dict:
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params)
+                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params, region, comuna)
                 where_clause = sql.SQL('where {}').format(where_condiciones)
 
                 filtrar_joins = self._filtrar_joins(texto_busqueda)
