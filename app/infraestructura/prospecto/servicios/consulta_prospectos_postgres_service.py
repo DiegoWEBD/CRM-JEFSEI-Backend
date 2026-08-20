@@ -156,6 +156,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     OR UNACCENT(LOWER(EJ_COM.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR UNACCENT(LOWER(EI.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR UNACCENT(LOWER(EI.codigo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(P.comuna)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                 )
             '''))
             params["texto_busqueda"] = f"%{texto_busqueda}%"
