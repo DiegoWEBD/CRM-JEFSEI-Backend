@@ -24,7 +24,6 @@ class DictRowsProspectoResumenAdapter:
             ejecutivo_comercial = row['ejecutivo_comercial']
             codigo_estado = row['codigo_estado']
             nombre_estado = row['nombre_estado']
-            fecha_ultima_accion = row['fecha_ultima_accion']
             estado_general_cliente = row['estado_general_cliente']
             comuna = row['comuna']
 
@@ -46,7 +45,6 @@ class DictRowsProspectoResumenAdapter:
                 id=id_proceso_comercial,
                 codigo_estado=codigo_estado,
                 nombre_estado=nombre_estado,
-                fecha_ultima_accion=fecha_ultima_accion
             ))
 
         return list(prospectos.values())

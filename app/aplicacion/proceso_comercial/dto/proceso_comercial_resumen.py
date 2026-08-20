@@ -7,4 +7,3 @@ class ProcesoComercialResumen:
     id: int
     codigo_estado: str
     nombre_estado: str
-    fecha_ultima_accion: datetime

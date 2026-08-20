@@ -24,7 +24,6 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         EJ_COM.nombre as ejecutivo_comercial,
         EI.codigo as codigo_estado,
         EI.nombre as nombre_estado,
-        HE.fecha_registro as fecha_ultima_accion,
         CASE
             WHEN C.id IS NULL THEN 'prospecto'
             WHEN EXISTS (
@@ -47,14 +46,12 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         on P.id_linea_negocio = LN.id
         left join ProcesoComercial PC
         on P.id = PC.id_prospecto
-        left join HistorialEstadoInformativoProcesoComercial HE
-        on PC.id = HE.id_proceso_comercial
         left join EstadoInformativoProcesoComercial EI
-        on HE.codigo_estado = EI.codigo
+        on PC.codigo_estado_actual = EI.codigo
         left join Usuario EJ_COM
         on P.rut_ej_comercial_asignado = EJ_COM.rut
         {where_clause}
-        order by P.nombre_riesgo, PC.id, HE.fecha_registro desc
+        order by P.nombre_riesgo, PC.id
     ''')
 
     @staticmethod
