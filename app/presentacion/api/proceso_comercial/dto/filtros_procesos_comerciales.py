@@ -13,4 +13,4 @@ class FiltrosProcesosComerciales(BaseModel):
     fecha_hasta: Optional[str] = None
 
     pagina: int = 1
-    tamano_pagina: int = 25
+    tamano_pagina: int = 15

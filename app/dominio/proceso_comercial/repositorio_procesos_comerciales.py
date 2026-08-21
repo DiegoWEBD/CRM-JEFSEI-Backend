@@ -23,10 +23,14 @@ class RepositorioProcesosComerciales(ABC):
         texto_busqueda: str | None,
         ejecutivos: list[str] | None,
         etapas: list[str] | None,
+        estado_semaforo: list[str] | None,
+        estado_proceso: str | None,
         cerrado: bool | None,
         fecha_ingreso_etapa_desde: str | None,
         fecha_ingreso_etapa_hasta: str | None,
-    ) -> list[ProcesoComercial]:
+        pagina: int,
+        tamano_pagina: int,
+    ) -> dict:
         pass
 
     @abstractmethod
