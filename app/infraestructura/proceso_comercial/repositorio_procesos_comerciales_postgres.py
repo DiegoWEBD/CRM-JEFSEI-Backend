@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from psycopg import sql
+
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -147,7 +149,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                base_cte = """
+                base_cte = sql.SQL("""
                     WITH base AS (
                         SELECT
                             PC.id,
@@ -192,27 +194,27 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                         LEFT JOIN Usuario EJ_COM ON PC.rut_ej_comercial = EJ_COM.rut
                         LEFT JOIN Usuario EJ_EV ON PC.rut_ej_evaluacion = EJ_EV.rut
                     )
-                """
+                """)
 
                 params: dict = {}
-                condiciones: list[str] = []
+                condiciones: list[sql.Composable] = []
 
                 if texto_busqueda:
-                    condiciones.append("""
+                    condiciones.append(sql.SQL("""
                         (
                             base.nombre_cliente ILIKE %(texto_busqueda)s
                             OR CAST(base.id AS TEXT) ILIKE %(texto_busqueda)s
                             OR base.nombre_ej_comercial ILIKE %(texto_busqueda)s
                             OR base.nombre_producto ILIKE %(texto_busqueda)s
                         )
-                    """)
+                    """))
                     params["texto_busqueda"] = f"%{texto_busqueda}%"
 
                 if ejecutivos:
                     placeholders = ", ".join(
                         f"%(ejecutivo_{i})s" for i in range(len(ejecutivos))
                     )
-                    condiciones.append(f"base.rut_ej_comercial IN ({placeholders})")
+                    condiciones.append(sql.SQL(f"base.rut_ej_comercial IN ({placeholders})"))
                     for i, rut in enumerate(ejecutivos):
                         params[f"ejecutivo_{i}"] = rut
 
@@ -220,35 +222,35 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     placeholders = ", ".join(
                         f"%(etapa_{i})s" for i in range(len(etapas))
                     )
-                    condiciones.append(f"base.codigo_etapa IN ({placeholders})")
+                    condiciones.append(sql.SQL(f"base.codigo_etapa IN ({placeholders})"))
                     for i, codigo in enumerate(etapas):
                         params[f"etapa_{i}"] = codigo
 
                 if cerrado is not None:
-                    condiciones.append("base.cerrado = %(cerrado)s")
+                    condiciones.append(sql.SQL("base.cerrado = %(cerrado)s"))
                     params["cerrado"] = cerrado
 
                 if fecha_ingreso_etapa_desde is not None:
-                    condiciones.append("base.fecha_ingreso_etapa >= %(fecha_desde)s")
+                    condiciones.append(sql.SQL("base.fecha_ingreso_etapa >= %(fecha_desde)s"))
                     params["fecha_desde"] = fecha_ingreso_etapa_desde
 
                 if fecha_ingreso_etapa_hasta is not None:
-                    condiciones.append("base.fecha_ingreso_etapa <= %(fecha_hasta)s")
+                    condiciones.append(sql.SQL("base.fecha_ingreso_etapa <= %(fecha_hasta)s"))
                     params["fecha_hasta"] = fecha_ingreso_etapa_hasta
 
                 if estado_proceso:
                     if estado_proceso == "abiertos":
-                        condiciones.append("base.cerrado = FALSE")
+                        condiciones.append(sql.SQL("base.cerrado = FALSE"))
                     elif estado_proceso == "ganados":
-                        condiciones.append("base.cerrado = TRUE AND base.codigo_estado = 'GANADO'")
+                        condiciones.append(sql.SQL("base.cerrado = TRUE AND base.codigo_estado = 'GANADO'"))
                     elif estado_proceso == "perdidos":
-                        condiciones.append("base.cerrado = TRUE AND base.codigo_estado = 'PERDIDO'")
+                        condiciones.append(sql.SQL("base.cerrado = TRUE AND base.codigo_estado = 'PERDIDO'"))
 
-                where_sql = ""
+                where_sql = sql.SQL("")
                 if condiciones:
-                    where_sql = "WHERE " + " AND ".join(condiciones)
+                    where_sql = sql.SQL("WHERE ") + sql.SQL(" AND ").join(condiciones)
 
-                semaforo_cte_columns = """
+                semaforo_cte_columns = sql.SQL("""
                         SELECT *,
                             CASE
                                 WHEN base.cerrado THEN 'NO_APLICA'
@@ -283,32 +285,37 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                                 ELSE 'Fuera de plazo (+' || (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::int - base.dias_limite_etapa)::text || ' días de atraso)'
                             END AS mensaje_semaforo
                         FROM base
-                """
+                """)
 
-                semaforo_cte = f""",
+                semaforo_cte = sql.SQL(""",
                     con_semaforo AS (
                         {semaforo_cte_columns}
                         {where_sql}
                     )
-                """
+                """).format(
+                    semaforo_cte_columns=semaforo_cte_columns,
+                    where_sql=where_sql,
+                )
 
-                semaforo_cte_global = f""",
+                semaforo_cte_global = sql.SQL(""",
                     con_semaforo_global AS (
                         {semaforo_cte_columns}
                     )
-                """
+                """).format(
+                    semaforo_cte_columns=semaforo_cte_columns,
+                )
 
                 if estado_semaforo:
                     placeholders_semaforo = ", ".join(
                         f"%(sem_{i})s" for i in range(len(estado_semaforo))
                     )
-                    where_semaforo = f"WHERE con_semaforo.estado_semaforo IN ({placeholders_semaforo})"
+                    where_semaforo = sql.SQL(f"WHERE con_semaforo.estado_semaforo IN ({placeholders_semaforo})")
                     for i, sem in enumerate(estado_semaforo):
                         params[f"sem_{i}"] = sem
                 else:
-                    where_semaforo = ""
+                    where_semaforo = sql.SQL("")
 
-                global_count_query = f"""
+                global_count_query = sql.SQL("""
                     {base_cte}
                     {semaforo_cte_global}
                     SELECT
@@ -320,7 +327,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                         COUNT(*) FILTER (WHERE estado_semaforo = 'AMARILLO') AS amarillo,
                         COUNT(*) FILTER (WHERE estado_semaforo = 'ROJO') AS rojo
                     FROM con_semaforo_global
-                """
+                """).format(
+                    base_cte=base_cte,
+                    semaforo_cte_global=semaforo_cte_global,
+                )
 
                 cur.execute(global_count_query)
                 global_row = cur.fetchone()
@@ -335,13 +345,17 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     "rojo": global_row["rojo"] if global_row else 0,
                 }
 
-                count_query = f"""
+                count_query = sql.SQL("""
                     {base_cte}
                     {semaforo_cte}
                     SELECT COUNT(*) AS total
                     FROM con_semaforo
                     {where_semaforo}
-                """
+                """).format(
+                    base_cte=base_cte,
+                    semaforo_cte=semaforo_cte,
+                    where_semaforo=where_semaforo,
+                )
 
                 cur.execute(count_query, params)
                 row_count = cur.fetchone()
@@ -351,7 +365,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 offset = (pagina - 1) * tamano_pagina
 
-                order_sql = """
+                order_sql = sql.SQL("""
                     ORDER BY
                         CASE con_semaforo.estado_semaforo
                             WHEN 'ROJO' THEN 0
@@ -360,9 +374,9 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                             ELSE 3
                         END,
                         con_semaforo.fecha_registro_estado DESC
-                """
+                """)
 
-                data_query = f"""
+                data_query = sql.SQL("""
                     {base_cte}
                     {semaforo_cte}
                     SELECT con_semaforo.*
@@ -370,7 +384,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     {where_semaforo}
                     {order_sql}
                     LIMIT %(tamano_pagina)s OFFSET %(offset)s
-                """
+                """).format(
+                    base_cte=base_cte,
+                    semaforo_cte=semaforo_cte,
+                    where_semaforo=where_semaforo,
+                    order_sql=order_sql,
+                )
 
                 data_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
                 cur.execute(data_query, data_params)

@@ -33,7 +33,6 @@ def obtener_reportes_procesos_comerciales(
     _ = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES')),
     use_case: ObtenerTodosProcesosComercialesUseCase = Depends(get_obtener_todos_procesos_comerciales_use_case),
 ):
-    print(request)
     return use_case.ejecutar(request)
 
 
