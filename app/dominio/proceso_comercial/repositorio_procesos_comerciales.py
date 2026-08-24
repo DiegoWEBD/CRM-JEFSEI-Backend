@@ -23,6 +23,7 @@ class RepositorioProcesosComerciales(ABC):
         texto_busqueda: str | None,
         ejecutivos: list[str] | None,
         etapas: list[str] | None,
+        estados_comerciales: list[str] | None,
         estado_semaforo: list[str] | None,
         estado_proceso: str | None,
         cerrado: bool | None,

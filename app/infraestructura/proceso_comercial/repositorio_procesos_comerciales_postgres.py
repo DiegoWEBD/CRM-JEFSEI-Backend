@@ -137,6 +137,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         texto_busqueda: str | None = None,
         ejecutivos: list[str] | None = None,
         etapas: list[str] | None = None,
+        estados_comerciales: list[str] | None = None,
         estado_semaforo: list[str] | None = None,
         estado_proceso: str | None = None,
         cerrado: bool | None = None,
@@ -225,6 +226,14 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     condiciones.append(sql.SQL(f"base.codigo_etapa IN ({placeholders})"))
                     for i, codigo in enumerate(etapas):
                         params[f"etapa_{i}"] = codigo
+
+                if estados_comerciales:
+                    placeholders = ", ".join(
+                        f"%(estado_comercial_{i})s" for i in range(len(estados_comerciales))
+                    )
+                    condiciones.append(sql.SQL(f"base.codigo_estado IN ({placeholders})"))
+                    for i, codigo in enumerate(estados_comerciales):
+                        params[f"estado_comercial_{i}"] = codigo
 
                 if cerrado is not None:
                     condiciones.append(sql.SQL("base.cerrado = %(cerrado)s"))
