@@ -6,6 +6,7 @@ class FiltrosProcesosComerciales(BaseModel):
     texto_busqueda: Optional[str] = None
     ejecutivos: Optional[list[str]] = None
     etapas: Optional[list[str]] = None
+    estados_comerciales: Optional[list[str]] = None
     estado_semaforo: Optional[list[str]] = None
     estado_proceso: Optional[str] = None
     cerrado: Optional[bool] = None

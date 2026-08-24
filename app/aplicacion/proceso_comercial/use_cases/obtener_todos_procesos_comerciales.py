@@ -12,6 +12,7 @@ class ObtenerTodosProcesosComercialesUseCase:
             texto_busqueda=filtros.texto_busqueda,
             ejecutivos=filtros.ejecutivos,
             etapas=filtros.etapas,
+            estados_comerciales=filtros.estados_comerciales,
             estado_semaforo=filtros.estado_semaforo,
             estado_proceso=filtros.estado_proceso,
             cerrado=filtros.cerrado,
