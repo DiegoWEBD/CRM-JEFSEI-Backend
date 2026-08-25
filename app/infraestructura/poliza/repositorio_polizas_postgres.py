@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
@@ -435,6 +437,45 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 params = {
                     'numero_poliza': numero_poliza,
                     'cancelada': cancelada
+                }
+
+                cur.execute(query, params)
+
+    def actualizar(
+        self,
+        numero_poliza: str,
+        tipo: str,
+        prima_neta: float,
+        comision_corredora_pct: float,
+        fecha_emision: datetime | None,
+        inicio_vigencia: datetime | None,
+        fin_vigencia: datetime | None,
+        id_company: int | None,
+    ) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update Poliza
+                    set tipo = %(tipo)s,
+                        prima_neta = %(prima_neta)s,
+                        comision_corredora_pct = %(comision_corredora_pct)s,
+                        fecha_emision = %(fecha_emision)s,
+                        inicio_vigencia = %(inicio_vigencia)s,
+                        fin_vigencia = %(fin_vigencia)s,
+                        id_company = %(id_company)s
+                    where numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza,
+                    'tipo': tipo,
+                    'prima_neta': prima_neta,
+                    'comision_corredora_pct': comision_corredora_pct,
+                    'fecha_emision': fecha_emision,
+                    'inicio_vigencia': inicio_vigencia,
+                    'fin_vigencia': fin_vigencia,
+                    'id_company': id_company,
                 }
 
                 cur.execute(query, params)
