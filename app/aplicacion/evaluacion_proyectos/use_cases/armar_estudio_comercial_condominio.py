@@ -65,23 +65,23 @@ class ArmarEstudioComercialCondominioUseCase:
         if not prospecto.year_construccion:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
 
-        if not prospecto.uf_por_metro_cuadrado:
-            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta la uf por metro cuadrado')
-        
         if not prospecto.metros_cuadrados:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, faltan los metros cuadrados')
         
         if not prospecto.cantidad_departamentos:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta la cantidad de unidades')
         
-        if prospecto.porcentaje_depreciacion is None:
-            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
-        
         if not prospecto.porcentaje_espacios_comunes:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
         
         if not prospecto.administrador:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
+
+        if not prospecto.uf_por_metro_cuadrado:
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el valor de la UF / m²')
+
+        if not prospecto.porcentaje_depreciacion:
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
 
         cotizaciones = [
             self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)

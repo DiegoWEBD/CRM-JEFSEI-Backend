@@ -42,10 +42,6 @@ class ObtenerResumenSolicitudesCotizacionActivasUseCase:
                     if prospecto.correo_contacto is None:
                         campos_faltantes.append('correo_contacto')
 
-                if condominio.uf_por_metro_cuadrado is None:
-                    campos_faltantes.append('uf_por_metro_cuadrado')        
-                if condominio.porcentaje_depreciacion is None:
-                    campos_faltantes.append('porcentaje_depreciacion')
                 if condominio.porcentaje_espacios_comunes is None:
                     campos_faltantes.append('porcentaje_espacios_comunes')
                 if condominio.tiene_locales_comerciales is None:

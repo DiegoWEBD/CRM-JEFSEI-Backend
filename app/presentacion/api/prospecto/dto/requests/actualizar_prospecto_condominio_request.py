@@ -12,8 +12,6 @@ class ActualizarProspectoCondominioRequest(BaseModel):
     comuna: str | None 
     observaciones: str | None 
     id_linea_negocio: int  
-    uf_por_metro_cuadrado: float | None
-    porcentaje_depreciacion: float | None
     porcentaje_espacios_comunes: float | None
     tiene_locales_comerciales: bool | None
     uso_del_condominio: str | None
