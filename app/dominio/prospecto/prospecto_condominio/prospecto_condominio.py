@@ -23,8 +23,6 @@ class ProspectoCondominio(Prospecto):
         registrado_por: Usuario, 
         ejecutivo_comercial_asignado: Usuario | None,
         ejecutivo_evaluacion_asignado: Usuario | None,
-        uf_por_metro_cuadrado: float | None,
-        porcentaje_depreciacion: float | None,
         porcentaje_espacios_comunes: float | None,
         id_cliente: int | None,
         informacion_completa: bool,
@@ -82,8 +80,6 @@ class ProspectoCondominio(Prospecto):
         self.tiene_piscina = tiene_piscina
         self.year_construccion = year_construccion
         self.metros_cuadrados = metros_cuadrados
-        self.uf_por_metro_cuadrado = uf_por_metro_cuadrado
-        self.porcentaje_depreciacion = porcentaje_depreciacion
         self.porcentaje_espacios_comunes = porcentaje_espacios_comunes
         self.materialidad = materialidad
         self.administrador = administrador
@@ -92,3 +88,21 @@ class ProspectoCondominio(Prospecto):
         self.ubicacion_piscina = ubicacion_piscina
         self.tiene_alarma_incendio = tiene_alarma_incendio
         self.tiene_sprinklers = tiene_sprinklers
+        self._uf_por_metro_cuadrado: float | None = None
+        self._porcentaje_depreciacion: float | None = None
+
+    @property
+    def uf_por_metro_cuadrado(self) -> float | None:
+        return self._uf_por_metro_cuadrado
+
+    @uf_por_metro_cuadrado.setter
+    def uf_por_metro_cuadrado(self, value: float | None):
+        self._uf_por_metro_cuadrado = value
+
+    @property
+    def porcentaje_depreciacion(self) -> float | None:
+        return self._porcentaje_depreciacion
+
+    @porcentaje_depreciacion.setter
+    def porcentaje_depreciacion(self, value: float | None):
+        self._porcentaje_depreciacion = value

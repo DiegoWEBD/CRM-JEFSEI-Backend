@@ -24,8 +24,6 @@ class ActualizarProspectoCondominioUseCase:
         comuna: str | None, 
         observaciones: str | None, 
         id_linea_negocio: int,  
-        uf_por_metro_cuadrado: float | None,
-        porcentaje_depreciacion: float | None,
         porcentaje_espacios_comunes: float | None,
         tiene_locales_comerciales: bool | None,
         uso_del_condominio: str | None,
@@ -86,8 +84,6 @@ class ActualizarProspectoCondominioUseCase:
         prospecto.ubicacion_piscina = ubicacion_piscina
         prospecto.tiene_alarma_incendio = tiene_alarma_incendio
         prospecto.tiene_sprinklers = tiene_sprinklers
-        prospecto.uf_por_metro_cuadrado = uf_por_metro_cuadrado
-        prospecto.porcentaje_depreciacion = porcentaje_depreciacion
         prospecto.porcentaje_espacios_comunes = porcentaje_espacios_comunes
 
         prospecto.linea_negocio = LineaNegocio(

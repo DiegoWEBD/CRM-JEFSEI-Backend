@@ -35,6 +35,7 @@ class ProspectoCondominioJsonAdapter:
             planificacion_prospecto=PlanificacionProspectoJsonAdapter(self.prospecto.planificacion_prospecto).to_planificacion_prospecto_json() if self.prospecto.planificacion_prospecto else None,
             administrador=AdministradorCondominioJsonAdapter(self.prospecto.administrador).to_json() if self.prospecto.administrador is not None else None,
             uf_por_metro_cuadrado=self.prospecto.uf_por_metro_cuadrado,
+            valor_uf_m2_disponible=self.prospecto.uf_por_metro_cuadrado is not None,
             porcentaje_depreciacion=self.prospecto.porcentaje_depreciacion,
             porcentaje_espacios_comunes=self.prospecto.porcentaje_espacios_comunes,
             materialidad=self.prospecto.materialidad,

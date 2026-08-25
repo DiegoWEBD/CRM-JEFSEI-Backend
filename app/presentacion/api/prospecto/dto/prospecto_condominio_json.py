@@ -5,6 +5,7 @@ from app.presentacion.api.prospecto.dto.prospecto_json import ProspectoJson
 class ProspectoCondominioJson(ProspectoJson):
     administrador: AdministradorCondominioJson | None
     uf_por_metro_cuadrado: float | None
+    valor_uf_m2_disponible: bool
     porcentaje_depreciacion: float | None
     porcentaje_espacios_comunes: float | None
     tiene_locales_comerciales: bool | None

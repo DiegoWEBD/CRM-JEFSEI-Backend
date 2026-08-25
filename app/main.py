@@ -13,6 +13,7 @@ from app.presentacion.api.auth.dependencias.get_current_user import get_current_
 from app.presentacion.api.comuna import comuna_router
 from app.presentacion.api.company_seguros import company_seguros_router
 from app.presentacion.api.comunicado_gerencia import comunicado_gerencia_router
+from app.presentacion.api.configuracion_condominio import configuracion_condominio_router
 from app.presentacion.api.contacto import contacto_router
 from app.presentacion.api.cuota import cuota_router
 from app.presentacion.api.etapa_proceso_comercial import etapa_proceso_comercial_router
@@ -266,6 +267,13 @@ app.include_router(
 
 app.include_router(
     router=archivo_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=configuracion_condominio_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

@@ -71,8 +71,6 @@ class DictRowProspectoCondominioAdapter:
 
         estado_general_cliente = self.row['estado_general_cliente']
 
-        uf_por_metro_cuadrado = self.row['uf_por_metro_cuadrado']
-        porcentaje_depreciacion = self.row['porcentaje_depreciacion']
         porcentaje_espacios_comunes = self.row['porcentaje_espacios_comunes']
 
         planificacion = None
@@ -182,8 +180,6 @@ class DictRowProspectoCondominioAdapter:
             tiene_piscina=tiene_piscina,
             year_construccion=year_construccion,
             metros_cuadrados=metros_cuadrados,
-            uf_por_metro_cuadrado=uf_por_metro_cuadrado,
-            porcentaje_depreciacion=porcentaje_depreciacion,
             porcentaje_espacios_comunes=porcentaje_espacios_comunes,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa,
