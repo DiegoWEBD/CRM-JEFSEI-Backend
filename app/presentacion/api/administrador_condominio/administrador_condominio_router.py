@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, status
 
+from app.aplicacion.administrador_condominio.servicios.consulta_administradores_service import ConsultaAdministradoresService
 from app.aplicacion.administrador_condominio.use_cases.obtener_administrador_por_id import (
     ObtenerAdministradorPorIdUseCase,
 )
-from app.aplicacion.administrador_condominio.use_cases.obtener_administradores import (
-    ObtenerAdministradoresUseCase,
-)
+
 from app.aplicacion.administrador_condominio.use_cases.registrar_administrador import (
     RegistrarAdministradorUseCase,
 )
@@ -22,9 +21,10 @@ from app.infraestructura.administrador_condominio.adaptadores.administrador_cond
 )
 from app.presentacion.api.administrador_condominio.deps import (
     get_actualizar_administrador_use_case,
+    get_consulta_administradores_service,
     get_consulta_prospectos_service,
+    get_filtros_administradores,
     get_obtener_administrador_por_id_use_case,
-    get_obtener_administradores_use_case,
     get_registrar_administrador_use_case,
 )
 from app.presentacion.api.administrador_condominio.dto.registrar_administrador_request import (
@@ -32,6 +32,9 @@ from app.presentacion.api.administrador_condominio.dto.registrar_administrador_r
 )
 from app.presentacion.api.administrador_condominio.dto.actualizar_administrador_request import (
     ActualizarAdministradorRequest,
+)
+from app.presentacion.api.administrador_condominio.dto.filtros_administradores import (
+    FiltrosAdministradores,
 )
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import (
@@ -57,18 +60,16 @@ def obtener_administrador_por_id(
 
 @router.get("/", status_code=status.HTTP_200_OK)
 def obtener_administradores(
-    use_case: ObtenerAdministradoresUseCase = Depends(
-        get_obtener_administradores_use_case
+    filtros: FiltrosAdministradores = Depends(get_filtros_administradores),
+    consulta_service: ConsultaAdministradoresService = Depends(
+        get_consulta_administradores_service
     ),
 ):
-    administradores = use_case.ejecutar()
-
-    return {
-        "data": [
-            AdministradorCondominioJsonAdapter(a).to_json()
-            for a in administradores
-        ]
-    }
+    return consulta_service.obtener_todos(
+        texto_busqueda=filtros.texto_busqueda,
+        pagina=filtros.pagina,
+        tamano_pagina=filtros.tamano_pagina,
+    )
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

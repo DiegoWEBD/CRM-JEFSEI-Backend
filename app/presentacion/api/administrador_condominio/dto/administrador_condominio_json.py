@@ -7,3 +7,4 @@ class AdministradorCondominioJson(BaseModel):
     nombre_contacto: str | None
     telefono: str | None
     correo: str | None
+    cantidad_condominios: int = 0

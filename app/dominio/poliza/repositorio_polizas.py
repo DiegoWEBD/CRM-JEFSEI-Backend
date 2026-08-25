@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
+
 from app.dominio.poliza.poliza import Poliza
 
 
@@ -28,4 +30,16 @@ class RepositorioPolizas(ABC):
     def actualizar_cancelada(self, numero_poliza: str, cancelada: bool) -> None:
         pass
 
-    
+    @abstractmethod
+    def actualizar(
+        self,
+        numero_poliza: str,
+        tipo: str,
+        prima_neta: float,
+        comision_corredora_pct: float,
+        fecha_emision: datetime | None,
+        inicio_vigencia: datetime | None,
+        fin_vigencia: datetime | None,
+        id_company: int | None,
+    ) -> None:
+        pass

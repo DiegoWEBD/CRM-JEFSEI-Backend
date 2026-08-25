@@ -6,17 +6,17 @@ from app.aplicacion.cotizacion.use_cases.registrar_renovacion_cotizada import Re
 from app.aplicacion.plan_pago.use_cases.crear_plan_pago import CrearPlanPagoUseCase
 from app.aplicacion.plan_pago.use_cases.obtener_plan_pago_poliza import ObtenerPlanPagoPolizaUseCase
 from app.aplicacion.poliza.use_cases.cancelar_poliza import CancelarPolizaUseCase
+from app.aplicacion.poliza.use_cases.actualizar_poliza import ActualizarPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
-from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.plan_pago.dependencias.deps import get_crear_plan_pago_use_case, get_obtener_plan_pago_poliza_use_case
-from app.presentacion.api.poliza.dependencias.deps import get_cancelar_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
+from app.presentacion.api.poliza.dependencias.deps import get_actualizar_poliza_use_case, get_cancelar_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
+from app.presentacion.api.poliza.dto.requests.actualizar_poliza_request import ActualizarPolizaRequest
 from app.presentacion.api.poliza.dto.requests.crear_plan_pago_request import CrearPlanPagoRequest
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_cerrar_proceso_comercial_use_case
 
 
 router = APIRouter(prefix='/polizas', tags=['Polizas'])
@@ -101,7 +101,7 @@ def crear_plan_pago(
 @router.post('/{numero_poliza}/cancelar', status_code=status.HTTP_200_OK)
 def cancelar_poliza(
     numero_poliza: str,
-    usuario: Usuario = Depends(permisos_requeridos('CANCELAR_POLIZA')),
+    _: Usuario = Depends(permisos_requeridos('CANCELAR_POLIZA')),
     use_case: CancelarPolizaUseCase = Depends(get_cancelar_poliza_use_case)
 ):
     use_case.ejecutar(numero_poliza)
@@ -114,11 +114,35 @@ def cancelar_poliza(
 @router.post('/{numero_poliza}/reactivar', status_code=status.HTTP_200_OK)
 def reactivar_poliza(
     numero_poliza: str,
-    usuario: Usuario = Depends(permisos_requeridos('REACTIVAR_POLIZA')),
+    _: Usuario = Depends(permisos_requeridos('REACTIVAR_POLIZA')),
     use_case: ReactivarPolizaUseCase = Depends(get_reactivar_poliza_use_case)
 ):
     use_case.ejecutar(numero_poliza)
 
     return {
         'message': 'Póliza reactivada'
+    }
+
+
+@router.put('/{numero_poliza}', status_code=status.HTTP_200_OK)
+def actualizar_poliza(
+    numero_poliza: str,
+    request: ActualizarPolizaRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ACTUALIZAR_POLIZA_TODOS', 'ACTUALIZAR_POLIZA_PROPIOS')),
+    use_case: ActualizarPolizaUseCase = Depends(get_actualizar_poliza_use_case)
+):
+    use_case.ejecutar(
+        numero_poliza=numero_poliza,
+        usuario=usuario,
+        tipo=request.tipo,
+        prima_neta=request.prima_neta,
+        comision_corredora_pct=request.comision_corredora_pct,
+        fecha_emision=datetime.fromisoformat(request.fecha_emision) if request.fecha_emision else None,
+        inicio_vigencia=datetime.fromisoformat(request.inicio_vigencia) if request.inicio_vigencia else None,
+        fin_vigencia=datetime.fromisoformat(request.fin_vigencia) if request.fin_vigencia else None,
+        id_company=request.id_company,
+    )
+
+    return {
+        'message': 'Póliza actualizada correctamente'
     }

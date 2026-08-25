@@ -24,11 +24,18 @@ class IniciarSesionUseCase:
         if not self.authentication_service.verificar_password(password, usuario.password_hash):
             return None
 
+        codigo_permisos = list(set(
+            permiso.codigo
+            for rol in usuario.roles
+            for permiso in rol.permisos
+        ))
+
         token = self.authentication_service.crear_access_token({
             "rut": usuario.rut,
             "nombre": usuario.nombre,
             "codigo_roles": [rol.codigo for rol in usuario.roles],
-            "nombre_roles": [rol.nombre for rol in usuario.roles]
+            "nombre_roles": [rol.nombre for rol in usuario.roles],
+            "codigo_permisos": codigo_permisos
         })
 
         return IniciarSesionResponseDTO(
