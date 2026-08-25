@@ -10,7 +10,6 @@ from app.aplicacion.poliza.use_cases.actualizar_poliza import ActualizarPolizaUs
 from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
-from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
@@ -18,7 +17,6 @@ from app.presentacion.api.plan_pago.dependencias.deps import get_crear_plan_pago
 from app.presentacion.api.poliza.dependencias.deps import get_actualizar_poliza_use_case, get_cancelar_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
 from app.presentacion.api.poliza.dto.requests.actualizar_poliza_request import ActualizarPolizaRequest
 from app.presentacion.api.poliza.dto.requests.crear_plan_pago_request import CrearPlanPagoRequest
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_cerrar_proceso_comercial_use_case
 
 
 router = APIRouter(prefix='/polizas', tags=['Polizas'])
