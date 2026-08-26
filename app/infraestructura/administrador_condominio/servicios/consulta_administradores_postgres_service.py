@@ -64,6 +64,7 @@ class ConsultaAdministradoresPostgresService(ConsultaAdministradoresService):
                     SELECT COUNT(DISTINCT ac.id) as total
                     FROM AdministradorCondominio ac
                     LEFT JOIN ProspectoCondominio pc ON pc.id_administrador = ac.id
+                    {where_clause}
                 ''').format(where_clause=where_clause)
                 cur.execute(count_query, params)
                 total = cur.fetchone()['total'] # type: ignore
