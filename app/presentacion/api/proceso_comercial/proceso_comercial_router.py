@@ -12,6 +12,7 @@ from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacio
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.lib.parsear_fecha_sin_hora import parsear_fecha_sin_hora
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
@@ -162,9 +163,9 @@ def registrar_poliza(
         id_company=request.id_company,
         prima_neta=request.prima_neta,
         comision_corredora_pct=request.comision_corredora_pct,
-        fecha_emision=datetime.fromisoformat(request.fecha_emision),
-        inicio_vigencia=datetime.fromisoformat(request.inicio_vigencia),
-        fin_vigencia=datetime.fromisoformat(request.fin_vigencia),
+        fecha_emision=parsear_fecha_sin_hora(request.fecha_emision) if request.fecha_emision is not None else None,
+        inicio_vigencia=parsear_fecha_sin_hora(request.inicio_vigencia) if request.inicio_vigencia is not None else None,
+        fin_vigencia=parsear_fecha_sin_hora(request.fin_vigencia) if request.fin_vigencia is not None else None,
         usuario=usuario
     )
 

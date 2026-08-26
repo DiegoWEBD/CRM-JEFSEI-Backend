@@ -7,6 +7,6 @@ class RegistrarPolizaAProcesoComercialRequest(BaseModel):
     id_company: int
     prima_neta: float
     comision_corredora_pct: float
-    fecha_emision: str
-    inicio_vigencia: str
-    fin_vigencia: str
+    fecha_emision: str | None
+    inicio_vigencia: str | None
+    fin_vigencia: str | None

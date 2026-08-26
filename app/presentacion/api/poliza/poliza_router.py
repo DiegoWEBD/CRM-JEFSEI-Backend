@@ -11,6 +11,7 @@ from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
 from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.lib.parsear_fecha_sin_hora import parsear_fecha_sin_hora
 from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.plan_pago.dependencias.deps import get_crear_plan_pago_use_case, get_obtener_plan_pago_poliza_use_case
@@ -131,15 +132,16 @@ def actualizar_poliza(
     usuario: Usuario = Depends(permisos_requeridos('ACTUALIZAR_POLIZA_TODOS', 'ACTUALIZAR_POLIZA_PROPIOS')),
     use_case: ActualizarPolizaUseCase = Depends(get_actualizar_poliza_use_case)
 ):
+
     use_case.ejecutar(
         numero_poliza=numero_poliza,
         usuario=usuario,
         tipo=request.tipo,
         prima_neta=request.prima_neta,
         comision_corredora_pct=request.comision_corredora_pct,
-        fecha_emision=datetime.fromisoformat(request.fecha_emision) if request.fecha_emision else None,
-        inicio_vigencia=datetime.fromisoformat(request.inicio_vigencia) if request.inicio_vigencia else None,
-        fin_vigencia=datetime.fromisoformat(request.fin_vigencia) if request.fin_vigencia else None,
+        fecha_emision=parsear_fecha_sin_hora(request.fecha_emision) if request.fecha_emision else None,
+        inicio_vigencia=parsear_fecha_sin_hora(request.inicio_vigencia) if request.inicio_vigencia else None,
+        fin_vigencia=parsear_fecha_sin_hora(request.fin_vigencia) if request.fin_vigencia else None,
         id_company=request.id_company,
     )
 
