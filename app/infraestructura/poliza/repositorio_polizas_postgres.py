@@ -26,8 +26,19 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada,
-                    P.renovacion_cotizada
+                    P.renovacion_cotizada,
+                    CASE
+                        WHEN P.cancelada = true THEN 'CANCELADA'
+                        WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+                        WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+                        ELSE 'REGISTRADA'
+                    END as estado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
@@ -68,8 +79,19 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada,
-                    P.renovacion_cotizada
+                    P.renovacion_cotizada,
+                    CASE
+                        WHEN P.cancelada = true THEN 'CANCELADA'
+                        WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+                        WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+                        ELSE 'REGISTRADA'
+                    END as estado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
@@ -110,8 +132,19 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada,
-                    P.renovacion_cotizada
+                    P.renovacion_cotizada,
+                    CASE
+                        WHEN P.cancelada = true THEN 'CANCELADA'
+                        WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+                        WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+                        ELSE 'REGISTRADA'
+                    END as estado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
@@ -153,8 +186,19 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.inicio_vigencia,
                     P.fin_vigencia,
                     P.id_company,
-                    P.cancelada,
-                    P.renovacion_cotizada
+                    P.renovacion_cotizada,
+                    CASE
+                        WHEN P.cancelada = true THEN 'CANCELADA'
+                        WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+                        WHEN P.inicio_vigencia <= now()
+                             AND P.fin_vigencia > now()
+                             AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+                        WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+                        ELSE 'REGISTRADA'
+                    END as estado
                     from Poliza P
                     inner join Cliente C
                     on P.id_cliente = C.id
@@ -423,6 +467,158 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 }
 
                 cur.execute(query, params)
+
+    def obtener_polizas_panel(
+        self,
+        id_cliente: int | None,
+        id_company: int | None,
+        id_producto: int | None,
+        id_linea_negocio: int | None,
+        texto_busqueda: str | None,
+        estado: str | None,
+        rut_usuario: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[Poliza], int, dict]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                base_conditions = []
+                params = {}
+
+                if id_cliente is not None:
+                    base_conditions.append('P.id_cliente = %(id_cliente)s')
+                    params['id_cliente'] = id_cliente
+
+                if id_company is not None:
+                    base_conditions.append('P.id_company = %(id_company)s')
+                    params['id_company'] = id_company
+
+                if id_producto is not None:
+                    base_conditions.append('PR.id = %(id_producto)s')
+                    params['id_producto'] = id_producto
+
+                if id_linea_negocio is not None:
+                    base_conditions.append('PR.id_linea_negocio = %(id_linea_negocio)s')
+                    params['id_linea_negocio'] = id_linea_negocio
+
+                if texto_busqueda:
+                    base_conditions.append(
+                        '(P.numero_poliza ILIKE %(texto_busqueda)s OR PRO.nombre_riesgo ILIKE %(texto_busqueda)s)'
+                    )
+                    params['texto_busqueda'] = f'%{texto_busqueda}%'
+
+                if rut_usuario is not None:
+                    base_conditions.append(
+                        '''(
+                            PRO.rut_ej_comercial_asignado = %(rut_usuario)s
+                            OR PRO.rut_ej_evaluacion_asignado = %(rut_usuario)s
+                            OR C.rut_ej_renovacion_asignado = %(rut_usuario)s
+                            OR C.rut_as_renovacion_asignado = %(rut_usuario)s
+                            OR C.rut_ej_cobranza_asignado = %(rut_usuario)s
+                        )'''
+                    )
+                    params['rut_usuario'] = rut_usuario
+
+                base_where = ''
+                if base_conditions:
+                    base_where = 'where ' + ' and '.join(base_conditions)
+
+                estado_filter = ''
+                if estado is not None:
+                    estado_filter = "where estado = %(estado)s"
+                    params['estado'] = estado
+
+                cte = f'''
+                    WITH base AS (
+                        SELECT P.numero_poliza,
+                            PRO.nombre_riesgo as nombre_cliente,
+                            PRO.id as id_prospecto,
+                            P.tipo, P.prima_neta,
+                            P.id_proceso_comercial,
+                            P.comision_corredora_pct,
+                            CS.nombre as company,
+                            PR.nombre as nombre_producto,
+                            P.fecha_emision,
+                            P.inicio_vigencia,
+                            P.fin_vigencia,
+                            P.id_company,
+                            P.renovacion_cotizada,
+                            CASE
+                                WHEN P.cancelada = true THEN 'CANCELADA'
+                                WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+                                WHEN P.inicio_vigencia <= now()
+                                     AND P.fin_vigencia > now()
+                                     AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+                                WHEN P.inicio_vigencia <= now()
+                                     AND P.fin_vigencia > now()
+                                     AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+                                WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+                                ELSE 'REGISTRADA'
+                            END as estado
+                        FROM Poliza P
+                        INNER JOIN Cliente C ON P.id_cliente = C.id
+                        INNER JOIN Prospecto PRO ON C.id_prospecto = PRO.id
+                        INNER JOIN ProcesoComercial PC ON P.id_proceso_comercial = PC.id
+                        INNER JOIN Producto PR ON PC.id_producto = PR.id
+                        LEFT JOIN CompanySeguros CS ON P.id_company = CS.id
+                        {base_where}
+                    )
+                '''
+
+                # Conteo total
+                count_query = f'{cte} SELECT count(*) as total FROM base {estado_filter}'
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total']
+
+                # KPIs
+                kpi_query = f'''
+                    {cte}
+                    SELECT
+                        count(*) as total_polizas,
+                        count(*) filter (where estado = 'CANCELADA') as canceladas,
+                        count(*) filter (where estado = 'VENCIDA') as vencidas,
+                        count(*) filter (where estado = 'POR_VENCER') as por_vencer,
+                        count(*) filter (where estado = 'VIGENTE') as vigentes,
+                        count(*) filter (where estado = 'REGISTRADA') as registradas,
+                        coalesce(sum(prima_neta), 0) as prima_neta_total,
+                        coalesce(sum(prima_neta) filter (where estado in ('VIGENTE', 'POR_VENCER')), 0) as prima_vigente,
+                        coalesce(sum(prima_neta * comision_corredora_pct), 0) as comision_total
+                    FROM base
+                '''
+                cur.execute(kpi_query, params)
+                kpi_row = cur.fetchone()
+
+                kpis = {
+                    'total_polizas': kpi_row['total_polizas'],
+                    'vigentes': kpi_row['vigentes'],
+                    'por_vencer': kpi_row['por_vencer'],
+                    'vencidas': kpi_row['vencidas'],
+                    'canceladas': kpi_row['canceladas'],
+                    'registradas': kpi_row['registradas'],
+                    'prima_neta_total': round(kpi_row['prima_neta_total'], 2),
+                    'prima_vigente': round(kpi_row['prima_vigente'], 2),
+                    'comision_total': round(kpi_row['comision_total'], 2),
+                }
+
+                # Datos paginados
+                offset = (pagina - 1) * tamano_pagina
+                params['tamano_pagina'] = tamano_pagina
+                params['offset'] = offset
+
+                data_query = f'''
+                    {cte}
+                    SELECT * FROM base
+                    {estado_filter}
+                    ORDER BY fecha_emision DESC NULLS LAST
+                    LIMIT %(tamano_pagina)s OFFSET %(offset)s
+                '''
+                cur.execute(data_query, params)
+                rows = cur.fetchall()
+
+                polizas = [DictRowPolizaAdapter(row).to_poliza() for row in rows]
+
+                return polizas, total, kpis
 
     def actualizar_cancelada(self, numero_poliza: str, cancelada: bool) -> None:
         with obtener_conexion() as conn:

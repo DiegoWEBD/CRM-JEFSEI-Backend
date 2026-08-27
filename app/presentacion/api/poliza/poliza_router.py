@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 
 from fastapi import APIRouter, Depends, Query, status
 
@@ -14,6 +15,7 @@ from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.lib.parsear_fecha_sin_hora import parsear_fecha_sin_hora
 from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
+from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 from app.presentacion.api.plan_pago.dependencias.deps import get_crear_plan_pago_use_case, get_obtener_plan_pago_poliza_use_case
 from app.presentacion.api.poliza.dependencias.deps import get_actualizar_poliza_use_case, get_cancelar_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
 from app.presentacion.api.poliza.dto.requests.actualizar_poliza_request import ActualizarPolizaRequest
@@ -24,21 +26,40 @@ router = APIRouter(prefix='/polizas', tags=['Polizas'])
 
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_polizas(
-    id_cliente: int = Query(),
+    id_cliente: int | None = Query(default=None),
+    id_company: int | None = Query(default=None),
+    id_producto: int | None = Query(default=None),
+    id_linea_negocio: int | None = Query(default=None),
+    texto_busqueda: str | None = Query(default=None),
+    estado: str | None = Query(default=None),
+    pagina: int = Query(default=1, ge=1),
+    tamano_pagina: int = Query(default=20, ge=1, le=100),
     usuario: Usuario = Depends(permisos_requeridos('OBTENER_POLIZAS_TODAS', 'OBTENER_POLIZAS_PROPIAS')),
     use_case: ObtenerPolizasUseCase = Depends(get_obtener_polizas_use_case)
 ):
-    rut_usuario = usuario.rut
+    puede_ver_todas = usuario_tiene_permiso('OBTENER_POLIZAS_TODAS', usuario)
+    rut_usuario = None if puede_ver_todas else usuario.rut
 
-    for rol in usuario.roles:
-        for permiso in rol.permisos:
-            if permiso.codigo == 'OBTENER_POLIZAS_TODAS':
-                rut_usuario = None
+    polizas, total, kpis = use_case.ejecutar(
+        id_cliente=id_cliente,
+        id_company=id_company,
+        id_producto=id_producto,
+        id_linea_negocio=id_linea_negocio,
+        texto_busqueda=texto_busqueda,
+        estado=estado,
+        rut_usuario=rut_usuario,
+        pagina=pagina,
+        tamano_pagina=tamano_pagina,
+    )
 
-    polizas = use_case.ejecutar(id_cliente, rut_usuario)
+    total_paginas = math.ceil(total / tamano_pagina) if total > 0 else 1
 
     return {
-        'polizas': [PolizaJsonAdapter(poliza).to_json() for poliza in polizas]
+        'total': total,
+        'pagina': pagina,
+        'total_paginas': total_paginas,
+        'kpis': kpis,
+        'polizas': [PolizaJsonAdapter(poliza).to_json() for poliza in polizas],
     }
 
 @router.get('/{numero_poliza}', status_code=status.HTTP_200_OK)

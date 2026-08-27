@@ -1,21 +1,32 @@
-from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
-from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
 
 class ObtenerPolizasUseCase:
 
-    def __init__(
-        self, 
-        repositorio_polizas: RepositorioPolizas,
-        repositorio_prospectos: RepositorioProspectos
-    ):
+    def __init__(self, repositorio_polizas: RepositorioPolizas):
         self.repositorio_polizas = repositorio_polizas
-        self.repositorio_prospectos = repositorio_prospectos
 
-    def ejecutar(self, id_cliente: int, rut_usuario: str | None) -> list[Poliza]:
-        if not self.repositorio_prospectos.buscar_cliente(id_cliente):
-            raise RecursoNoEncontradoException('Cliente no encontrado')
-
-        return self.repositorio_polizas.obtener_polizas_cliente(id_cliente)
+    def ejecutar(
+        self,
+        id_cliente: int | None,
+        id_company: int | None,
+        id_producto: int | None,
+        id_linea_negocio: int | None,
+        texto_busqueda: str | None,
+        estado: str | None,
+        rut_usuario: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[Poliza], int, dict]:
+        return self.repositorio_polizas.obtener_polizas_panel(
+            id_cliente=id_cliente,
+            id_company=id_company,
+            id_producto=id_producto,
+            id_linea_negocio=id_linea_negocio,
+            texto_busqueda=texto_busqueda,
+            estado=estado,
+            rut_usuario=rut_usuario,
+            pagina=pagina,
+            tamano_pagina=tamano_pagina,
+        )
