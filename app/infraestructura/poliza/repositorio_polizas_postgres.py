@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
+from psycopg import sql
+
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.infraestructura.db.conexion import obtener_conexion
@@ -483,53 +485,53 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                base_conditions = []
+                base_conditions: list[sql.Composable] = []
                 params = {}
 
                 if id_cliente is not None:
-                    base_conditions.append('P.id_cliente = %(id_cliente)s')
+                    base_conditions.append(sql.SQL('P.id_cliente = %(id_cliente)s'))
                     params['id_cliente'] = id_cliente
 
                 if id_company is not None:
-                    base_conditions.append('P.id_company = %(id_company)s')
+                    base_conditions.append(sql.SQL('P.id_company = %(id_company)s'))
                     params['id_company'] = id_company
 
                 if id_producto is not None:
-                    base_conditions.append('PR.id = %(id_producto)s')
+                    base_conditions.append(sql.SQL('PR.id = %(id_producto)s'))
                     params['id_producto'] = id_producto
 
                 if id_linea_negocio is not None:
-                    base_conditions.append('PR.id_linea_negocio = %(id_linea_negocio)s')
+                    base_conditions.append(sql.SQL('PR.id_linea_negocio = %(id_linea_negocio)s'))
                     params['id_linea_negocio'] = id_linea_negocio
 
                 if texto_busqueda:
-                    base_conditions.append(
+                    base_conditions.append(sql.SQL(
                         '(P.numero_poliza ILIKE %(texto_busqueda)s OR PRO.nombre_riesgo ILIKE %(texto_busqueda)s)'
-                    )
+                    ))
                     params['texto_busqueda'] = f'%{texto_busqueda}%'
 
                 if rut_usuario is not None:
-                    base_conditions.append(
-                        '''(
+                    base_conditions.append(sql.SQL('''
+                        (
                             PRO.rut_ej_comercial_asignado = %(rut_usuario)s
                             OR PRO.rut_ej_evaluacion_asignado = %(rut_usuario)s
                             OR C.rut_ej_renovacion_asignado = %(rut_usuario)s
                             OR C.rut_as_renovacion_asignado = %(rut_usuario)s
                             OR C.rut_ej_cobranza_asignado = %(rut_usuario)s
-                        )'''
-                    )
+                        )
+                    '''))
                     params['rut_usuario'] = rut_usuario
 
-                base_where = ''
-                if base_conditions:
-                    base_where = 'where ' + ' and '.join(base_conditions)
+                base_where = sql.SQL(' WHERE ').join(base_conditions) if base_conditions else sql.SQL('')
 
-                estado_filter = ''
+                estado_filter: sql.Composable
                 if estado is not None:
-                    estado_filter = "where estado = %(estado)s"
+                    estado_filter = sql.SQL('WHERE estado = %(estado)s')
                     params['estado'] = estado
+                else:
+                    estado_filter = sql.SQL('')
 
-                cte = f'''
+                cte = sql.SQL('''
                     WITH base AS (
                         SELECT P.numero_poliza,
                             PRO.nombre_riesgo as nombre_cliente,
@@ -564,15 +566,17 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         LEFT JOIN CompanySeguros CS ON P.id_company = CS.id
                         {base_where}
                     )
-                '''
+                ''').format(base_where=base_where)
 
                 # Conteo total
-                count_query = f'{cte} SELECT count(*) as total FROM base {estado_filter}'
+                count_query = sql.SQL('{cte} SELECT count(*) as total FROM base {estado_filter}').format(
+                    cte=cte, estado_filter=estado_filter,
+                )
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 # KPIs
-                kpi_query = f'''
+                kpi_query = sql.SQL('''
                     {cte}
                     SELECT
                         count(*) as total_polizas,
@@ -585,9 +589,12 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         coalesce(sum(prima_neta) filter (where estado in ('VIGENTE', 'POR_VENCER')), 0) as prima_vigente,
                         coalesce(sum(prima_neta * comision_corredora_pct), 0) as comision_total
                     FROM base
-                '''
+                ''').format(cte=cte)
                 cur.execute(kpi_query, params)
                 kpi_row = cur.fetchone()
+
+                if not kpi_row:
+                    raise ValueError('Error en la base de datos')
 
                 kpis = {
                     'total_polizas': kpi_row['total_polizas'],
@@ -606,13 +613,13 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 params['tamano_pagina'] = tamano_pagina
                 params['offset'] = offset
 
-                data_query = f'''
+                data_query = sql.SQL('''
                     {cte}
                     SELECT * FROM base
                     {estado_filter}
                     ORDER BY fecha_emision DESC NULLS LAST
                     LIMIT %(tamano_pagina)s OFFSET %(offset)s
-                '''
+                ''').format(cte=cte, estado_filter=estado_filter)
                 cur.execute(data_query, params)
                 rows = cur.fetchall()
 
