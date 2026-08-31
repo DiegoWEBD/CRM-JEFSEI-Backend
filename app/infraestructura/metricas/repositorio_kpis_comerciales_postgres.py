@@ -1,3 +1,5 @@
+from psycopg import sql
+
 from app.aplicacion.metricas.dto.filtros_kpi_dto import FiltrosKpiDto
 from app.dominio.metricas.repositorio_kpis_comerciales import RepositorioKpisComerciales
 from app.infraestructura.db.conexion import obtener_conexion
@@ -5,64 +7,64 @@ from app.infraestructura.db.conexion import obtener_conexion
 
 class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
-    def _build_prospecto_filters(self, filtros: FiltrosKpiDto, params: dict, alias: str = 'p') -> str:
-        clauses = []
+    def _build_prospecto_filters(self, filtros: FiltrosKpiDto, params: dict) -> list[sql.Composable]:
+        clauses: list[sql.Composable] = []
         if filtros.rut_ejecutivo is not None:
-            clauses.append(f"{alias}.rut_ej_comercial_asignado = %(rut_ejecutivo)s")
+            clauses.append(sql.SQL("p.rut_ej_comercial_asignado = %(rut_ejecutivo)s"))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_linea_negocio is not None:
-            clauses.append(f"{alias}.id_linea_negocio = %(id_linea_negocio)s")
+            clauses.append(sql.SQL("p.id_linea_negocio = %(id_linea_negocio)s"))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append(f"EXISTS (SELECT 1 FROM Usuario u WHERE u.rut = {alias}.rut_ej_comercial_asignado AND u.id_sucursal = %(id_sucursal)s)")
+            clauses.append(sql.SQL("EXISTS (SELECT 1 FROM Usuario u WHERE u.rut = p.rut_ej_comercial_asignado AND u.id_sucursal = %(id_sucursal)s)"))
             params['id_sucursal'] = filtros.id_sucursal
-        return ' AND '.join(clauses) if clauses else 'TRUE'
+        return clauses
 
-    def _build_poliza_filters(self, filtros: FiltrosKpiDto, params: dict, alias: str = 'po') -> str:
-        clauses = []
+    def _build_poliza_filters(self, filtros: FiltrosKpiDto, params: dict) -> list[sql.Composable]:
+        clauses: list[sql.Composable] = []
         if filtros.year is not None:
-            clauses.append(f"EXTRACT(YEAR FROM {alias}.fecha_emision) = %(year)s")
+            clauses.append(sql.SQL("EXTRACT(YEAR FROM po.fecha_emision) = %(year)s"))
             params['year'] = filtros.year
         if filtros.month is not None:
-            clauses.append(f"EXTRACT(MONTH FROM {alias}.fecha_emision) = %(month)s")
+            clauses.append(sql.SQL("EXTRACT(MONTH FROM po.fecha_emision) = %(month)s"))
             params['month'] = filtros.month
         if filtros.rut_ejecutivo is not None:
-            clauses.append(f"pc.rut_ej_comercial = %(rut_ejecutivo)s")
+            clauses.append(sql.SQL("pc.rut_ej_comercial = %(rut_ejecutivo)s"))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            clauses.append(f"pc.id_producto = %(id_producto)s")
+            clauses.append(sql.SQL("pc.id_producto = %(id_producto)s"))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            clauses.append(f"pr.id_linea_negocio = %(id_linea_negocio)s")
+            clauses.append(sql.SQL("pr.id_linea_negocio = %(id_linea_negocio)s"))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append(f"u.id_sucursal = %(id_sucursal)s")
+            clauses.append(sql.SQL("u.id_sucursal = %(id_sucursal)s"))
             params['id_sucursal'] = filtros.id_sucursal
-        return ' AND '.join(clauses) if clauses else 'TRUE'
+        return clauses
 
-    def _build_proceso_filters(self, filtros: FiltrosKpiDto, params: dict, alias: str = 'pc') -> str:
-        clauses = []
+    def _build_proceso_filters(self, filtros: FiltrosKpiDto, params: dict) -> list[sql.Composable]:
+        clauses: list[sql.Composable] = []
         if filtros.rut_ejecutivo is not None:
-            clauses.append(f"{alias}.rut_ej_comercial = %(rut_ejecutivo)s")
+            clauses.append(sql.SQL("pc.rut_ej_comercial = %(rut_ejecutivo)s"))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            clauses.append(f"{alias}.id_producto = %(id_producto)s")
+            clauses.append(sql.SQL("pc.id_producto = %(id_producto)s"))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            clauses.append(f"pr.id_linea_negocio = %(id_linea_negocio)s")
+            clauses.append(sql.SQL("pr.id_linea_negocio = %(id_linea_negocio)s"))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append(f"u.id_sucursal = %(id_sucursal)s")
+            clauses.append(sql.SQL("u.id_sucursal = %(id_sucursal)s"))
             params['id_sucursal'] = filtros.id_sucursal
-        return ' AND '.join(clauses) if clauses else 'TRUE'
+        return clauses
 
     def obtener_conversion_prospectos(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        where = self._build_prospecto_filters(filtros, params)
+        prospecto_clauses = self._build_prospecto_filters(filtros, params)
+        where = sql.SQL(' AND ').join(prospecto_clauses) if prospecto_clauses else sql.SQL('TRUE')
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     SELECT
                         COUNT(*) AS total_prospectos,
                         COUNT(*) FILTER (
@@ -76,9 +78,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                         ) AS prospectos_convertidos
                     FROM Prospecto p
                     WHERE {where}
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 total = row['total_prospectos'] if row else 0
                 convertidos = row['prospectos_convertidos'] if row else 0
@@ -91,11 +92,11 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_tasa_cierre(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        where = self._build_proceso_filters(filtros, params)
+        proceso_clauses = self._build_proceso_filters(filtros, params)
+        where = sql.SQL(' AND ').join(proceso_clauses) if proceso_clauses else sql.SQL('TRUE')
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     SELECT
                         COUNT(*) FILTER (WHERE pc.cerrado = true) AS total_cerrados,
                         COUNT(*) FILTER (WHERE pc.cerrado = true AND pc.codigo_estado_actual = 'GANADO') AS ganados,
@@ -104,9 +105,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                     JOIN Prospecto pr ON pc.id_prospecto = pr.id
                     LEFT JOIN Usuario u ON pc.rut_ej_comercial = u.rut
                     WHERE {where}
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 total = row['total_cerrados'] if row else 0
                 ganados = row['ganados'] if row else 0
@@ -125,36 +125,36 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
     def obtener_prima_vs_meta(self, filtros: FiltrosKpiDto) -> list[dict]:
 
         params: dict = {}
-        clauses = []
+        clauses: list[sql.Composable] = []
 
         # Filtros sobre Usuario
         if filtros.id_sucursal is not None:
-            clauses.append("u.id_sucursal = %(id_sucursal)s")
+            clauses.append(sql.SQL("u.id_sucursal = %(id_sucursal)s"))
             params['id_sucursal'] = filtros.id_sucursal
 
         if filtros.rut_ejecutivo is not None:
-            clauses.append("u.rut = %(rut_ejecutivo)s")
+            clauses.append(sql.SQL("u.rut = %(rut_ejecutivo)s"))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
 
         # Filtros sobre ProcesoComercial / Prospecto
         if filtros.id_producto is not None:
-            clauses.append("pc.id_producto = %(id_producto)s")
+            clauses.append(sql.SQL("pc.id_producto = %(id_producto)s"))
             params['id_producto'] = filtros.id_producto
 
         if filtros.id_linea_negocio is not None:
-            clauses.append("pr.id_linea_negocio = %(id_linea_negocio)s")
+            clauses.append(sql.SQL("pr.id_linea_negocio = %(id_linea_negocio)s"))
             params['id_linea_negocio'] = filtros.id_linea_negocio
 
-        where = ' AND '.join(clauses)
+        where = sql.SQL(' AND ').join(clauses) if clauses else sql.SQL('TRUE')
 
-        # Si no existen filtros sobre Usuario, ProcesoComercial o Prospecto,
-        # no agregamos WHERE.
-        where_clause = f"WHERE {where}" if where else ""
+        join_year = sql.SQL("AND EXTRACT(YEAR FROM po.fecha_emision) = %(year)s") if filtros.year is not None else sql.SQL("")
+        join_month = sql.SQL("AND EXTRACT(MONTH FROM po.fecha_emision) = %(month)s") if filtros.month is not None else sql.SQL("")
+
+        where_clause = sql.SQL('WHERE {where}').format(where=where) if clauses else sql.SQL('')
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     SELECT
                         u.rut,
                         u.nombre,
@@ -171,8 +171,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                     LEFT JOIN Poliza po
                         ON po.id_proceso_comercial = pc.id
                         AND (po.cancelada IS NULL OR po.cancelada = false)
-                        {f"AND EXTRACT(YEAR FROM po.fecha_emision) = %(year)s" if filtros.year is not None else ""}
-                        {f"AND EXTRACT(MONTH FROM po.fecha_emision) = %(month)s" if filtros.month is not None else ""}
+                        {join_year}
+                        {join_month}
 
                     {where_clause}
 
@@ -182,7 +182,14 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                         u.meta_mensual_uf
 
                     ORDER BY prima_neta_uf DESC
-                    ''',
+                ''').format(
+                    join_year=join_year,
+                    join_month=join_month,
+                    where_clause=where_clause,
+                )
+
+                cur.execute(
+                    query,
                     {
                         **params,
                         **({'year': filtros.year} if filtros.year is not None else {}),
@@ -224,30 +231,29 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_tiempo_promedio_cierre(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        proceso_clauses = ['pc.cerrado = true']
+        proceso_clauses: list[sql.Composable] = [sql.SQL('pc.cerrado = true')]
         if filtros.rut_ejecutivo is not None:
-            proceso_clauses.append('pc.rut_ej_comercial = %(rut_ejecutivo)s')
+            proceso_clauses.append(sql.SQL('pc.rut_ej_comercial = %(rut_ejecutivo)s'))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            proceso_clauses.append('pc.id_producto = %(id_producto)s')
+            proceso_clauses.append(sql.SQL('pc.id_producto = %(id_producto)s'))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            proceso_clauses.append('pr.id_linea_negocio = %(id_linea_negocio)s')
+            proceso_clauses.append(sql.SQL('pr.id_linea_negocio = %(id_linea_negocio)s'))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            proceso_clauses.append('u.id_sucursal = %(id_sucursal)s')
+            proceso_clauses.append(sql.SQL('u.id_sucursal = %(id_sucursal)s'))
             params['id_sucursal'] = filtros.id_sucursal
         if filtros.year is not None:
-            proceso_clauses.append('EXTRACT(YEAR FROM he_cierre.fecha_registro) = %(year)s')
+            proceso_clauses.append(sql.SQL('EXTRACT(YEAR FROM he_cierre.fecha_registro) = %(year)s'))
             params['year'] = filtros.year
         if filtros.month is not None:
-            proceso_clauses.append('EXTRACT(MONTH FROM he_cierre.fecha_registro) = %(month)s')
+            proceso_clauses.append(sql.SQL('EXTRACT(MONTH FROM he_cierre.fecha_registro) = %(month)s'))
             params['month'] = filtros.month
-        where = ' AND '.join(proceso_clauses)
+        where = sql.SQL(' AND ').join(proceso_clauses)
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     WITH tiempos AS (
                         SELECT
                             pc.id,
@@ -271,9 +277,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                         COALESCE(ROUND(MIN(EXTRACT(EPOCH FROM (fecha_cierre - fecha_creacion)) / 86400), 1), 0) AS tiempo_minimo_dias,
                         COALESCE(ROUND(MAX(EXTRACT(EPOCH FROM (fecha_cierre - fecha_creacion)) / 86400), 1), 0) AS tiempo_maximo_dias
                     FROM tiempos
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 return {
                     'procesos_cerrados': row['procesos_cerrados'] if row else 0,
@@ -284,24 +289,23 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_aging_pipeline(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        proceso_clauses = ['pc.cerrado = false']
+        proceso_clauses: list[sql.Composable] = [sql.SQL('pc.cerrado = false')]
         if filtros.rut_ejecutivo is not None:
-            proceso_clauses.append('pc.rut_ej_comercial = %(rut_ejecutivo)s')
+            proceso_clauses.append(sql.SQL('pc.rut_ej_comercial = %(rut_ejecutivo)s'))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            proceso_clauses.append('pc.id_producto = %(id_producto)s')
+            proceso_clauses.append(sql.SQL('pc.id_producto = %(id_producto)s'))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            proceso_clauses.append('pr.id_linea_negocio = %(id_linea_negocio)s')
+            proceso_clauses.append(sql.SQL('pr.id_linea_negocio = %(id_linea_negocio)s'))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            proceso_clauses.append('u.id_sucursal = %(id_sucursal)s')
+            proceso_clauses.append(sql.SQL('u.id_sucursal = %(id_sucursal)s'))
             params['id_sucursal'] = filtros.id_sucursal
-        where = ' AND '.join(proceso_clauses)
+        where = sql.SQL(' AND ').join(proceso_clauses)
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     WITH procesos_abiertos AS (
                         SELECT
                             pc.id,
@@ -328,9 +332,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                         FROM procesos_abiertos
                     )
                     SELECT * FROM conteos
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 total = row['total_abiertos'] if row else 0
                 rangos_data = [
@@ -355,30 +358,32 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_tasa_renovacion(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        clauses = ['po.fin_vigencia < CURRENT_TIMESTAMP', '(po.cancelada IS NULL OR po.cancelada = false)']
+        clauses: list[sql.Composable] = [
+            sql.SQL('po.fin_vigencia < CURRENT_TIMESTAMP'),
+            sql.SQL('(po.cancelada IS NULL OR po.cancelada = false)'),
+        ]
         if filtros.rut_ejecutivo is not None:
-            clauses.append('pc.rut_ej_comercial = %(rut_ejecutivo)s')
+            clauses.append(sql.SQL('pc.rut_ej_comercial = %(rut_ejecutivo)s'))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            clauses.append('pc.id_producto = %(id_producto)s')
+            clauses.append(sql.SQL('pc.id_producto = %(id_producto)s'))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            clauses.append('pr.id_linea_negocio = %(id_linea_negocio)s')
+            clauses.append(sql.SQL('pr.id_linea_negocio = %(id_linea_negocio)s'))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append('u.id_sucursal = %(id_sucursal)s')
+            clauses.append(sql.SQL('u.id_sucursal = %(id_sucursal)s'))
             params['id_sucursal'] = filtros.id_sucursal
         if filtros.year is not None:
-            clauses.append('EXTRACT(YEAR FROM po.fin_vigencia) = %(year)s')
+            clauses.append(sql.SQL('EXTRACT(YEAR FROM po.fin_vigencia) = %(year)s'))
             params['year'] = filtros.year
         if filtros.month is not None:
-            clauses.append('EXTRACT(MONTH FROM po.fin_vigencia) = %(month)s')
+            clauses.append(sql.SQL('EXTRACT(MONTH FROM po.fin_vigencia) = %(month)s'))
             params['month'] = filtros.month
-        where = ' AND '.join(clauses)
+        where = sql.SQL(' AND ').join(clauses)
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     WITH vencidas AS (
                         SELECT po.numero_poliza, po.id_cliente
                         FROM Poliza po
@@ -398,9 +403,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                     SELECT
                         (SELECT COUNT(*) FROM vencidas) AS polizas_vencidas,
                         (SELECT COUNT(*) FROM renovadas) AS polizas_renovadas
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 vencidas = row['polizas_vencidas'] if row else 0
                 renovadas = row['polizas_renovadas'] if row else 0
@@ -413,27 +417,26 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_prima_en_riesgo(self, filtros: FiltrosKpiDto, dias_ventana: int = 30) -> dict:
         params: dict = {'dias_ventana': dias_ventana}
-        clauses = [
-            "po.fin_vigencia BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 day' * %(dias_ventana)s",
-            "(po.cancelada IS NULL OR po.cancelada = false)",
+        clauses: list[sql.Composable] = [
+            sql.SQL("po.fin_vigencia BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 day' * %(dias_ventana)s"),
+            sql.SQL('(po.cancelada IS NULL OR po.cancelada = false)'),
         ]
         if filtros.rut_ejecutivo is not None:
-            clauses.append('pc.rut_ej_comercial = %(rut_ejecutivo)s')
+            clauses.append(sql.SQL('pc.rut_ej_comercial = %(rut_ejecutivo)s'))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            clauses.append('pc.id_producto = %(id_producto)s')
+            clauses.append(sql.SQL('pc.id_producto = %(id_producto)s'))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            clauses.append('pr.id_linea_negocio = %(id_linea_negocio)s')
+            clauses.append(sql.SQL('pr.id_linea_negocio = %(id_linea_negocio)s'))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append('u.id_sucursal = %(id_sucursal)s')
+            clauses.append(sql.SQL('u.id_sucursal = %(id_sucursal)s'))
             params['id_sucursal'] = filtros.id_sucursal
-        where = ' AND '.join(clauses)
+        where = sql.SQL(' AND ').join(clauses)
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     SELECT
                         COALESCE(SUM(po.prima_neta), 0) AS prima_en_riesgo_uf,
                         COUNT(*) AS polizas_en_riesgo
@@ -449,9 +452,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                             AND po2.inicio_vigencia > po.fin_vigencia
                             AND (po2.cancelada IS NULL OR po2.cancelada = false)
                       )
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 return {
                     'prima_en_riesgo_uf': float(row['prima_en_riesgo_uf']) if row else 0.0,
@@ -460,24 +462,23 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
 
     def obtener_tasa_morosidad(self, filtros: FiltrosKpiDto) -> dict:
         params: dict = {}
-        clauses = []
+        clauses: list[sql.Composable] = []
         if filtros.rut_ejecutivo is not None:
-            clauses.append('pc.rut_ej_comercial = %(rut_ejecutivo)s')
+            clauses.append(sql.SQL('pc.rut_ej_comercial = %(rut_ejecutivo)s'))
             params['rut_ejecutivo'] = filtros.rut_ejecutivo
         if filtros.id_producto is not None:
-            clauses.append('pc.id_producto = %(id_producto)s')
+            clauses.append(sql.SQL('pc.id_producto = %(id_producto)s'))
             params['id_producto'] = filtros.id_producto
         if filtros.id_linea_negocio is not None:
-            clauses.append('pr.id_linea_negocio = %(id_linea_negocio)s')
+            clauses.append(sql.SQL('pr.id_linea_negocio = %(id_linea_negocio)s'))
             params['id_linea_negocio'] = filtros.id_linea_negocio
         if filtros.id_sucursal is not None:
-            clauses.append('u.id_sucursal = %(id_sucursal)s')
+            clauses.append(sql.SQL('u.id_sucursal = %(id_sucursal)s'))
             params['id_sucursal'] = filtros.id_sucursal
-        where = ' AND '.join(clauses) if clauses else 'TRUE'
+        where = sql.SQL(' AND ').join(clauses) if clauses else sql.SQL('TRUE')
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'''
+                query = sql.SQL('''
                     SELECT
                         COUNT(*) AS total_cuotas,
                         COUNT(*) FILTER (WHERE c.fecha_vencimiento < CURRENT_TIMESTAMP) AS cuotas_vencidas,
@@ -489,9 +490,8 @@ class RepositorioKpisComercialesPostgres(RepositorioKpisComerciales):
                     JOIN Prospecto pr ON pc.id_prospecto = pr.id
                     LEFT JOIN Usuario u ON pc.rut_ej_comercial = u.rut
                     WHERE {where}
-                    ''',
-                    params,
-                )
+                ''').format(where=where)
+                cur.execute(query, params)
                 row = cur.fetchone()
                 total = row['total_cuotas'] if row else 0
                 vencidas = row['cuotas_vencidas'] if row else 0
