@@ -35,9 +35,9 @@ class RegistrarPolizaAProcesoComercialUseCase:
         id_company: int,
         prima_neta: float,
         comision_corredora_pct: float,
-        fecha_emision: datetime,
-        inicio_vigencia: datetime,
-        fin_vigencia: datetime,
+        fecha_emision: datetime | None,
+        inicio_vigencia: datetime | None,
+        fin_vigencia: datetime | None,
         usuario: Usuario
     ):
         if self.repositorio_polizas.buscar(numero_poliza):

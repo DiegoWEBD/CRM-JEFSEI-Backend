@@ -16,10 +16,8 @@ from app.infraestructura.prospecto.repositorio_prospectos_postgres import Reposi
 
 def get_obtener_polizas_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
-    repositorio_prospectos = RepositorioProspectosPostgres()
-    
+
     return ObtenerPolizasUseCase(
-        repositorio_prospectos=repositorio_prospectos,
         repositorio_polizas=repositorio_polizas
     )
 

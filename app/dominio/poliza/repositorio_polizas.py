@@ -31,6 +31,21 @@ class RepositorioPolizas(ABC):
         pass
 
     @abstractmethod
+    def obtener_polizas_panel(
+        self,
+        id_cliente: int | None,
+        id_company: int | None,
+        id_producto: int | None,
+        id_linea_negocio: int | None,
+        texto_busqueda: str | None,
+        estado: str | None,
+        rut_usuario: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[Poliza], int, dict]:
+        pass
+
+    @abstractmethod
     def actualizar(
         self,
         numero_poliza: str,
