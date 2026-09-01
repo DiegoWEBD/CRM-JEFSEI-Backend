@@ -9,6 +9,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.contacto.adaptadores.contacto_json_adapter import ContactoJsonAdapter
 from app.presentacion.api.contacto.dependencias.deps import (
@@ -25,12 +26,13 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
+from app.presentacion.api.prospecto.dto.requests.cambiar_linea_negocio_prospecto_request import CambiarLineaNegocioProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.registrar_prospecto_request import RegistrarProspectoRequest
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_procesos_comerciales_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
@@ -216,6 +218,24 @@ def actualizar_prospecto(
 
     return {
         'message': 'Prospecto actualizado correctamente'
+    }
+
+
+@router.patch('/{id}/linea-negocio', status_code=status.HTTP_200_OK)
+def actualizar_linea_negocio_prospecto(
+    id: int,
+    request: CambiarLineaNegocioProspectoRequest,
+    usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
+    use_case: CambiarLineaNegocioProspectoUseCase = Depends(get_actualizar_linea_negocio_prospecto_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        usuario=usuario,
+        id_linea_negocio=request.id_linea_negocio
+    )
+
+    return {
+        'message': 'Línea de negocio del prospecto actualizada correctamente'
     }
 
 

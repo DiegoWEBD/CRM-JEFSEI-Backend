@@ -220,7 +220,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     region = %(region)s,
                     comuna = %(comuna)s,
                     observaciones = %(observaciones)s,
-                    informacion_completa = %(informacion_completa)s
+                    informacion_completa = %(informacion_completa)s,
+                    id_linea_negocio = %(id_linea_negocio)s
                     where id = %(id)s
                 '''
 
@@ -234,7 +235,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'comuna': prospecto.comuna,
                     'observaciones': prospecto.observaciones,
                     'informacion_completa': informacion_completa_prospecto(prospecto),
-                    'id': prospecto.id
+                    'id': prospecto.id,
+                    'id_linea_negocio': prospecto.linea_negocio.id
                 }
 
                 cur.execute(query, params)
