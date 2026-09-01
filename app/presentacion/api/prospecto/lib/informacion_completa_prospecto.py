@@ -6,8 +6,6 @@ def informacion_completa_prospecto(prospecto: Prospecto) -> bool:
     return all([
         prospecto.rut_riesgo is not None,
         prospecto.nombre_riesgo is not None,
-        prospecto.telefono_contacto is not None,
-        prospecto.correo_contacto is not None,
         prospecto.direccion is not None,
         prospecto.region is not None,
         prospecto.comuna is not None
