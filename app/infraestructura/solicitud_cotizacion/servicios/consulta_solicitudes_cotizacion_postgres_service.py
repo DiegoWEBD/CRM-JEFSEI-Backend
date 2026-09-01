@@ -32,6 +32,7 @@ class ConsultaSolicitudesCotizacionPostgresService(ConsultaSolicitudesCotizacion
                     on SC.id_proceso_comercial = PC.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     inner join Usuario EJ_COM
                     on PC.rut_ej_comercial = EJ_COM.rut
                     inner join Prospecto P

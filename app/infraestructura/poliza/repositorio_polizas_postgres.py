@@ -50,6 +50,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join CompanySeguros CS
                     on P.id_company = CS.id
                     where P.numero_poliza = %(numero_poliza)s
@@ -103,6 +104,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join CompanySeguros CS
                     on P.id_company = CS.id
                     where PC.id = %(id_proceso_comercial)s
@@ -156,6 +158,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join CompanySeguros CS
                     on P.id_company = CS.id
                     where P.id_cliente = %(id_cliente)s
@@ -210,6 +213,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     on P.id_proceso_comercial = PC.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join CompanySeguros CS
                     on P.id_company = CS.id
                     where extract(year from P.fecha_emision) = extract(year from current_date)
@@ -563,6 +567,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         INNER JOIN Prospecto PRO ON C.id_prospecto = PRO.id
                         INNER JOIN ProcesoComercial PC ON P.id_proceso_comercial = PC.id
                         INNER JOIN Producto PR ON PC.id_producto = PR.id
+                        AND PR.eliminado = false
                         LEFT JOIN CompanySeguros CS ON P.id_company = CS.id
                         {base_where}
                     )

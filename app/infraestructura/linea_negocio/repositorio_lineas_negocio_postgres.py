@@ -19,6 +19,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                     from LineaNegocio LN
                     left join Producto P
                     on LN.id = P.id_linea_negocio
+                    and P.eliminado = false
                 '''
 
                 cur.execute(query)
@@ -83,6 +84,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                     select id, nombre, codigo
                     from Producto
                     where id_linea_negocio = %(id_linea_negocio)s
+                    and eliminado = false
                 '''
 
                 params = {'id_linea_negocio': id_linea_negocio}
@@ -91,6 +93,11 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                 rows = cur.fetchall()
 
                 return [
-                    Producto(id=row['id'], nombre=row['nombre'], codigo=row['codigo'])
+                    Producto(
+                        id=row['id'], 
+                        nombre=row['nombre'], 
+                        codigo=row['codigo'],
+                        id_linea_negocio=id_linea_negocio
+                    )
                     for row in rows
                 ]

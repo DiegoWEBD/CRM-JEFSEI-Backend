@@ -38,6 +38,7 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                         on POL.id_proceso_comercial = PC.id
                     left join Producto PR
                         on PC.id_producto = PR.id
+                        and PR.eliminado = false
                     left join CompanySeguros CS
                         on POL.id_company = CS.id
                     inner join Cliente C
@@ -73,6 +74,7 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                         on POL.id_proceso_comercial = PC.id
                     left join Producto PR
                         on PC.id_producto = PR.id
+                        and PR.eliminado = false
                     left join CompanySeguros CS
                         on POL.id_company = CS.id
                     where C.rut_ej_cobranza_asignado = %(rut_usuario)s

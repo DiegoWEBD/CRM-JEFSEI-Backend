@@ -23,6 +23,7 @@ from app.presentacion.api.gestion_comercial import gestion_comercial_router
 from app.presentacion.api.linea_negocio import linea_negocio_router
 from app.presentacion.api.metricas import metricas_router
 from app.presentacion.api.poliza import poliza_router
+from app.presentacion.api.producto import producto_router
 from app.presentacion.api.proceso_comercial import proceso_comercial_router
 from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.recordatorio import recordatorio_router
@@ -274,6 +275,13 @@ app.include_router(
 
 app.include_router(
     router=configuracion_condominio_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=producto_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

@@ -39,6 +39,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.id_prospecto = PR.id
                     inner join Producto P
                     on PC.id_producto = P.id
+                    and P.eliminado = false
                     inner join HistorialEstadoInformativoProcesoComercial HI
                     on PC.id = HI.id_proceso_comercial
                     and HI.fecha_registro = (
@@ -93,6 +94,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.id_prospecto = PR.id
                     inner join Producto P
                     on PC.id_producto = P.id
+                    and P.eliminado = false
                     inner join HistorialEstadoInformativoProcesoComercial HI
                     on PC.id = HI.id_proceso_comercial
                     and HI.fecha_registro = (
@@ -181,6 +183,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                         FROM ProcesoComercial PC
                         INNER JOIN Prospecto PR ON PC.id_prospecto = PR.id
                         INNER JOIN Producto P ON PC.id_producto = P.id
+                        AND P.eliminado = false
                         INNER JOIN HistorialEstadoInformativoProcesoComercial HI
                             ON PC.id = HI.id_proceso_comercial
                             AND HI.fecha_registro = (
@@ -478,6 +481,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     select id
                     from Producto
                     where codigo = %(tipo)s
+                    and eliminado = false
                 '''
                 
                 params = {

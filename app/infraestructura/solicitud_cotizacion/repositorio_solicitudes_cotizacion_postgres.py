@@ -34,6 +34,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     on PC.id_prospecto = P.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join Usuario EJ_COM
                     on PC.rut_ej_comercial = EJ_COM.rut
                     where SC.id = %(id)s
@@ -240,6 +241,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     on PC.id_prospecto = P.id
                     inner join Producto PR
                     on PC.id_producto = PR.id
+                    and PR.eliminado = false
                     left join Usuario EJ_COM
                     on PC.rut_ej_comercial = EJ_COM.rut
                     where PC.id = %(id_proceso_comercial)s
@@ -441,6 +443,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     from ProcesoComercial PC
                     inner join Producto P
                     on PC.id_producto = P.id
+                    and P.eliminado = false
                     where PC.id = %(id_proceso_comercial)s
                 '''
                 
@@ -586,6 +589,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     from ProcesoComercial PC
                     inner join Producto P
                     on PC.id_producto = P.id
+                    and P.eliminado = false
                     where PC.id = %(id_proceso_comercial)s
                 '''
                 

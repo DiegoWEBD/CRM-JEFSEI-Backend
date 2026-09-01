@@ -145,6 +145,7 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                     from Poliza p
                     join ProcesoComercial pc on p.id_proceso_comercial = pc.id
                     join Producto pr on pc.id_producto = pr.id
+                    and pr.eliminado = false
                     where extract(year from p.fecha_emision) = %(year)s
                       and extract(month from p.fecha_emision) = %(mes)s
                       and (p.cancelada is null or p.cancelada = false)
@@ -247,6 +248,7 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                         from Poliza p
                         join ProcesoComercial pc on p.id_proceso_comercial = pc.id
                         join Producto pr on pc.id_producto = pr.id
+                        and pr.eliminado = false
                         where p.cancelada is null or p.cancelada = false
                           and extract(year from p.fecha_emision) = %(year)s
                           and extract(month from p.fecha_emision) = %(mes)s
@@ -354,6 +356,7 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                     from SolicitudEvaluacionRiesgo ser
                     join ProcesoComercial pc on ser.id_proceso_comercial = pc.id
                     join Producto pr on pc.id_producto = pr.id
+                    and pr.eliminado = false
                     group by pr.nombre
                     order by cantidad desc
                     '''
