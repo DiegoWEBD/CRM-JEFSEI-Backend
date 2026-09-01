@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 
-from app.core.config import settings
-
 
 def crear_token_mock(
     rut: str = "12345678-9",
@@ -11,6 +9,8 @@ def crear_token_mock(
     nombre_roles: list[str] | None = None,
     codigo_permisos: list[str] | None = None,
     exp_minutes: int = 60,
+    secret_key: str = "test-secret-key-for-mocks",
+    algorithm: str = "HS256",
 ) -> str:
     if codigo_roles is None:
         codigo_roles = ["ADMIN"]
@@ -36,8 +36,8 @@ def crear_token_mock(
 
     return jwt.encode(
         payload,
-        settings.ACCESS_TOKEN_SECRET_KEY,
-        algorithm=settings.ACCESS_TOKEN_ALGORITHM,
+        secret_key,
+        algorithm=algorithm,
     )
 
 
