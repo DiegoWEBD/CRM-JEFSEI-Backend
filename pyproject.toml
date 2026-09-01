@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: tests unitarios (dominio, aplicación, adaptadores)",
+    "integration: tests de integración (API endpoints)",
+    "auth: tests de autenticación y autorización",
+]
+addopts = "-v --tb=short --strict-markers"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/documentos/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0

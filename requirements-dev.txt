@@ -3,3 +3,7 @@
 bandit
 pip-audit
 pytest
+pytest-cov
+factory-boy
+faker
+httpx2
