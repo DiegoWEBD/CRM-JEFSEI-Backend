@@ -52,7 +52,7 @@ def cerrar_proceso_comercial(
     )
 
     return {
-        'message': f'Oportunidad {'ganada' if request.ganado else 'perdida'}'
+        'message': f'Oportunidad {"ganada" if request.ganado else "perdida"}'
     }
 
 
