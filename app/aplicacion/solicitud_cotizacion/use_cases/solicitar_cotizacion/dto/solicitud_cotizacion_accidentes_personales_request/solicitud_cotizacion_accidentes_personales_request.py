@@ -1,9 +1,0 @@
-from typing import Literal
-
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_accidentes_personales_request.actividad_accidentes_personales_request import ActividadAccidentesPersonalesRequest
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
-
-
-class SolicitudCotizacionAccidentesPersonalesRequest(SolicitudCotizacionRequest):
-    tipo: Literal['accidentes_personales']  # type: ignore
-    actividades: list[ActividadAccidentesPersonalesRequest]
