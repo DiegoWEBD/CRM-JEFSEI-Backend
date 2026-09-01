@@ -522,7 +522,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     '''))
                     params['rut_usuario'] = rut_usuario
 
-                base_where = sql.SQL(' WHERE ').join(base_conditions) if base_conditions else sql.SQL('')
+                base_where = (sql.SQL(' WHERE ') + sql.SQL(' AND ').join(base_conditions)) if base_conditions else sql.SQL('')
 
                 estado_filter: sql.Composable
                 if estado is not None:
