@@ -146,6 +146,31 @@ class RepositorioProductoPostgres(RepositorioProducto):
 
                 return cur.rowcount > 0
 
+    def existe_por_nombre_y_linea_negocio(
+        self, nombre: str, id_linea_negocio: int
+    ) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    SELECT EXISTS(
+                        SELECT 1 FROM Producto
+                        WHERE UNACCENT(LOWER(nombre)) = UNACCENT(LOWER(%(nombre)s))
+                        AND id_linea_negocio = %(id_linea_negocio)s
+                        AND eliminado = false
+                    ) as existe
+                '''
+
+                params = {
+                    'nombre': nombre,
+                    'id_linea_negocio': id_linea_negocio,
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row['existe']
+
     def eliminar(self, id: int) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

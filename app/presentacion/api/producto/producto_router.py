@@ -65,10 +65,11 @@ def crear_producto(
     _ = Depends(permisos_requeridos('ADMINISTRAR_PRODUCTOS')),
     use_case: CrearProductoUseCase = Depends(get_crear_producto_use_case)
 ):
+    
+    
     registrado = use_case.ejecutar(
         nombre=request.nombre,
         id_linea_negocio=request.id_linea_negocio,
-        codigo=request.codigo,
     )
 
     if not registrado:
@@ -93,7 +94,6 @@ def actualizar_producto(
         id=id,
         nombre=request.nombre,
         id_linea_negocio=request.id_linea_negocio,
-        codigo=request.codigo,
     )
 
     if not actualizado:

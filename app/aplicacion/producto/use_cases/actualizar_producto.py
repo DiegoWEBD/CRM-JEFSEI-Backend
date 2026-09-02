@@ -13,7 +13,6 @@ class ActualizarProductoUseCase:
         id: int,
         nombre: str,
         id_linea_negocio: int,
-        codigo: str | None = None,
     ) -> bool:
         producto = self.repositorio_producto.obtener_por_id(id)
 
@@ -25,6 +24,5 @@ class ActualizarProductoUseCase:
 
         producto.nombre = nombre.strip()
         producto.id_linea_negocio = id_linea_negocio
-        producto.codigo = codigo
 
         return self.repositorio_producto.actualizar(producto)

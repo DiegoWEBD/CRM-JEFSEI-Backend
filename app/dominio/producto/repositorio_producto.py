@@ -27,5 +27,11 @@ class RepositorioProducto(ABC):
         pass
 
     @abstractmethod
+    def existe_por_nombre_y_linea_negocio(
+        self, nombre: str, id_linea_negocio: int
+    ) -> bool:
+        pass
+
+    @abstractmethod
     def eliminar(self, id: int) -> bool:
         pass

@@ -3,14 +3,21 @@ from unittest.mock import MagicMock, call
 
 from app.dominio.producto.producto import Producto
 from app.dominio.producto.repositorio_producto import RepositorioProducto
+from app.dominio.linea_negocio.repositorio_lineas_negocio import RepositorioLineasNegocio
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
+from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from tests.factories.producto_factory import crear_producto_mock
 
 
 @pytest.fixture
 def repositorio_mock():
     return MagicMock(spec=RepositorioProducto)
+
+
+@pytest.fixture
+def repositorio_linea_negocio_mock():
+    return MagicMock(spec=RepositorioLineasNegocio)
 
 
 @pytest.mark.unit
@@ -165,49 +172,63 @@ class TestObtenerProductoUseCase:
 @pytest.mark.unit
 class TestCrearProductoUseCase:
 
-    def test_crear_producto_exitoso(self, repositorio_mock):
+    def test_crear_producto_exitoso(self, repositorio_mock, repositorio_linea_negocio_mock):
+        from app.dominio.linea_negocio.linea_negocio import LineaNegocio
         from app.aplicacion.producto.use_cases.crear_producto import CrearProductoUseCase
 
-        repositorio_mock.obtener_por_id.return_value = None
+        repositorio_mock.existe_por_nombre_y_linea_negocio.return_value = False
         repositorio_mock.crear.return_value = True
+        repositorio_linea_negocio_mock.obtener_por_id.return_value = LineaNegocio(
+            id=10, nombre="Líneas Comerciales"
+        )
 
-        uc = CrearProductoUseCase(repositorio_mock)
+        uc = CrearProductoUseCase(repositorio_mock, repositorio_linea_negocio_mock)
         resultado = uc.ejecutar(
-            nombre="Seguro Hogar",
+            nombre="Catastrófico Colectivo",
             id_linea_negocio=10,
-            codigo="HOGAR-001",
         )
 
         assert resultado is True
         repositorio_mock.crear.assert_called_once()
         producto_creado = repositorio_mock.crear.call_args[0][0]
-        assert producto_creado.nombre == "Seguro Hogar"
+        assert producto_creado.nombre == "Catastrófico Colectivo"
         assert producto_creado.id_linea_negocio == 10
-        assert producto_creado.codigo == "HOGAR-001"
+        assert producto_creado.codigo == "catastrofico_colectivo_lineas_comerciales"
         assert producto_creado.eliminado is False
 
-    def test_crear_producto_nombre_vacio(self, repositorio_mock):
+    def test_crear_producto_nombre_vacio(self, repositorio_mock, repositorio_linea_negocio_mock):
         from app.aplicacion.producto.use_cases.crear_producto import CrearProductoUseCase
 
-        uc = CrearProductoUseCase(repositorio_mock)
+        uc = CrearProductoUseCase(repositorio_mock, repositorio_linea_negocio_mock)
 
         with pytest.raises(ConflictoEnAccionException, match="El nombre del producto es obligatorio"):
             uc.ejecutar(
                 nombre="",
                 id_linea_negocio=10,
-                codigo="HOGAR-001",
             )
 
-    def test_crear_producto_sin_linea_negocio(self, repositorio_mock):
+    def test_crear_producto_sin_linea_negocio(self, repositorio_mock, repositorio_linea_negocio_mock):
         from app.aplicacion.producto.use_cases.crear_producto import CrearProductoUseCase
 
-        uc = CrearProductoUseCase(repositorio_mock)
+        uc = CrearProductoUseCase(repositorio_mock, repositorio_linea_negocio_mock)
 
         with pytest.raises(ConflictoEnAccionException, match="La línea de negocio es obligatoria"):
             uc.ejecutar(
                 nombre="Seguro Hogar",
                 id_linea_negocio=0,
-                codigo="HOGAR-001",
+            )
+
+    def test_crear_producto_duplicado(self, repositorio_mock, repositorio_linea_negocio_mock):
+        from app.aplicacion.producto.use_cases.crear_producto import CrearProductoUseCase
+
+        repositorio_mock.existe_por_nombre_y_linea_negocio.return_value = True
+
+        uc = CrearProductoUseCase(repositorio_mock, repositorio_linea_negocio_mock)
+
+        with pytest.raises(RecursoYaExisteException, match="Ya existe un producto con ese nombre para la línea de negocio seleccionada"):
+            uc.ejecutar(
+                nombre="Seguro Hogar",
+                id_linea_negocio=10,
             )
 
 
@@ -226,7 +247,6 @@ class TestActualizarProductoUseCase:
             id=1,
             nombre="Seguro Hogar Actualizado",
             id_linea_negocio=11,
-            codigo="HOGAR-002",
         )
 
         assert resultado is True
@@ -247,7 +267,6 @@ class TestActualizarProductoUseCase:
                 id=999,
                 nombre="Test",
                 id_linea_negocio=10,
-                codigo="TEST",
             )
 
     def test_actualizar_producto_eliminado(self, repositorio_mock):
@@ -262,7 +281,6 @@ class TestActualizarProductoUseCase:
                 id=1,
                 nombre="Test",
                 id_linea_negocio=10,
-                codigo="TEST",
             )
 
     def test_actualizar_producto_nombre_vacio(self, repositorio_mock):
@@ -278,7 +296,6 @@ class TestActualizarProductoUseCase:
                 id=1,
                 nombre="",
                 id_linea_negocio=10,
-                codigo="TEST",
             )
 
 
