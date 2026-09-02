@@ -474,6 +474,21 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 cur.execute(query, params)
 
+                # Cambio de estado del proceso comercial
+                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': poliza.id_proceso_comercial,
+                    'codigo_estado': ESTADO_POLIZA_REGISTRADA
+                }
+
+                cur.execute(query, params)
+
     def obtener_polizas_panel(
         self,
         id_cliente: int | None,

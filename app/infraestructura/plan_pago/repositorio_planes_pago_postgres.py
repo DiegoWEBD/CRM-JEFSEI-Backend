@@ -198,6 +198,21 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
 
                 cur.execute(query, params)
 
+                # Cambio de estado del proceso comercial
+                                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': poliza.id_proceso_comercial,
+                    'codigo_estado': ESTADO_PLAN_PAGO_CREADO
+                }
+
+                cur.execute(query, params)
+
     def actualizar_cuota(self, id_cuota: int, pagado: bool, fecha_pago: datetime | None) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
