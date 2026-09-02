@@ -8,4 +8,16 @@ class ObtenerUsuariosUseCase:
 
     def ejecutar(self) -> list[Usuario]:
         return self.repositorio_usuarios.obtener_todos()
+
+    def ejecutar_paginado(
+        self,
+        texto_busqueda: str | None = None,
+        pagina: int = 1,
+        tamano_pagina: int = 15,
+    ) -> tuple[list[Usuario], int]:
+        return self.repositorio_usuarios.obtener_paginados(
+            texto_busqueda=texto_busqueda,
+            pagina=pagina,
+            tamano_pagina=tamano_pagina,
+        )
     

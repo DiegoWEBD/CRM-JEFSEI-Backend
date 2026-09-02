@@ -1,3 +1,5 @@
+import math
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
@@ -7,6 +9,8 @@ from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUse
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
+from app.presentacion.api.dto.deps import get_paginacion_params
+from app.presentacion.api.dto.paginacion_params import PaginacionParams
 from app.presentacion.api.recordatorio.dependencias.deps import get_obtener_proximo_contacto_use_case
 from app.presentacion.api.usuario.deps import get_actualizar_usuario_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
 from app.presentacion.api.usuario.dto.actualizar_usuario_request import ActualizarUsuarioRequest
@@ -17,12 +21,22 @@ router = APIRouter(prefix='/usuarios', tags=['Usuarios'])
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_usuarios(
     _ = Depends(permisos_requeridos('OBTENER_USUARIOS')),
+    paginacion: PaginacionParams = Depends(get_paginacion_params),
     use_case: ObtenerUsuariosUseCase = Depends(get_obtener_usuarios_use_case)
 ):
-    usuarios = use_case.ejecutar()
+    datos, total = use_case.ejecutar_paginado(
+        texto_busqueda=paginacion.texto_busqueda,
+        pagina=paginacion.pagina,
+        tamano_pagina=paginacion.tamano_pagina,
+    )
+    total_paginas = math.ceil(total / paginacion.tamano_pagina) if total > 0 else 1
 
     return {
-        'data': [UsuarioJsonAdapter.Adapt(usuario) for usuario in usuarios]
+        'data': [UsuarioJsonAdapter.Adapt(usuario) for usuario in datos],
+        'total': total,
+        'pagina': paginacion.pagina,
+        'tamano_pagina': paginacion.tamano_pagina,
+        'total_paginas': total_paginas,
     }
 
 @router.get('/{rut}', status_code = status.HTTP_200_OK)

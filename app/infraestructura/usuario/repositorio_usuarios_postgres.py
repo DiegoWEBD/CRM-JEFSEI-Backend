@@ -1,3 +1,4 @@
+from psycopg import sql
 from psycopg.rows import DictRow
 
 from app.dominio.usuario.usuario import Usuario
@@ -252,3 +253,104 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     cur.execute(query, params)
 
                 return True
+
+    def _construir_where(
+        self,
+        texto_busqueda: str | None,
+        params: dict,
+    ) -> sql.Composable:
+        condiciones: list[sql.Composable] = []
+
+        condiciones.append(sql.SQL('U.eliminado = false'))
+
+        if texto_busqueda:
+            condiciones.append(sql.SQL(
+                '('
+                'UNACCENT(LOWER(U.rut)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(U.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(U.correo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(U.telefono)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(R.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))'
+                ')'
+            ))
+            params['texto_busqueda'] = f'%{texto_busqueda}%'
+
+        return sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+
+    def obtener_paginados(
+        self,
+        texto_busqueda: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[Usuario], int]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                params: dict = {}
+                where_clause = self._construir_where(texto_busqueda, params)
+
+                count_query = sql.SQL('''
+                    SELECT COUNT(DISTINCT U.rut) as total
+                    FROM Usuario U
+                    LEFT JOIN RolUsuario RU ON U.rut = RU.rut_usuario
+                    LEFT JOIN Rol R ON RU.codigo_rol = R.codigo
+                    {where_clause}
+                ''').format(where_clause=where_clause)
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total'] # type: ignore
+
+                offset = (pagina - 1) * tamano_pagina
+
+                data_query = sql.SQL('''
+                    WITH usuarios_paginados AS (
+                        SELECT DISTINCT U.rut, U.nombre
+                        FROM Usuario U
+                        LEFT JOIN RolUsuario RU ON U.rut = RU.rut_usuario
+                        LEFT JOIN Rol R ON RU.codigo_rol = R.codigo
+                        {where_clause}
+                        ORDER BY U.nombre
+                        LIMIT %(tamano_pagina)s OFFSET %(offset)s
+                    )
+                    SELECT U.rut, U.nombre,
+                    U.correo, U.telefono,
+                    U.meta_mensual_uf,
+                    U.password_hash,
+                    U.fecha_registro,
+                    U.habilitado, U.eliminado,
+                    U.porcentaje_comision,
+                    S.id as id_sucursal,
+                    S.nombre as nombre_sucursal,
+                    RU.codigo_rol,
+                    R.nombre as rol,
+                    PR.codigo_permiso,
+                    P.descripcion as descripcion_permiso
+                    FROM usuarios_paginados UP
+                    INNER JOIN Usuario U ON U.rut = UP.rut
+                    INNER JOIN Sucursal S ON U.id_sucursal = S.id
+                    LEFT JOIN RolUsuario RU ON U.rut = RU.rut_usuario
+                    LEFT JOIN Rol R ON RU.codigo_rol = R.codigo
+                    LEFT JOIN PermisoRol PR ON R.codigo = PR.codigo_rol
+                    LEFT JOIN Permiso P ON PR.codigo_permiso = P.codigo
+                    ORDER BY U.nombre
+                ''').format(where_clause=where_clause)
+                page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
+                cur.execute(data_query, page_params)
+                rows = cur.fetchall()
+
+                if rows is None or len(rows) == 0:
+                    return [], total
+
+                datos_usuarios: dict[str, list[DictRow]] = {}
+
+                for row in rows:
+                    if row['rut'] not in datos_usuarios:
+                        datos_usuarios[row['rut']] = []
+
+                    datos_usuarios[row['rut']].append(row)
+
+                usuarios: list[Usuario] = []
+
+                for values in datos_usuarios.values():
+                    usuarios.append(TupleRowsUsuarioAdapter(values).to_usuario())
+
+                return usuarios, total
