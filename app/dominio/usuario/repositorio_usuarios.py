@@ -20,6 +20,15 @@ class RepositorioUsuarios(ABC):
         pass
 
     @abstractmethod
+    def obtener_paginados(
+        self,
+        texto_busqueda: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[Usuario], int]:
+        pass
+
+    @abstractmethod
     def registrar(self, usuario: Usuario) -> bool:
         pass
 

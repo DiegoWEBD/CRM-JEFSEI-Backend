@@ -66,6 +66,7 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
     def override_get_obtener_usuarios_use_case():
         uc = MagicMock(spec=ObtenerUsuariosUseCase)
         uc.ejecutar.return_value = [usuario_autenticado]
+        uc.ejecutar_paginado.return_value = ([usuario_autenticado], 1)
         return uc
 
     def override_get_registrar_usuario_use_case():
