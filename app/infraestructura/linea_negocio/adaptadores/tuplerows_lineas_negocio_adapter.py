@@ -39,7 +39,8 @@ class TupleRowsLineasNegocioAdapter:
                 producto = Producto(
                     id=id_producto,
                     nombre=nombre_producto,
-                    codigo=''
+                    codigo='',
+                    id_linea_negocio=id_linea_negocio
                 )
                 linea_negocio.productos.append(producto)
 

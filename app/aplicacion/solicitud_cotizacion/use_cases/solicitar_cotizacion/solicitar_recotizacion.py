@@ -1,12 +1,8 @@
 from datetime import datetime, timezone
-from typing import cast
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_accidentes_personales_request.solicitud_cotizacion_accidentes_personales_request import SolicitudCotizacionAccidentesPersonalesRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_responsabilidad_civil_request import SolicitudCotizacionResponsabilidadCivilRequest
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_unidades_request import SolicitudCotizacionUnidadesRequest
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_vida_guardia_request import SolicitudCotizacionVidaGuardiaRequest
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -44,10 +40,9 @@ class SolicitarRecotizacionUseCase:
 
         solicitud: SolicitudCotizacion
 
-        solicitud: SolicitudCotizacion
-
         if request.tipo == 'accidentes_personales':
-            request = cast(SolicitudCotizacionAccidentesPersonalesRequest, request)
+            if request.actividades is None:
+                raise ConflictoEnAccionException('El tipo accidentes_personales requiere el campo actividades')
 
             actividades: list[ActividadAccidentesPersonales] = []
 
@@ -74,7 +69,8 @@ class SolicitarRecotizacionUseCase:
             )
 
         elif request.tipo == 'unidades':
-            request = cast(SolicitudCotizacionUnidadesRequest, request)
+            if request.monto_asegurado_total is None or request.nombre_excel is None:
+                raise ConflictoEnAccionException('El tipo unidades requiere los campos monto_asegurado_total y nombre_excel')
 
             solicitud = SolicitudCotizacionUnidades(
                 id=None,
@@ -94,7 +90,8 @@ class SolicitarRecotizacionUseCase:
             )
 
         elif request.tipo == 'vida_guardia':
-            request = cast(SolicitudCotizacionVidaGuardiaRequest, request)
+            if request.numero_guardias is None:
+                raise ConflictoEnAccionException('El tipo vida_guardia requiere el campo numero_guardias')
 
             solicitud = SolicitudCotizacionVidaGuardia(
                 id=None,
@@ -113,7 +110,8 @@ class SolicitarRecotizacionUseCase:
             )
 
         elif request.tipo == 'rc_condominio':
-            request = cast(SolicitudCotizacionResponsabilidadCivilRequest, request)
+            if request.actividad_del_condominio is None or request.limite is None:
+                raise ConflictoEnAccionException('El tipo rc_condominio requiere los campos actividad_del_condominio y limite')
 
             solicitud = SolicitudCotizacionResponsabilidadCivil(
                 id=None,

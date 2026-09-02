@@ -50,7 +50,8 @@ class DictRowProcesoComercialAdapter:
         producto = Producto(
             id=id_producto,
             nombre=nombre_producto,
-            codigo=codigo_producto
+            codigo=codigo_producto,
+            id_linea_negocio=0
         )
 
         etapa = EtapaProcesoComercial(

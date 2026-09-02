@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.aplicacion.linea_negocio.use_cases.obtener_lineas_de_negocio import ObtenerLineasDeNegocioUseCase
-from app.presentacion.api.linea_negocio.deps import get_obtener_lineas_negocio_use_case
+from app.aplicacion.linea_negocio.use_cases.obtener_productos_linea_negocio import ObtenerProductosLineaNegocioUseCase
+from app.presentacion.api.linea_negocio.deps import get_obtener_lineas_negocio_use_case, get_obtener_productos_linea_negocio_use_case
 
 
 router = APIRouter(prefix="/lineas-negocio", tags=["Lineas de Negocio"])
@@ -10,18 +11,20 @@ router = APIRouter(prefix="/lineas-negocio", tags=["Lineas de Negocio"])
 def obtener_lineas_negocio(
     use_case: ObtenerLineasDeNegocioUseCase = Depends(get_obtener_lineas_negocio_use_case)
 ):
-    try:
-        lineas_negocio = use_case.ejecutar()
-
-        return {
-            "lineas_negocio": lineas_negocio
-        }
+    lineas_negocio = use_case.ejecutar()
     
-    except HTTPException:
-        raise
+    return {
+        "lineas_negocio": lineas_negocio
+    }
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc)
-        )
+
+@router.get("/{id}/productos", status_code=200)
+def obtener_productos_linea_negocio(
+    id: int,
+    use_case: ObtenerProductosLineaNegocioUseCase = Depends(get_obtener_productos_linea_negocio_use_case)
+):
+    productos = use_case.ejecutar(id)
+
+    return {
+        "productos": productos
+    }

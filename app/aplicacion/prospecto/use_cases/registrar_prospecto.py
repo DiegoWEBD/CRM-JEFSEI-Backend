@@ -61,7 +61,7 @@ class RegistrarProspectoUseCase:
 
         if existente:
             es_cliente = existente.id_cliente is not None
-            raise RecursoYaExisteException(f'El {'cliente' if es_cliente else 'prospecto'} ya existe')
+            raise RecursoYaExisteException(f'El {"cliente" if es_cliente else "prospecto"} ya existe')
 
         if id_linea_negocio == ID_LINEAS_PERSONALES:
             return self._registrar_lineas_personales(

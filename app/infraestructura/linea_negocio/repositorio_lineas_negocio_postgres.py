@@ -1,5 +1,6 @@
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.linea_negocio.repositorio_lineas_negocio import RepositorioLineasNegocio
+from app.dominio.producto.producto import Producto
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.linea_negocio.adaptadores.tuplerow_linea_negocio_adapter import TupleRowLineaNegocioAdapter
 from app.infraestructura.linea_negocio.adaptadores.tuplerows_lineas_negocio_adapter import TupleRowsLineasNegocioAdapter
@@ -18,6 +19,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                     from LineaNegocio LN
                     left join Producto P
                     on LN.id = P.id_linea_negocio
+                    and P.eliminado = false
                 '''
 
                 cur.execute(query)
@@ -53,3 +55,49 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                     return None
 
                 return TupleRowLineaNegocioAdapter(row).to_linea_negocio()
+
+    def obtener_por_id(self, id: int) -> LineaNegocio | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select id, nombre
+                    from LineaNegocio
+                    where id = %(id)s
+                '''
+
+                params = {'id': id}
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if not row:
+                    return None
+
+                return LineaNegocio(id=row['id'], nombre=row['nombre'], productos=[])
+
+    def obtener_productos_por_linea_negocio(self, id_linea_negocio: int) -> list[Producto]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select id, nombre, codigo
+                    from Producto
+                    where id_linea_negocio = %(id_linea_negocio)s
+                    and eliminado = false
+                '''
+
+                params = {'id_linea_negocio': id_linea_negocio}
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                return [
+                    Producto(
+                        id=row['id'], 
+                        nombre=row['nombre'], 
+                        codigo=row['codigo'],
+                        id_linea_negocio=id_linea_negocio
+                    )
+                    for row in rows
+                ]
