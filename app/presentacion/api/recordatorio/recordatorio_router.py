@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -10,6 +11,8 @@ from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerR
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.dto.deps import get_paginacion_params
+from app.presentacion.api.dto.paginacion_params import PaginacionParams
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.recordatorio.dependencias.deps import get_actualizar_recordatorio_use_case, get_completar_recordatorio_use_case, get_eliminar_recordatorio_use_case, get_obtener_recordatorios_usuario_use_case, get_registrar_recordatorio_use_case
 from app.presentacion.api.recordatorio.dto.actualizar_recordatorio_request import ActualizarRecordatorioRequest
@@ -22,6 +25,7 @@ router = APIRouter(prefix='/recordatorios', tags=['Recordatorios'])
 def obtener_recordatorios_usuario(
     fecha: str = Query(),
     id_prospecto: Optional[int] = Query(None),
+    paginacion: PaginacionParams = Depends(get_paginacion_params),
     usuario: Usuario = Depends(get_current_user),
     use_case: ObtenerRecordatoriosUsuarioUseCase = Depends(get_obtener_recordatorios_usuario_use_case)
 ):
@@ -31,14 +35,21 @@ def obtener_recordatorios_usuario(
         datetime.strptime(fecha, '%Y-%m-%d')
     except ValueError:
         raise BadRequestException(f'Fecha inválida: "{fecha}". Debe ser YYYY-MM-DD')
-    recordatorios = use_case.ejecutar(
+    datos, total = use_case.ejecutar_paginado(
         rut_usuario=usuario.rut,
         fecha=fecha,
-        id_prospecto=id_prospecto
+        id_prospecto=id_prospecto,
+        pagina=paginacion.pagina,
+        tamano_pagina=paginacion.tamano_pagina,
     )
+    total_paginas = math.ceil(total / paginacion.tamano_pagina) if total > 0 else 1
 
     return {
-        'recordatorios': recordatorios
+        'data': datos,
+        'total': total,
+        'pagina': paginacion.pagina,
+        'tamano_pagina': paginacion.tamano_pagina,
+        'total_paginas': total_paginas,
     }
 
 

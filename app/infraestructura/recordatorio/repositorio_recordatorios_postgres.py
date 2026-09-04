@@ -45,20 +45,11 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                 cur.execute(query, params)
                 
 
-    def obtener_recordatorios_usuario(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioUsuario]:
+    def obtener_recordatorios_usuario(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioUsuario], int]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = '''
-                    select R.id,
-                    RU.id_prospecto,
-                    P.nombre_riesgo,
-                    R.titulo,
-                    R.detalle,
-                    R.completado,
-                    R.tipo_gestion,
-                    R.prioridad,
-                    R.fecha_recordatorio
+                base_query = '''
                     from RecordatorioUsuario RU
                     inner join Recordatorio R
                     on RU.id = R.id
@@ -74,16 +65,35 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     'fecha': fecha
                 }
 
+                where_extra = ''
                 if id_prospecto is not None:
-                    query += ' and P.id = %(id_prospecto)s'
+                    where_extra = ' and P.id = %(id_prospecto)s'
                     params['id_prospecto'] = str(id_prospecto)
 
-                query += ' order by R.fecha_recordatorio'
-                cur.execute(query, params)
+                count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total']
+
+                offset = (pagina - 1) * tamano_pagina
+
+                data_query = '''
+                    select R.id,
+                    RU.id_prospecto,
+                    P.nombre_riesgo,
+                    R.titulo,
+                    R.detalle,
+                    R.completado,
+                    R.tipo_gestion,
+                    R.prioridad,
+                    R.fecha_recordatorio
+                ''' + base_query + where_extra + ' order by R.fecha_recordatorio'
+
+                page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
+                cur.execute(data_query + ' LIMIT %(tamano_pagina)s OFFSET %(offset)s', page_params)
 
                 rows = cur.fetchall()
 
-                return [DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()for row in rows]
+                return [DictRowRecordatorioUsuarioAdapter(row).to_recordatorio() for row in rows], total
             
     def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
         with obtener_conexion() as conn:
@@ -125,19 +135,11 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 return DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()
             
-    def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioRenovacionPoliza]:
+    def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioRenovacionPoliza], int]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = '''
-                    select R.id,
-                    RR.numero_poliza,
-                    R.titulo,
-                    R.detalle,
-                    R.completado,
-                    R.tipo_gestion,
-                    R.prioridad,
-                    R.fecha_recordatorio
+                base_query = '''
                     from RecordatorioRenovacionPoliza RR
                     inner join Recordatorio R
                     on RR.id = R.id
@@ -158,32 +160,40 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     'fecha': fecha
                 }
 
+                where_extra = ''
                 if id_prospecto is not None:
-                    query += ' and C.id_prospecto = %(id_prospecto)s'
+                    where_extra = ' and C.id_prospecto = %(id_prospecto)s'
                     params['id_prospecto'] = str(id_prospecto)
 
-                query += ' order by R.fecha_recordatorio'
-                cur.execute(query, params)
+                count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total']
 
-                rows = cur.fetchall()
+                offset = (pagina - 1) * tamano_pagina
 
-                return [DictRowRecordatorioRenovacionPolizaAdapter(row).to_recordatorio()for row in rows]
-            
-    def obtener_recordatorios_cobranza(self, rut_usuario: str, fecha: str, id_prospecto: int | None) -> list[RecordatorioCobranzaCuotaPoliza]:
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
+                data_query = '''
                     select R.id,
-                    C.id_prospecto,
-                    PR.nombre_riesgo,
-                    P.numero_poliza,
+                    RR.numero_poliza,
                     R.titulo,
                     R.detalle,
                     R.completado,
                     R.tipo_gestion,
                     R.prioridad,
                     R.fecha_recordatorio
+                ''' + base_query + where_extra + ' order by R.fecha_recordatorio'
+
+                page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
+                cur.execute(data_query + ' LIMIT %(tamano_pagina)s OFFSET %(offset)s', page_params)
+
+                rows = cur.fetchall()
+
+                return [DictRowRecordatorioRenovacionPolizaAdapter(row).to_recordatorio() for row in rows], total
+            
+    def obtener_recordatorios_cobranza(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioCobranzaCuotaPoliza], int]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                base_query = '''
                     from RecordatorioCobranzaCuotaPoliza RC
                     inner join Recordatorio R
                     on RC.id = R.id
@@ -208,16 +218,36 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     'fecha': fecha
                 }
 
+                where_extra = ''
                 if id_prospecto is not None:
-                    query += ' and C.id_prospecto = %(id_prospecto)s'
+                    where_extra = ' and C.id_prospecto = %(id_prospecto)s'
                     params['id_prospecto'] = str(id_prospecto)
 
-                query += ' order by R.fecha_recordatorio'
-                cur.execute(query, params)
+                count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total']
+
+                offset = (pagina - 1) * tamano_pagina
+
+                data_query = '''
+                    select R.id,
+                    C.id_prospecto,
+                    PR.nombre_riesgo,
+                    P.numero_poliza,
+                    R.titulo,
+                    R.detalle,
+                    R.completado,
+                    R.tipo_gestion,
+                    R.prioridad,
+                    R.fecha_recordatorio
+                ''' + base_query + where_extra + ' order by R.fecha_recordatorio'
+
+                page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
+                cur.execute(data_query + ' LIMIT %(tamano_pagina)s OFFSET %(offset)s', page_params)
 
                 rows = cur.fetchall()
 
-                return [DictRowRecordatorioCobranzaAdapter(row).to_recordatorio() for row in rows]
+                return [DictRowRecordatorioCobranzaAdapter(row).to_recordatorio() for row in rows], total
 
     def actualizar(self, id: int, titulo: str, detalle: str | None, prioridad: str, tipo_gestion: str, fecha_recordatorio: str, id_prospecto: int | None = None) -> None:
         with obtener_conexion() as conn:
