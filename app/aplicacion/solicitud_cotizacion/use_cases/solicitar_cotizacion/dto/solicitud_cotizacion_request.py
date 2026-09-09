@@ -12,7 +12,7 @@ class SolicitudCotizacionRequest(BaseModel):
     motivo_recotizacion: Optional[str] = None
     id_solicitud_previa: int | None
     numero_guardias: int | None = None
-    monto_asegurado_total: float | None = None
+    monto_asegurado: float | None = None
     nombre_excel: str | None = None
     actividades: list[ActividadAccidentesPersonalesRequest] | None = None
     actividad_del_condominio: str | None = None

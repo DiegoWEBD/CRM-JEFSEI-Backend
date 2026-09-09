@@ -16,6 +16,7 @@ class SolicitudCotizacion:
         producto: str,
         recotizacion: bool,
         motivo_recotizacion: str | None,
+        monto_asegurado: float | None = None,
         cantidad_cotizaciones: int = 0
     ):
         self.id = id
@@ -25,6 +26,7 @@ class SolicitudCotizacion:
         self.tipo = tipo
         self.recotizacion = recotizacion
         self.motivo_recotizacion = motivo_recotizacion
+        self.monto_asegurado = monto_asegurado
         self.nombre_riesgo = nombre_riesgo
         self.informacion_completa = informacion_completa
         self.rut_ejecutivo_comercial = rut_ejecutivo_comercial
