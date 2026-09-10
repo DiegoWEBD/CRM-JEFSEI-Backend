@@ -18,6 +18,11 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     C.tasa_excenta,
                     C.tasa_politica,
                     C.prima_adicional_asistencia,
+                    C.prima_afecta,
+                    C.prima_excenta,
+                    C.prima_neta,
+                    C.prima_iva,
+                    C.prima_bruta,
                     C.id_company,
                     CS.nombre as nombre_company,
                     C.fecha_emision,
@@ -48,6 +53,11 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     C.tasa_excenta,
                     C.tasa_politica,
                     C.prima_adicional_asistencia,
+                    C.prima_afecta,
+                    C.prima_excenta,
+                    C.prima_neta,
+                    C.prima_iva,
+                    C.prima_bruta,
                     C.id_company,
                     CS.nombre as nombre_company,
                     C.fecha_emision,
@@ -86,6 +96,11 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                         tasa_afecta, 
                         tasa_excenta, 
                         tasa_politica,
+                        prima_afecta,
+                        prima_excenta,
+                        prima_neta,
+                        prima_iva,
+                        prima_bruta,
                         nombre_archivo
                     )
                     values(
@@ -98,6 +113,11 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                         %(tasa_afecta)s, 
                         %(tasa_excenta)s, 
                         %(tasa_politica)s,
+                        %(prima_afecta)s,
+                        %(prima_excenta)s,
+                        %(prima_neta)s,
+                        %(prima_iva)s,
+                        %(prima_bruta)s,
                         %(nombre_archivo)s
                     )
                 '''
@@ -112,6 +132,11 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     'tasa_afecta': cotizacion.tasa_afecta,
                     'tasa_excenta': cotizacion.tasa_excenta,
                     'tasa_politica': cotizacion.tasa_politica,
+                    'prima_afecta': cotizacion.prima_afecta,
+                    'prima_excenta': cotizacion.prima_excenta,
+                    'prima_neta': cotizacion.prima_neta,
+                    'prima_iva': cotizacion.prima_iva,
+                    'prima_bruta': cotizacion.prima_bruta,
                     'nombre_archivo': cotizacion.nombre_archivo
                 }
 
