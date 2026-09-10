@@ -1,4 +1,5 @@
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.infraestructura.administrador_condominio.adaptadores.administrador_condominio_json_adapter import AdministradorCondominioJsonAdapter
 from app.infraestructura.linea_negocio.adaptadores.linea_negocio_json_adapter import LineaNegocioJsonAdapter
 from app.infraestructura.planificacion_prospecto.adaptadores.planificacion_prospecto_json_adapter import PlanificacionProspectoJsonAdapter
@@ -14,6 +15,23 @@ class ProspectoCondominioJsonAdapter:
     def to_prospecto_json(self) -> ProspectoCondominioJson:
         if not self.prospecto.id:
             raise Exception('Prospecto inválido, hace falta el id')
+
+        valor_reconstruccion = None
+        valor_reconstruccion_depreciacion = None
+        valor_reconstruccion_espacio_comun = None
+
+        if self.prospecto.uf_por_metro_cuadrado and self.prospecto.metros_cuadrados:
+            valor_reconstruccion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
+                self.prospecto.uf_por_metro_cuadrado, self.prospecto.metros_cuadrados
+            )
+            if self.prospecto.porcentaje_depreciacion is not None:
+                valor_reconstruccion_depreciacion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion_depreciacion(
+                    valor_reconstruccion, self.prospecto.porcentaje_depreciacion
+                )
+                if self.prospecto.porcentaje_espacios_comunes is not None:
+                    valor_reconstruccion_espacio_comun = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
+                        valor_reconstruccion_depreciacion, self.prospecto.porcentaje_espacios_comunes
+                    )
         
         return ProspectoCondominioJson(
             id=self.prospecto.id,
@@ -53,6 +71,9 @@ class ProspectoCondominioJsonAdapter:
             tiene_piscina=self.prospecto.tiene_piscina,
             year_construccion=self.prospecto.year_construccion,
             metros_cuadrados=self.prospecto.metros_cuadrados,
+            valor_reconstruccion=valor_reconstruccion,
+            valor_reconstruccion_depreciacion=valor_reconstruccion_depreciacion,
+            valor_reconstruccion_espacio_comun=valor_reconstruccion_espacio_comun,
             ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
             informacion_completa=self.prospecto.informacion_completa,
             estado_general_cliente=self.prospecto.estado_general_cliente or 'prospecto'

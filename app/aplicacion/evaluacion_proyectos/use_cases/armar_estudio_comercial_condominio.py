@@ -14,12 +14,13 @@ from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoExce
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
 from app.presentacion.api.estudio_comercial.dto.seccion_estudio_comercial_request import SeccionEstudioComercialRequest
 
 
 class ArmarEstudioComercialCondominioUseCase:
-    factor_iva: float = 0.19
+    IVA_RATE: float = 0.19
 
     def __init__(
         self,
@@ -62,25 +63,25 @@ class ArmarEstudioComercialCondominioUseCase:
 
         #monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
         
-        if not prospecto.year_construccion:
+        if prospecto.year_construccion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
 
-        if not prospecto.metros_cuadrados:
+        if prospecto.metros_cuadrados is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, faltan los metros cuadrados')
         
-        if not prospecto.cantidad_departamentos:
+        if prospecto.cantidad_departamentos is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta la cantidad de unidades')
         
-        if not prospecto.porcentaje_espacios_comunes:
+        if prospecto.porcentaje_espacios_comunes is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
         
-        if not prospecto.administrador:
+        if prospecto.administrador is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
 
-        if not prospecto.uf_por_metro_cuadrado:
+        if prospecto.uf_por_metro_cuadrado is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el valor de la UF / m²')
 
-        if not prospecto.porcentaje_depreciacion:
+        if prospecto.porcentaje_depreciacion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
 
         cotizaciones = [
@@ -145,9 +146,15 @@ class ArmarEstudioComercialCondominioUseCase:
 
     ) -> str:
         
-        valor_total_reconstruccion_iva = round(metros_cuadrados_construidos * valor_uf_por_metro_cuadrado * (1 + ArmarEstudioComercialCondominioUseCase.factor_iva))
-        valor_total_reconstruccion_depreciacion_iva = round((1 - porcentaje_depreciacion) * valor_total_reconstruccion_iva)
-        monto_asegurado_sugerido = round(valor_total_reconstruccion_depreciacion_iva * porcentaje_bienes_espacios_comunes)
+        valor_total_reconstruccion_iva = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
+            metros_cuadrados_construidos, valor_uf_por_metro_cuadrado
+        )
+        valor_total_reconstruccion_depreciacion_iva = ServicioCalculoReconstruccion.calcular_valor_reconstruccion_depreciacion(
+            valor_total_reconstruccion_iva, porcentaje_depreciacion
+        )
+        monto_asegurado_sugerido = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
+            valor_total_reconstruccion_depreciacion_iva, porcentaje_bienes_espacios_comunes
+        )
 
         self.datos_plantilla.update({
             'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
@@ -324,7 +331,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
         prima_afecta = round((monto_asegurado / 1000 * (tasa_afecta + tasa_politica)) + prima_afecta_adicional, decimales)
         prima_excenta = round((monto_asegurado * tasa_excenta / 1000) + prima_excenta_adicional, decimales)
-        iva_prima_afecta = round(prima_afecta * ArmarEstudioComercialCondominioUseCase.factor_iva, decimales)
+        iva_prima_afecta = round(prima_afecta * ArmarEstudioComercialCondominioUseCase.IVA_RATE, decimales)
         prima_neta = round(prima_afecta + prima_excenta, decimales)
         prima_bruta = round(prima_neta + iva_prima_afecta, decimales)
 
