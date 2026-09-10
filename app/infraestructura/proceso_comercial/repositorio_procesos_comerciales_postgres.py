@@ -469,6 +469,21 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
+                # Cambio de estado de proceso comercial
+                                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id,
+                    'codigo_estado': codigo_estado,
+                }
+
+                cur.execute(query, params)
+
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
         ESTADO_OPORTUNIDAD_CREADA = 'OPORTUNIDAD_CREADA'
         
@@ -536,6 +551,21 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
+                # Cambio de estado de proceso comercial
+                                                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_OPORTUNIDAD_CREADA,
+                }
+
+                cur.execute(query, params)
+
                 return id_proceso_comercial
             
     def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
@@ -569,6 +599,21 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
                     'fecha_registro': datetime.now(tz=timezone.utc),
                     'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+                # Cambio de estado de proceso comercial
+                                                                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id,
+                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
                 }
 
                 cur.execute(query, params)
