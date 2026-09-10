@@ -15,11 +15,11 @@ class Cotizacion:
         fecha_emision: datetime, 
         fecha_vencimiento: datetime,
         nombre_archivo: str | None = None,
-        prima_afecta: float = 0.0,
-        prima_excenta: float = 0.0,
-        prima_neta: float = 0.0,
-        prima_iva: float = 0.0,
-        prima_bruta: float = 0.0,
+        prima_afecta: float | None = None,
+        prima_excenta: float | None = None,
+        prima_neta: float | None = None,
+        prima_iva: float | None = None,
+        prima_bruta: float | None = None,
     ):
         self.id = id
         self.prima_adicional_asistencia = prima_adicional_asistencia
