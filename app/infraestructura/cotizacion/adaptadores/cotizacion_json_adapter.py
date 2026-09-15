@@ -28,21 +28,6 @@ class CotizacionJsonAdapter:
                     archivo_bytes = f.read()
                 archivo_base64 = base64.b64encode(archivo_bytes).decode('utf-8')
 
-        '''
-        CASE
-            WHEN P.cancelada = true THEN 'CANCELADA'
-            WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
-            WHEN P.inicio_vigencia <= now()
-                    AND P.fin_vigencia > now()
-                    AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
-            WHEN P.inicio_vigencia <= now()
-                    AND P.fin_vigencia > now()
-                    AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
-            WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
-            ELSE 'REGISTRADA'
-        END as estado
-        '''
-
         estado: EstadoCotizacion
         now = datetime.now(tz=timezone.utc)
         emision = self.cotizacion.fecha_emision
