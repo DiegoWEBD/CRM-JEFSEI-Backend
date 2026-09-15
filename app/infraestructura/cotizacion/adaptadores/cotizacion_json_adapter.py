@@ -1,8 +1,10 @@
 import base64
+from datetime import datetime, timezone
 import os
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.presentacion.api.cotizacion.dto.cotizacion_json import CotizacionJson
+from app.presentacion.api.cotizacion.dto.estado_cotizacion import EstadoCotizacion
 
 
 class CotizacionJsonAdapter:
@@ -26,6 +28,37 @@ class CotizacionJsonAdapter:
                     archivo_bytes = f.read()
                 archivo_base64 = base64.b64encode(archivo_bytes).decode('utf-8')
 
+        '''
+        CASE
+            WHEN P.cancelada = true THEN 'CANCELADA'
+            WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
+            WHEN P.inicio_vigencia <= now()
+                    AND P.fin_vigencia > now()
+                    AND (P.fin_vigencia - now()) <= interval '60 days' THEN 'POR_VENCER'
+            WHEN P.inicio_vigencia <= now()
+                    AND P.fin_vigencia > now()
+                    AND (P.fin_vigencia - now()) > interval '60 days' THEN 'VIGENTE'
+            WHEN P.fin_vigencia <= now() THEN 'VENCIDA'
+            ELSE 'REGISTRADA'
+        END as estado
+        '''
+
+        estado: EstadoCotizacion
+        now = datetime.now(tz=timezone.utc)
+        emision = self.cotizacion.fecha_emision
+        vencimiento = self.cotizacion.fecha_vencimiento
+
+        INTERVALO_VENCIMIENTO = 10 # Cuántos días antes del vencimiento pasa a estado POR_VENCER
+
+        if emision > now:
+            estado = EstadoCotizacion.REGISTRADA
+        elif emision <= now and vencimiento > now and (vencimiento - now).days <= INTERVALO_VENCIMIENTO:
+            estado = EstadoCotizacion.POR_VENCER
+        elif emision <= now and vencimiento > now and (vencimiento - now).days > INTERVALO_VENCIMIENTO:
+            estado = EstadoCotizacion.VIGENTE
+        else:
+            estado = EstadoCotizacion.VENCIDA
+
         return CotizacionJson(
             id=self.cotizacion.id,
             monto_total_asegurado=self.cotizacion.monto_total_asegurado,
@@ -42,6 +75,7 @@ class CotizacionJsonAdapter:
             company=self.cotizacion.company.nombre,
             fecha_emision=self.cotizacion.fecha_emision.isoformat(),
             fecha_vencimiento=self.cotizacion.fecha_vencimiento.isoformat(),
+            estado=estado,
             nombre_archivo=self.cotizacion.nombre_archivo,
             archivo_base64=archivo_base64
         )

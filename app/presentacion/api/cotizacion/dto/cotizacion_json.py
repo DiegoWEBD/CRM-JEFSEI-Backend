@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.presentacion.api.cotizacion.dto.estado_cotizacion import EstadoCotizacion
+
 
 class CotizacionJson(BaseModel):
     id: int
@@ -17,5 +19,6 @@ class CotizacionJson(BaseModel):
     company: str 
     fecha_emision: str 
     fecha_vencimiento: str
+    estado: EstadoCotizacion
     nombre_archivo: str | None = None
     archivo_base64: str | None = None
