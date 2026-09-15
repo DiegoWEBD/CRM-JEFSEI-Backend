@@ -59,7 +59,7 @@ class RepositorioContactosPostgres(RepositorioContactos):
                     'correo': contacto.correo,
                     'cargo': contacto.cargo,
                 })
-                contacto.id = cur.fetchone()['id']
+                contacto.id = cur.fetchone()['id'] # type: ignore
                 return contacto
 
     def actualizar(self, contacto: Contacto) -> Contacto:

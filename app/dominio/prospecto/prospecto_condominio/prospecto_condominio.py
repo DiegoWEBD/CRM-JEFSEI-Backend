@@ -12,7 +12,7 @@ class ProspectoCondominio(Prospecto):
         self,
         administrador: AdministradorCondominio | None,
         rut_riesgo: str | None, 
-        nombre_riesgo: str | None, 
+        nombre_riesgo: str, 
         telefono_contacto: str | None, 
         correo_contacto: str | None, 
         direccion: str | None, 

@@ -3,6 +3,8 @@ from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.infraestructura.lib.normalizar_rut import normalizar_rut
+from app.infraestructura.lib.normalizar_texto import normalizar_texto
 
 
 class ActualizarProspectoUseCase:
@@ -32,13 +34,13 @@ class ActualizarProspectoUseCase:
         if not prospecto.ejecutivo_comercial_asignado or prospecto.ejecutivo_comercial_asignado.rut != rut_usuario:
             raise UsuarioNoAutorizadoException
 
-        if prospecto.nombre_riesgo != nombre_riesgo:
+        if normalizar_texto(prospecto.nombre_riesgo) != normalizar_texto(nombre_riesgo):
             nombre_existente = self.repositorio_prospectos.buscar_prospecto_por_nombre(nombre_riesgo)
             if nombre_existente:
                 es_cliente = nombre_existente.id_cliente is not None
                 raise RecursoYaExisteException(f'El {"cliente" if es_cliente else "prospecto"} {nombre_riesgo} ya está registrado')
 
-        if rut_riesgo and prospecto.rut_riesgo != rut_riesgo:
+        if rut_riesgo and normalizar_rut(prospecto.rut_riesgo) != normalizar_rut(rut_riesgo):
             rut_existente = self.repositorio_prospectos.buscar_prospecto_por_rut(rut_riesgo)
             if rut_existente:
                 es_cliente = rut_existente.id_cliente is not None
