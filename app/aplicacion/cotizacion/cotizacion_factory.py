@@ -2,6 +2,7 @@ from datetime import datetime
 
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
+from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
 
 
 class CotizacionFactory:
@@ -9,7 +10,8 @@ class CotizacionFactory:
     @staticmethod
     def crear(
         monto_total_asegurado: float,
-        prima_adicional_asistencia: float,
+        asistencia_afecta: float,
+        asistencia_excenta: float,
         id_company: int,
         fecha_emision: datetime,
         fecha_vencimiento: datetime,
@@ -28,23 +30,24 @@ class CotizacionFactory:
             tasa_excenta = tasa_excenta or 0.0
             tasa_politica = tasa_politica or 0.0
 
-            prima_afecta = (
-                ((monto_total_asegurado * tasa_afecta) / 1000)
-                + ((monto_total_asegurado * tasa_politica) / 1000)
-                + prima_adicional_asistencia
+            prima_afecta = ServicioCalculoPrimas.calcular_prima_afecta(
+                monto_total_asegurado, tasa_afecta, tasa_politica, asistencia_afecta
             )
-            prima_excenta = (monto_total_asegurado * tasa_excenta) / 1000
+            prima_excenta = ServicioCalculoPrimas.calcular_prima_excenta(
+                monto_total_asegurado, tasa_excenta, asistencia_excenta
+            )
         else:
-            prima_afecta = prima_afecta or 0.0
-            prima_excenta = prima_excenta or 0.0
+            prima_afecta = (prima_afecta or 0.0) + asistencia_afecta
+            prima_excenta = (prima_excenta or 0.0) + asistencia_excenta
 
-            tasa_afecta = (prima_afecta / monto_total_asegurado) * 1000 if monto_total_asegurado else 0.0
-            tasa_excenta = (prima_excenta / monto_total_asegurado) * 1000 if monto_total_asegurado else 0.0
+            tasa_afecta, tasa_excenta = ServicioCalculoPrimas.calcular_tasas_desde_primas(
+                prima_afecta, prima_excenta, monto_total_asegurado
+            )
             tasa_politica = 0.0
 
-        prima_iva = prima_afecta * 0.19
-        prima_neta = prima_afecta + prima_excenta
-        prima_bruta = prima_iva + prima_neta
+        prima_iva = ServicioCalculoPrimas.calcular_iva_prima_afecta(prima_afecta)
+        prima_neta = ServicioCalculoPrimas.calcular_prima_neta(prima_afecta, prima_excenta)
+        prima_bruta = ServicioCalculoPrimas.calcular_prima_bruta(prima_neta, prima_iva)
 
         return Cotizacion(
             id=None,
@@ -52,14 +55,15 @@ class CotizacionFactory:
             tasa_afecta=round(tasa_afecta, 2),
             tasa_excenta=round(tasa_excenta, 2),
             tasa_politica=round(tasa_politica, 2),
-            prima_adicional_asistencia=prima_adicional_asistencia,
+            asistencia_afecta=asistencia_afecta,
+            asistencia_excenta=asistencia_excenta,
             company=company,
             fecha_emision=fecha_emision,
             fecha_vencimiento=fecha_vencimiento,
             nombre_archivo=nombre_archivo,
-            prima_afecta=round(prima_afecta, 2),
-            prima_excenta=round(prima_excenta, 2),
-            prima_neta=round(prima_neta, 2),
-            prima_iva=round(prima_iva, 2),
-            prima_bruta=round(prima_bruta, 2),
+            prima_afecta=prima_afecta,
+            prima_excenta=prima_excenta,
+            prima_neta=prima_neta,
+            prima_iva=prima_iva,
+            prima_bruta=prima_bruta,
         )
