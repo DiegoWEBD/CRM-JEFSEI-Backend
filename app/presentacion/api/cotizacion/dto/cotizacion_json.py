@@ -8,6 +8,11 @@ class CotizacionJson(BaseModel):
     tasa_excenta: float 
     tasa_politica: float 
     prima_adicional_asistencia: float 
+    prima_afecta: float | None = None
+    prima_excenta: float | None = None
+    prima_neta: float | None = None
+    prima_iva: float | None = None
+    prima_bruta: float | None = None
     company: str 
     fecha_emision: str 
     fecha_vencimiento: str

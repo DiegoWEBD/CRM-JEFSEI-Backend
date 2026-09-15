@@ -15,6 +15,11 @@ class Cotizacion:
         fecha_emision: datetime, 
         fecha_vencimiento: datetime,
         nombre_archivo: str | None = None,
+        prima_afecta: float | None = None,
+        prima_excenta: float | None = None,
+        prima_neta: float | None = None,
+        prima_iva: float | None = None,
+        prima_bruta: float | None = None,
     ):
         self.id = id
         self.prima_adicional_asistencia = prima_adicional_asistencia
@@ -26,3 +31,8 @@ class Cotizacion:
         self.fecha_vencimiento = fecha_vencimiento
         self.monto_total_asegurado = monto_total_asegurado
         self.nombre_archivo = nombre_archivo
+        self.prima_afecta = prima_afecta
+        self.prima_excenta = prima_excenta
+        self.prima_neta = prima_neta
+        self.prima_iva = prima_iva
+        self.prima_bruta = prima_bruta

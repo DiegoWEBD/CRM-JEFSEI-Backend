@@ -57,11 +57,18 @@ class RegistrarProspectoUseCase:
         metros_cuadrados: float | None = None
     ) -> int:
 
-        existente = self.repositorio_prospectos.buscar_prospecto_por_nombre(nombre_riesgo)
+        nombre_existente = self.repositorio_prospectos.buscar_prospecto_por_nombre(nombre_riesgo)
 
-        if existente:
-            es_cliente = existente.id_cliente is not None
-            raise RecursoYaExisteException(f'El {"cliente" if es_cliente else "prospecto"} ya existe')
+        if nombre_existente:
+            es_cliente = nombre_existente.id_cliente is not None
+            raise RecursoYaExisteException(f'El {"cliente" if es_cliente else "prospecto"} {nombre_riesgo} ya está registrado')
+
+        if rut_riesgo:
+            rut_existente = self.repositorio_prospectos.buscar_prospecto_por_rut(rut_riesgo)
+
+            if rut_existente:
+                es_cliente = rut_existente.id_cliente is not None
+                raise RecursoYaExisteException(f'El {"cliente" if es_cliente else "prospecto"} {rut_riesgo} ya está registrado')
 
         if id_linea_negocio == ID_LINEAS_PERSONALES:
             return self._registrar_lineas_personales(

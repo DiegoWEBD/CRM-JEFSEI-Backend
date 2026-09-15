@@ -54,6 +54,8 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                 
                 id_proceso_comercial = row['id_proceso_comercial']
 
+                # Registro de historial
+
                 query = '''
                     insert into HistorialEstadoInformativoProcesoComercial(
                         id_proceso_comercial, 
@@ -77,6 +79,21 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                     'fecha_registro': datetime.now(tz=timezone.utc),
                     'observacion': None,
                     'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+                # Cambio de estado de proceso comercial
+                
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': 'ESTUDIO_DISPONIBLE',
                 }
 
                 cur.execute(query, params)

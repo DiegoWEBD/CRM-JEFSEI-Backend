@@ -23,6 +23,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     SC.observaciones,
                     SC.recotizacion,
                     SC.motivo_recotizacion,
+                    SC.monto_asegurado,
                     P.nombre_riesgo,
                     P.informacion_completa,
                     PC.rut_ej_comercial,
@@ -57,6 +58,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 observaciones = row['observaciones']
                 recotizacion = row['recotizacion']
                 motivo_recotizacion = row['motivo_recotizacion']
+                monto_asegurado = row['monto_asegurado']
                 nombre_riesgo = row['nombre_riesgo']
                 informacion_completa = row['informacion_completa']
                 rut_ej_comercial = row['rut_ej_comercial']
@@ -135,7 +137,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 elif tipo == 'unidades':
                     query = '''
-                        select monto_asegurado_total, nombre_excel
+                        select nombre_excel
                         from SolicitudCotizacionProductoUnidades
                         where id = %(id_solicitud)s
                     '''
@@ -158,12 +160,12 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                         fecha=fecha,
                         recotizacion=recotizacion,
                         motivo_recotizacion=motivo_recotizacion,
+                        monto_asegurado=monto_asegurado,
                         nombre_riesgo=nombre_riesgo,
                         informacion_completa=informacion_completa,
                         rut_ejecutivo_comercial=rut_ej_comercial,
                         nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                         producto=producto,
-                        monto_asegurado_total=row_solicitud['monto_asegurado_total'],
                         nombre_excel=row_solicitud['nombre_excel']
                     )
 
@@ -210,6 +212,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                         fecha=fecha,
                         recotizacion=recotizacion,
                         motivo_recotizacion=motivo_recotizacion,
+                        monto_asegurado=monto_asegurado,
                         nombre_riesgo=nombre_riesgo,
                         informacion_completa=informacion_completa,
                         rut_ejecutivo_comercial=rut_ej_comercial,
@@ -229,6 +232,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     SC.observaciones,
                     SC.recotizacion,
                     SC.motivo_recotizacion,
+                    SC.monto_asegurado,
                     P.nombre_riesgo,
                     P.informacion_completa,
                     PC.rut_ej_comercial,
@@ -262,6 +266,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     observaciones = row['observaciones']
                     recotizacion = row['recotizacion']
                     motivo_recotizacion = row['motivo_recotizacion']
+                    monto_asegurado = row['monto_asegurado']
                     nombre_riesgo = row['nombre_riesgo']
                     informacion_completa = row['informacion_completa']
                     rut_ej_comercial = row['rut_ej_comercial']
@@ -343,7 +348,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                     elif tipo == 'unidades':
                         query = '''
-                            select monto_asegurado_total, nombre_excel
+                            select nombre_excel
                             from SolicitudCotizacionProductoUnidades
                             where id = %(id_solicitud)s
                         '''
@@ -366,13 +371,13 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             fecha=fecha,
                             recotizacion=recotizacion,
                             motivo_recotizacion=motivo_recotizacion,
+                            monto_asegurado=monto_asegurado,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
                             nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                             producto=producto,
                             cantidad_cotizaciones=cantidad_cotizaciones,
-                            monto_asegurado_total=row_solicitud['monto_asegurado_total'],
                             nombre_excel=row_solicitud['nombre_excel']
                         ))
 
@@ -420,6 +425,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             fecha=fecha,
                             recotizacion=recotizacion,
                             motivo_recotizacion=motivo_recotizacion,
+                            monto_asegurado=monto_asegurado,
                             nombre_riesgo=nombre_riesgo,
                             informacion_completa=informacion_completa,
                             rut_ejecutivo_comercial=rut_ej_comercial,
@@ -465,8 +471,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 # Creación de solicitud base
 
                 query = '''
-                    insert into SolicitudCotizacion (fecha, prioridad, id_proceso_comercial, observaciones, tipo, recotizacion)
-                    values (%(fecha)s, %(prioridad)s, %(id_proceso_comercial)s, %(observaciones)s, %(tipo)s, %(recotizacion)s)
+                    insert into SolicitudCotizacion (fecha, prioridad, id_proceso_comercial, observaciones, tipo, recotizacion, monto_asegurado)
+                    values (%(fecha)s, %(prioridad)s, %(id_proceso_comercial)s, %(observaciones)s, %(tipo)s, %(recotizacion)s, %(monto_asegurado)s)
                     returning id
                 '''
                 
@@ -476,7 +482,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     'id_proceso_comercial': id_proceso_comercial,
                     'observaciones': solicitud.observaciones,
                     'tipo': solicitud.tipo,
-                    'recotizacion': False
+                    'recotizacion': False,
+                    'monto_asegurado': solicitud.monto_asegurado
                 }
 
                 cur.execute(query, params)
@@ -491,13 +498,12 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 if isinstance(solicitud, SolicitudCotizacionUnidades):
                     query = '''
-                        insert into SolicitudCotizacionProductoUnidades (id, monto_asegurado_total, nombre_excel)
-                        values (%(id_solicitud)s, %(monto_asegurado_total)s, %(nombre_excel)s)
+                        insert into SolicitudCotizacionProductoUnidades (id, nombre_excel)
+                        values (%(id_solicitud)s, %(nombre_excel)s)
                     '''
                     
                     params = {
                         'id_solicitud': id_solicitud,
-                        'monto_asegurado_total': solicitud.monto_asegurado_total,
                         'nombre_excel': solicitud.nombre_excel
                     }
 
@@ -608,8 +614,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 # Creación de solicitud base
 
                 query = '''
-                    insert into SolicitudCotizacion (fecha, prioridad, id_proceso_comercial, observaciones, tipo, recotizacion, motivo_recotizacion)
-                    values (%(fecha)s, %(prioridad)s, %(id_proceso_comercial)s, %(observaciones)s, %(tipo)s, %(recotizacion)s, %(motivo_recotizacion)s)
+                    insert into SolicitudCotizacion (fecha, prioridad, id_proceso_comercial, observaciones, tipo, recotizacion, motivo_recotizacion, monto_asegurado)
+                    values (%(fecha)s, %(prioridad)s, %(id_proceso_comercial)s, %(observaciones)s, %(tipo)s, %(recotizacion)s, %(motivo_recotizacion)s, %(monto_asegurado)s)
                     returning id
                 '''
                 
@@ -620,7 +626,8 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     'observaciones': solicitud.observaciones,
                     'tipo': tipo,
                     'recotizacion': True,
-                    'motivo_recotizacion': solicitud.motivo_recotizacion
+                    'motivo_recotizacion': solicitud.motivo_recotizacion,
+                    'monto_asegurado': solicitud.monto_asegurado
                 }
 
                 cur.execute(query, params)
@@ -635,13 +642,12 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 if isinstance(solicitud, SolicitudCotizacionUnidades):
                     query = '''
-                        insert into SolicitudCotizacionProductoUnidades (id, monto_asegurado_total, nombre_excel)
-                        values (%(id_solicitud)s, %(monto_asegurado_total)s, %(nombre_excel)s)
+                        insert into SolicitudCotizacionProductoUnidades (id, nombre_excel)
+                        values (%(id_solicitud)s, %(nombre_excel)s)
                     '''
                     
                     params = {
                         'id_solicitud': id_solicitud,
-                        'monto_asegurado_total': solicitud.monto_asegurado_total,
                         'nombre_excel': solicitud.nombre_excel
                     }
 

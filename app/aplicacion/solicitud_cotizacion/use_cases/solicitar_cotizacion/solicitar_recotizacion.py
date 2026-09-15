@@ -69,8 +69,8 @@ class SolicitarRecotizacionUseCase:
             )
 
         elif request.tipo == 'unidades':
-            if request.monto_asegurado_total is None or request.nombre_excel is None:
-                raise ConflictoEnAccionException('El tipo unidades requiere los campos monto_asegurado_total y nombre_excel')
+            if request.nombre_excel is None:
+                raise ConflictoEnAccionException('El tipo unidades requiere el campo nombre_excel')
 
             solicitud = SolicitudCotizacionUnidades(
                 id=None,
@@ -85,7 +85,7 @@ class SolicitarRecotizacionUseCase:
                 producto='',
                 recotizacion=True,
                 motivo_recotizacion=request.motivo_recotizacion,
-                monto_asegurado_total=request.monto_asegurado_total,
+                monto_asegurado=request.monto_asegurado,
                 nombre_excel=request.nombre_excel
             )
 
@@ -143,7 +143,8 @@ class SolicitarRecotizacionUseCase:
                 tipo=request.tipo,
                 producto='',
                 recotizacion=True,
-                motivo_recotizacion=request.motivo_recotizacion
+                motivo_recotizacion=request.motivo_recotizacion,
+                monto_asegurado=request.monto_asegurado
             )
             
         self.repositorio_solicitudes_cotizacion.registrar_solicitud_recotizacion(
