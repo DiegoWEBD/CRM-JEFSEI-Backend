@@ -9,7 +9,9 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.contacto.adaptadores.contacto_json_adapter import ContactoJsonAdapter
 from app.presentacion.api.contacto.dependencias.deps import (
@@ -26,9 +28,10 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_actualizar_valor_uf_m2_personalizado_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
+from app.presentacion.api.prospecto.dto.requests.actualizar_valor_uf_m2_personalizado_request import ActualizarValorUfM2PersonalizadoRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_evaluacion_request import AsignarEjecutivoEvaluacionRequest
@@ -246,62 +249,57 @@ def actualizar_prospecto_condominio(
     usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
     use_case: ActualizarProspectoCondominioUseCase = Depends(get_actualizar_prospecto_condominio_use_case)
 ):
-    try:
-        use_case.ejecutar(
-            id=id,
-            rut_usuario=usuario.rut,
-            id_administrador=request.id_administrador,
-            rut_riesgo=request.rut_riesgo,
-            nombre_riesgo=request.nombre_riesgo,
-            telefono_contacto=request.telefono_contacto,
-            correo_contacto=request.correo_contacto,
-            direccion=request.direccion,
-            region=request.region,
-            comuna=request.comuna,
-            observaciones=request.observaciones,
-            id_linea_negocio=request.id_linea_negocio,
-            porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
-            tiene_locales_comerciales=request.tiene_locales_comerciales,
-            uso_del_condominio=request.uso_del_condominio,
-            materialidad=request.materialidad,
-            clasificacion_preliminar_incendio=request.clasificacion_preliminar_incendio,
-            procesos_productivos=request.procesos_productivos,
-            numero_pisos=request.numero_pisos,
-            numero_torres=request.numero_torres,
-            cantidad_departamentos=request.cantidad_departamentos,
-            cantidad_subterraneos=request.cantidad_subterraneos,
-            tiene_piscina=request.tiene_piscina,
-            ubicacion_piscina=request.ubicacion_piscina,
-            tiene_alarma_incendio=request.tiene_alarma_incendio,
-            tiene_sprinklers=request.tiene_sprinklers,
-            year_construccion=request.year_construccion,
-            metros_cuadrados=request.metros_cuadrados
-        )
+    use_case.ejecutar(
+        id=id,
+        rut_usuario=usuario.rut,
+        id_administrador=request.id_administrador,
+        rut_riesgo=request.rut_riesgo,
+        nombre_riesgo=request.nombre_riesgo,
+        telefono_contacto=request.telefono_contacto,
+        correo_contacto=request.correo_contacto,
+        direccion=request.direccion,
+        region=request.region,
+        comuna=request.comuna,
+        observaciones=request.observaciones,
+        id_linea_negocio=request.id_linea_negocio,
+        porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
+        tiene_locales_comerciales=request.tiene_locales_comerciales,
+        uso_del_condominio=request.uso_del_condominio,
+        materialidad=request.materialidad,
+        clasificacion_preliminar_incendio=request.clasificacion_preliminar_incendio,
+        procesos_productivos=request.procesos_productivos,
+        numero_pisos=request.numero_pisos,
+        numero_torres=request.numero_torres,
+        cantidad_departamentos=request.cantidad_departamentos,
+        cantidad_subterraneos=request.cantidad_subterraneos,
+        tiene_piscina=request.tiene_piscina,
+        ubicacion_piscina=request.ubicacion_piscina,
+        tiene_alarma_incendio=request.tiene_alarma_incendio,
+        tiene_sprinklers=request.tiene_sprinklers,
+        year_construccion=request.year_construccion,
+        metros_cuadrados=request.metros_cuadrados
+    )
 
-        return {
-            'message': 'Prospecto actualizado correctamente'
-        }
+    return {
+        'message': 'Prospecto actualizado correctamente'
+    }
 
-    except HTTPException:
-        raise
 
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-    
-    except UsuarioNoAutorizadoException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc)
-        )
+@router.patch('/condominios/{id}/valor-uf-m2-personalizado', status_code=status.HTTP_200_OK)
+def actualizar_valor_uf_m2_personalizado(
+    id: int,
+    request: ActualizarValorUfM2PersonalizadoRequest,
+    _: Usuario = Depends(permisos_requeridos('MODIFICAR_UF_M2_PERSONALIZADO')),
+    use_case: ActualizarValorUfM2PersonalizadoUseCase = Depends(get_actualizar_valor_uf_m2_personalizado_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        valor_uf_m2_personalizado=request.valor_uf_m2_personalizado
+    )
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
-        )
+    return {
+        'message': 'Valor UF/m2 personalizado actualizado correctamente'
+    }
 
 
 @router.get('/{id}/contactos', status_code=status.HTTP_200_OK)

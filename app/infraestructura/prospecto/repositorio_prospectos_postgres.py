@@ -299,6 +299,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     year_construccion = %(year_construccion)s,
                     metros_cuadrados = %(metros_cuadrados)s,
                     porcentaje_espacios_comunes = %(porcentaje_espacios_comunes)s,
+                    valor_uf_m2_personalizado = %(valor_uf_m2_personalizado)s,
                     id_administrador = %(id_administrador)s
                     where id = %(id)s
                 '''
@@ -320,6 +321,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'year_construccion': prospecto.year_construccion,
                     'metros_cuadrados': prospecto.metros_cuadrados,
                     'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
+                    'valor_uf_m2_personalizado': prospecto.valor_uf_m2_personalizado,
                     'id_administrador': prospecto.administrador.id if prospecto.administrador else None,
                     'id': prospecto.id
                 }
@@ -660,6 +662,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PCO.tiene_alarma_incendio,
                     PCO.tiene_sprinklers,
                     PCO.year_construccion, PCO.metros_cuadrados,
+                    PCO.valor_uf_m2_personalizado,
                     PCO.porcentaje_espacios_comunes,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
@@ -717,8 +720,11 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 config_repo = RepositorioConfiguracionCondominioPostgres()
 
-                valor_uf = config_repo.obtener_valor_uf_por_region(prospecto.region) if prospecto.region else None
-                prospecto.uf_por_metro_cuadrado = valor_uf
+                if prospecto.valor_uf_m2_personalizado is not None:
+                    prospecto.uf_por_metro_cuadrado = prospecto.valor_uf_m2_personalizado
+                else:
+                    valor_uf = config_repo.obtener_valor_uf_por_region(prospecto.region) if prospecto.region else None
+                    prospecto.uf_por_metro_cuadrado = valor_uf
 
                 if prospecto.year_construccion:
                     params_depreciacion = config_repo.obtener_parametros_depreciacion()

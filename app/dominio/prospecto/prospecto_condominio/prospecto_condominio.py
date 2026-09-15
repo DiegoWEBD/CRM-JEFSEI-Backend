@@ -42,6 +42,7 @@ class ProspectoCondominio(Prospecto):
         tiene_sprinklers: bool | None,
         year_construccion: int | None,
         metros_cuadrados: float | None,
+        valor_uf_m2_personalizado: float | None = None,
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
         id: int | None = None,
@@ -88,6 +89,7 @@ class ProspectoCondominio(Prospecto):
         self.ubicacion_piscina = ubicacion_piscina
         self.tiene_alarma_incendio = tiene_alarma_incendio
         self.tiene_sprinklers = tiene_sprinklers
+        self.valor_uf_m2_personalizado = valor_uf_m2_personalizado
         self._uf_por_metro_cuadrado: float | None = None
         self._porcentaje_depreciacion: float | None = None
 
