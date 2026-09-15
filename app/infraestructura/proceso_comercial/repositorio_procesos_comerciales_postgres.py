@@ -430,13 +430,15 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 query = '''
                     update ProcesoComercial
                     set cerrado = %(cerrado)s,
-                    codigo_estado_actual = %(codigo_estado)s
+                    codigo_estado_actual = %(codigo_estado)s,
+                    fecha_cierre = %(fecha_cierre)s
                     where id = %(id)s
                 '''
 
                 params = {
                     'id': id,
                     'cerrado': True,
+                    'fecha_cierre': datetime.now(tz=timezone.utc),
                     'codigo_estado': codigo_estado,
                 }
 
@@ -469,20 +471,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                # Cambio de estado de proceso comercial
-                                
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id,
-                    'codigo_estado': codigo_estado,
-                }
-
-                cur.execute(query, params)
 
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
         ESTADO_OPORTUNIDAD_CREADA = 'OPORTUNIDAD_CREADA'

@@ -13,6 +13,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
+from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
@@ -20,7 +21,6 @@ from app.presentacion.api.estudio_comercial.dto.seccion_estudio_comercial_reques
 
 
 class ArmarEstudioComercialCondominioUseCase:
-    IVA_RATE: float = 0.19
 
     def __init__(
         self,
@@ -322,18 +322,19 @@ class ArmarEstudioComercialCondominioUseCase:
         cantidad_cuotas: int
     ) -> DetalleEstudioComercial:
 
-        decimales = 2
         tasa_afecta = cotizacion.tasa_afecta
         tasa_excenta = cotizacion.tasa_excenta
         tasa_politica = cotizacion.tasa_politica
-        prima_afecta_adicional = cotizacion.prima_adicional_asistencia
-        prima_excenta_adicional = 0
 
-        prima_afecta = round((monto_asegurado / 1000 * (tasa_afecta + tasa_politica)) + prima_afecta_adicional, decimales)
-        prima_excenta = round((monto_asegurado * tasa_excenta / 1000) + prima_excenta_adicional, decimales)
-        iva_prima_afecta = round(prima_afecta * ArmarEstudioComercialCondominioUseCase.IVA_RATE, decimales)
-        prima_neta = round(prima_afecta + prima_excenta, decimales)
-        prima_bruta = round(prima_neta + iva_prima_afecta, decimales)
+        prima_afecta = ServicioCalculoPrimas.calcular_prima_afecta(
+            monto_asegurado, tasa_afecta, tasa_politica, cotizacion.asistencia_afecta
+        )
+        prima_excenta = ServicioCalculoPrimas.calcular_prima_excenta(
+            monto_asegurado, tasa_excenta, cotizacion.asistencia_excenta
+        )
+        iva_prima_afecta = ServicioCalculoPrimas.calcular_iva_prima_afecta(prima_afecta)
+        prima_neta = ServicioCalculoPrimas.calcular_prima_neta(prima_afecta, prima_excenta)
+        prima_bruta = ServicioCalculoPrimas.calcular_prima_bruta(prima_neta, iva_prima_afecta)
 
         factores_cuotas = self.repositorio_company_seguros.obtener_factores_cuotas(cotizacion.company.id)
         factor = None
@@ -354,10 +355,9 @@ class ArmarEstudioComercialCondominioUseCase:
             cotizacion=cotizacion,
             monto_asegurado=monto_asegurado,
             porcentaje_infraseguro=porcentaje_infraseguro,
-            iva_prima_afecta=iva_prima_afecta,
             prima_neta=prima_neta,
             prima_bruta=prima_bruta,
-            valor_cuota=round(valor_cuota, decimales)
+            valor_cuota=round(valor_cuota, 2)
         )
     
     def __valor_cuota_con_factor_generico(self, cantidad_cuotas: int, prima_bruta: float) -> float:

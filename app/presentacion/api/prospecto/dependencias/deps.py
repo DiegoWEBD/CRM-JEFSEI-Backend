@@ -5,6 +5,7 @@ from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto impo
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
@@ -108,3 +109,8 @@ def get_actualizar_prospecto_condominio_use_case():
 def get_actualizar_linea_negocio_prospecto_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     return CambiarLineaNegocioProspectoUseCase(repositorio_prospectos)
+
+
+def get_actualizar_valor_uf_m2_personalizado_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    return ActualizarValorUfM2PersonalizadoUseCase(repositorio_prospectos)

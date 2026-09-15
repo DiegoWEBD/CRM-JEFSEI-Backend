@@ -75,7 +75,8 @@ def registrar_cotizacion_a_solicitud(
     tasa_politica: float | None = Form(None),
     prima_afecta: float | None = Form(None),
     prima_excenta: float | None = Form(None),
-    prima_adicional_asistencia: float = Form(...),
+    asistencia_afecta: float = Form(...),
+    asistencia_excenta: float = Form(...),
     id_company: int = Form(...),
     fecha_emision: str = Form(...),
     fecha_vencimiento: str = Form(...),
@@ -112,7 +113,8 @@ def registrar_cotizacion_a_solicitud(
 
     cotizacion = CotizacionFactory.crear(
         monto_total_asegurado=monto_total_asegurado,
-        prima_adicional_asistencia=prima_adicional_asistencia,
+        asistencia_afecta=asistencia_afecta,
+        asistencia_excenta=asistencia_excenta,
         id_company=id_company,
         fecha_emision=datetime.fromisoformat(fecha_emision),
         fecha_vencimiento=datetime.fromisoformat(fecha_vencimiento),

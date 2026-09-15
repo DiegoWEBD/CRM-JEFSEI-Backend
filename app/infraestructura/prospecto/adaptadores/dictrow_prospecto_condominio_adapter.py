@@ -57,6 +57,7 @@ class DictRowProspectoCondominioAdapter:
         tiene_piscina = self.row['tiene_piscina']
         year_construccion = self.row['year_construccion']
         metros_cuadrados = self.row['metros_cuadrados']
+        valor_uf_m2_personalizado = self.row['valor_uf_m2_personalizado']
         prospecto_updated_at = self.row['prospecto_updated_at']
         condominio_updated_at = self.row['condominio_updated_at']
 
@@ -180,6 +181,7 @@ class DictRowProspectoCondominioAdapter:
             tiene_piscina=tiene_piscina,
             year_construccion=year_construccion,
             metros_cuadrados=metros_cuadrados,
+            valor_uf_m2_personalizado=valor_uf_m2_personalizado,
             porcentaje_espacios_comunes=porcentaje_espacios_comunes,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa,

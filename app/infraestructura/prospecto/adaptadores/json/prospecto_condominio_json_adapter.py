@@ -19,6 +19,7 @@ class ProspectoCondominioJsonAdapter:
         valor_reconstruccion = None
         valor_reconstruccion_depreciacion = None
         valor_reconstruccion_espacio_comun = None
+        valor_reconstruccion_unidades = None
 
         if self.prospecto.uf_por_metro_cuadrado and self.prospecto.metros_cuadrados:
             valor_reconstruccion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
@@ -32,6 +33,8 @@ class ProspectoCondominioJsonAdapter:
                     valor_reconstruccion_espacio_comun = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
                         valor_reconstruccion_depreciacion, self.prospecto.porcentaje_espacios_comunes
                     )
+
+                    valor_reconstruccion_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion_espacio_comun)
         
         return ProspectoCondominioJson(
             id=self.prospecto.id,
@@ -53,6 +56,7 @@ class ProspectoCondominioJsonAdapter:
             planificacion_prospecto=PlanificacionProspectoJsonAdapter(self.prospecto.planificacion_prospecto).to_planificacion_prospecto_json() if self.prospecto.planificacion_prospecto else None,
             administrador=AdministradorCondominioJsonAdapter(self.prospecto.administrador).to_json() if self.prospecto.administrador is not None else None,
             uf_por_metro_cuadrado=self.prospecto.uf_por_metro_cuadrado,
+            valor_uf_m2_personalizado=self.prospecto.valor_uf_m2_personalizado,
             valor_uf_m2_disponible=self.prospecto.uf_por_metro_cuadrado is not None,
             porcentaje_depreciacion=self.prospecto.porcentaje_depreciacion,
             porcentaje_espacios_comunes=self.prospecto.porcentaje_espacios_comunes,
@@ -74,6 +78,7 @@ class ProspectoCondominioJsonAdapter:
             valor_reconstruccion=valor_reconstruccion,
             valor_reconstruccion_depreciacion=valor_reconstruccion_depreciacion,
             valor_reconstruccion_espacio_comun=valor_reconstruccion_espacio_comun,
+            valor_reconstruccion_unidades=valor_reconstruccion_unidades,
             ultima_actualizacion=self.prospecto.ultima_actualizacion.isoformat(),
             informacion_completa=self.prospecto.informacion_completa,
             estado_general_cliente=self.prospecto.estado_general_cliente or 'prospecto'

@@ -10,19 +10,21 @@ class Cotizacion:
         tasa_afecta: float, 
         tasa_excenta: float, 
         tasa_politica: float, 
-        prima_adicional_asistencia: float, 
+        asistencia_afecta: float,
+        asistencia_excenta: float,
         company: CompanySeguros, 
         fecha_emision: datetime, 
         fecha_vencimiento: datetime,
+        prima_afecta: float,
+        prima_excenta: float,
+        prima_neta: float,
+        prima_iva: float,
+        prima_bruta: float,
         nombre_archivo: str | None = None,
-        prima_afecta: float | None = None,
-        prima_excenta: float | None = None,
-        prima_neta: float | None = None,
-        prima_iva: float | None = None,
-        prima_bruta: float | None = None,
     ):
         self.id = id
-        self.prima_adicional_asistencia = prima_adicional_asistencia
+        self.asistencia_afecta = asistencia_afecta
+        self.asistencia_excenta = asistencia_excenta
         self.tasa_afecta = tasa_afecta
         self.tasa_excenta = tasa_excenta
         self.tasa_politica = tasa_politica
