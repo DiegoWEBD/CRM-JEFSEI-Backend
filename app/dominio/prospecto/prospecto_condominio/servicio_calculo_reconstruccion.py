@@ -22,3 +22,9 @@ class ServicioCalculoReconstruccion:
         porcentaje_espacios_comunes: float
     ) -> float:
         return round(valor_reconstruccion_depreciacion * porcentaje_espacios_comunes)
+
+    @staticmethod
+    def calcular_valor_unidades(
+        valor_reconstruccion_espacio_comun: float
+    ) -> float:
+        return round(valor_reconstruccion_espacio_comun * 0.5)

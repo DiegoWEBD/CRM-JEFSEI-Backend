@@ -26,3 +26,4 @@ class ProspectoCondominioJson(ProspectoJson):
     valor_reconstruccion: float | None
     valor_reconstruccion_depreciacion: float | None
     valor_reconstruccion_espacio_comun: float | None
+    valor_reconstruccion_unidades: float | None
