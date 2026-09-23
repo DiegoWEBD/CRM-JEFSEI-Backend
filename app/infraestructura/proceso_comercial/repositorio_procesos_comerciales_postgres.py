@@ -152,53 +152,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                base_cte = sql.SQL("""
-                    WITH base AS (
-                        SELECT
-                            PC.id,
-                            PC.id_prospecto,
-                            PR.nombre_riesgo AS nombre_cliente,
-                            EI.codigo AS codigo_estado,
-                            EI.nombre AS nombre_estado,
-                            HI.fecha_registro AS fecha_registro_estado,
-                            EPC.codigo AS codigo_etapa,
-                            EPC.nombre AS nombre_etapa,
-                            EPC.dias_limite AS dias_limite_etapa,
-                            PC.cerrado,
-                            PC.rut_ej_comercial,
-                            EJ_COM.nombre AS nombre_ej_comercial,
-                            PC.rut_ej_evaluacion,
-                            EJ_EV.nombre AS nombre_ej_evaluacion,
-                            PC.id_producto,
-                            P.nombre AS nombre_producto,
-                            P.codigo AS codigo_producto,
-                            (
-                                SELECT MIN(HI2.fecha_registro)
-                                FROM HistorialEstadoInformativoProcesoComercial HI2
-                                INNER JOIN EstadoInformativoProcesoComercial EI2
-                                    ON HI2.codigo_estado = EI2.codigo
-                                WHERE HI2.id_proceso_comercial = PC.id
-                                  AND EI2.codigo_etapa = EPC.codigo
-                            ) AS fecha_ingreso_etapa
-                        FROM ProcesoComercial PC
-                        INNER JOIN Prospecto PR ON PC.id_prospecto = PR.id
-                        INNER JOIN Producto P ON PC.id_producto = P.id
-                        AND P.eliminado = false
-                        INNER JOIN HistorialEstadoInformativoProcesoComercial HI
-                            ON PC.id = HI.id_proceso_comercial
-                            AND HI.fecha_registro = (
-                                SELECT MAX(HI3.fecha_registro)
-                                FROM HistorialEstadoInformativoProcesoComercial HI3
-                                WHERE HI3.id_proceso_comercial = PC.id
-                            )
-                        INNER JOIN EstadoInformativoProcesoComercial EI
-                            ON HI.codigo_estado = EI.codigo
-                        INNER JOIN EtapaProcesoComercial EPC
-                            ON EI.codigo_etapa = EPC.codigo
-                        LEFT JOIN Usuario EJ_COM ON PC.rut_ej_comercial = EJ_COM.rut
-                        LEFT JOIN Usuario EJ_EV ON PC.rut_ej_evaluacion = EJ_EV.rut
-                    )
-                """)
+                base_cte = self._construir_base_cte()
 
                 params: dict = {}
                 condiciones: list[sql.Composable] = []
@@ -262,42 +216,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 if condiciones:
                     where_sql = sql.SQL("WHERE ") + sql.SQL(" AND ").join(condiciones)
 
-                semaforo_cte_columns = sql.SQL("""
-                        SELECT *,
-                            CASE
-                                WHEN base.cerrado THEN 'NO_APLICA'
-                                WHEN base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN 'NO_APLICA'
-                                WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa < 0.70 THEN 'VERDE'
-                                WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa <= 1.0 THEN 'AMARILLO'
-                                ELSE 'ROJO'
-                            END AS estado_semaforo,
-                            CASE
-                                WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
-                                ELSE EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::int
-                            END AS dias_transcurridos,
-                            CASE
-                                WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
-                                ELSE ROUND((EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa)::numeric, 4)
-                            END AS porcentaje_sla_consumido,
-                            CASE
-                                WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
-                                ELSE (base.dias_limite_etapa - EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa))::int
-                            END AS dias_restantes,
-                            CASE
-                                WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
-                                ELSE (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) - base.dias_limite_etapa)::int
-                            END AS dias_atraso,
-                            CASE
-                                WHEN base.cerrado THEN NULL
-                                WHEN base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
-                                WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa < 0.70
-                                    THEN 'Dentro del plazo (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::text || ' de ' || base.dias_limite_etapa::text || ' días)'
-                                WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa <= 1.0
-                                    THEN 'Próximo a vencer (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::text || ' de ' || base.dias_limite_etapa::text || ' días)'
-                                ELSE 'Fuera de plazo (+' || (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::int - base.dias_limite_etapa)::text || ' días de atraso)'
-                            END AS mensaje_semaforo
-                        FROM base
-                """)
+                semaforo_cte_columns = self._construir_columnas_semaforo()
 
                 semaforo_cte = sql.SQL(""",
                     con_semaforo AS (
@@ -420,6 +339,181 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     "total_paginas": total_paginas,
                     "contadores_estado": contadores_estado,
                 }
+
+    def obtener_en_riesgo(
+        self,
+        rut_usuario: str,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list, int]:
+        """Oportunidades del usuario en semáforo amarillo o rojo."""
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                base_cte = self._construir_base_cte()
+                semaforo_cte_columns = self._construir_columnas_semaforo()
+
+                where_sql = sql.SQL("""
+                    WHERE (
+                        base.rut_ej_comercial = %(rut_usuario)s
+                        OR base.rut_ej_evaluacion = %(rut_usuario)s
+                    )
+                    AND base.cerrado = FALSE
+                    AND base.dias_limite_etapa IS NOT NULL
+                """)
+
+                semaforo_cte = sql.SQL(""",
+                    con_semaforo AS (
+                        {semaforo_cte_columns}
+                        {where_sql}
+                    )
+                """).format(
+                    semaforo_cte_columns=semaforo_cte_columns,
+                    where_sql=where_sql,
+                )
+
+                filtro_riesgo = sql.SQL("""
+                    WHERE con_semaforo.estado_semaforo IN ('AMARILLO', 'ROJO')
+                """)
+
+                count_query = sql.SQL("""
+                    {base_cte}
+                    {semaforo_cte}
+                    SELECT COUNT(*) AS total
+                    FROM con_semaforo
+                    {filtro_riesgo}
+                """).format(
+                    base_cte=base_cte,
+                    semaforo_cte=semaforo_cte,
+                    filtro_riesgo=filtro_riesgo,
+                )
+
+                params: dict = {"rut_usuario": rut_usuario}
+
+                cur.execute(count_query, params)
+                row_count = cur.fetchone()
+                total = row_count["total"] if row_count else 0
+
+                offset = (pagina - 1) * tamano_pagina
+
+                data_query = sql.SQL("""
+                    {base_cte}
+                    {semaforo_cte}
+                    SELECT con_semaforo.*
+                    FROM con_semaforo
+                    {filtro_riesgo}
+                    ORDER BY
+                        CASE con_semaforo.estado_semaforo
+                            WHEN 'ROJO' THEN 0
+                            WHEN 'AMARILLO' THEN 1
+                            ELSE 2
+                        END,
+                        con_semaforo.fecha_registro_estado DESC
+                    LIMIT %(tamano_pagina)s OFFSET %(offset)s
+                """).format(
+                    base_cte=base_cte,
+                    semaforo_cte=semaforo_cte,
+                    filtro_riesgo=filtro_riesgo,
+                )
+
+                data_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
+                cur.execute(data_query, data_params)
+                rows = cur.fetchall()
+
+                data = [
+                    DictRowReporteProcesoComercialAdapter(row).to_reporte()
+                    for row in rows
+                ]
+
+                return data, total
+
+    def _construir_base_cte(self) -> sql.Composable:
+        return sql.SQL("""
+            WITH base AS (
+                SELECT
+                    PC.id,
+                    PC.id_prospecto,
+                    PR.nombre_riesgo AS nombre_cliente,
+                    EI.codigo AS codigo_estado,
+                    EI.nombre AS nombre_estado,
+                    HI.fecha_registro AS fecha_registro_estado,
+                    EPC.codigo AS codigo_etapa,
+                    EPC.nombre AS nombre_etapa,
+                    EPC.dias_limite AS dias_limite_etapa,
+                    PC.cerrado,
+                    PC.rut_ej_comercial,
+                    EJ_COM.nombre AS nombre_ej_comercial,
+                    PC.rut_ej_evaluacion,
+                    EJ_EV.nombre AS nombre_ej_evaluacion,
+                    PC.id_producto,
+                    P.nombre AS nombre_producto,
+                    P.codigo AS codigo_producto,
+                    (
+                        SELECT MIN(HI2.fecha_registro)
+                        FROM HistorialEstadoInformativoProcesoComercial HI2
+                        INNER JOIN EstadoInformativoProcesoComercial EI2
+                            ON HI2.codigo_estado = EI2.codigo
+                        WHERE HI2.id_proceso_comercial = PC.id
+                          AND EI2.codigo_etapa = EPC.codigo
+                    ) AS fecha_ingreso_etapa
+                FROM ProcesoComercial PC
+                INNER JOIN Prospecto PR ON PC.id_prospecto = PR.id
+                INNER JOIN Producto P ON PC.id_producto = P.id
+                AND P.eliminado = false
+                INNER JOIN HistorialEstadoInformativoProcesoComercial HI
+                    ON PC.id = HI.id_proceso_comercial
+                    AND HI.fecha_registro = (
+                        SELECT MAX(HI3.fecha_registro)
+                        FROM HistorialEstadoInformativoProcesoComercial HI3
+                        WHERE HI3.id_proceso_comercial = PC.id
+                    )
+                INNER JOIN EstadoInformativoProcesoComercial EI
+                    ON HI.codigo_estado = EI.codigo
+                INNER JOIN EtapaProcesoComercial EPC
+                    ON EI.codigo_etapa = EPC.codigo
+                LEFT JOIN Usuario EJ_COM ON PC.rut_ej_comercial = EJ_COM.rut
+                LEFT JOIN Usuario EJ_EV ON PC.rut_ej_evaluacion = EJ_EV.rut
+            )
+        """)
+
+    def _construir_columnas_semaforo(self) -> sql.Composable:
+        return sql.SQL("""
+                SELECT *,
+                    CASE
+                        WHEN base.cerrado THEN 'NO_APLICA'
+                        WHEN base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN 'NO_APLICA'
+                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa < 0.70 THEN 'VERDE'
+                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa <= 1.0 THEN 'AMARILLO'
+                        ELSE 'ROJO'
+                    END AS estado_semaforo,
+                    CASE
+                        WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
+                        ELSE EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::int
+                    END AS dias_transcurridos,
+                    CASE
+                        WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
+                        ELSE ROUND((EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa)::numeric, 4)
+                    END AS porcentaje_sla_consumido,
+                    CASE
+                        WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
+                        ELSE (base.dias_limite_etapa - EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa))::int
+                    END AS dias_restantes,
+                    CASE
+                        WHEN base.cerrado OR base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
+                        ELSE (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) - base.dias_limite_etapa)::int
+                    END AS dias_atraso,
+                    CASE
+                        WHEN base.cerrado THEN NULL
+                        WHEN base.fecha_ingreso_etapa IS NULL OR base.dias_limite_etapa IS NULL THEN NULL
+                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa < 0.70
+                            THEN 'Dentro del plazo (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::text || ' de ' || base.dias_limite_etapa::text || ' días)'
+                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa) / base.dias_limite_etapa <= 1.0
+                            THEN 'Próximo a vencer (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::text || ' de ' || base.dias_limite_etapa::text || ' días)'
+                        ELSE 'Fuera de plazo (+' || (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_etapa)::int - base.dias_limite_etapa)::text || ' días de atraso)'
+                    END AS mensaje_semaforo
+                FROM base
+        """)
             
     def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
         with obtener_conexion() as conn:

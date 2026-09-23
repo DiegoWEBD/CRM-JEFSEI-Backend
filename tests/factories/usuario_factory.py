@@ -70,6 +70,7 @@ def crear_usuario_admin_mock(**kwargs) -> Usuario:
         crear_permiso_mock(codigo="ADMINISTRAR_USUARIOS", descripcion="Administrar usuarios"),
         crear_permiso_mock(codigo="VER_METRICAS_GERENCIA", descripcion="Ver métricas gerencia"),
         crear_permiso_mock(codigo="VER_METRICAS_EJECUTIVO", descripcion="Ver métricas ejecutivo"),
+        crear_permiso_mock(codigo="VER_ALERTAS", descripcion="Ver alertas y notificaciones"),
     ]
     kwargs.setdefault("roles", [crear_rol_mock(codigo="ADMIN", nombre="Administrador", permisos=permisos_admin)])
     return crear_usuario_mock(**kwargs)

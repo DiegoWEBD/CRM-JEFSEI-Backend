@@ -35,6 +35,16 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
+    def obtener_en_riesgo(
+        self,
+        rut_usuario: str,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list, int]:
+        """Oportunidades del usuario en semáforo amarillo o rojo."""
+        pass
+
+    @abstractmethod
     def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
         pass
 

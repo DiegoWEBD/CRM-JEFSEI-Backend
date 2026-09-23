@@ -1,5 +1,8 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from app.core.scheduler import detener_scheduler, iniciar_scheduler
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
@@ -22,6 +25,7 @@ from app.presentacion.api.exceptions.bad_request_exception import BadRequestExce
 from app.presentacion.api.gestion_comercial import gestion_comercial_router
 from app.presentacion.api.linea_negocio import linea_negocio_router
 from app.presentacion.api.metricas import metricas_router
+from app.presentacion.api.notificacion import notificacion_router
 from app.presentacion.api.poliza import poliza_router
 from app.presentacion.api.producto import producto_router
 from app.presentacion.api.proceso_comercial import proceso_comercial_router
@@ -33,9 +37,17 @@ from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    iniciar_scheduler()
+    yield
+    detener_scheduler()
+
+
 app = FastAPI(
     title='CRM JEFSEI API',
-    version='1.0.0'
+    version='1.0.0',
+    lifespan=lifespan,
 )
 
 origins = [
@@ -282,6 +294,13 @@ app.include_router(
 
 app.include_router(
     router=producto_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=notificacion_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

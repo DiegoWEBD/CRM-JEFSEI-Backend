@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "test_user"
     POSTGRES_PASSWORD: str = "test_password"
 
+    CRM_INICIAR_SCHEDULER: bool = True
+    CRM_SCHEDULER_INTERVALO_MINUTOS: int = 360
+
     class Config:
         env_file = ".env"
         extra="ignore"
