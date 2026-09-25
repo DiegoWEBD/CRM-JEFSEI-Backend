@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 
@@ -40,4 +41,8 @@ class RepositorioProcesosComerciales(ABC):
 
     @abstractmethod
     def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
+        pass
+
+    @abstractmethod
+    def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         pass

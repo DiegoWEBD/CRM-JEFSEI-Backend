@@ -1,6 +1,7 @@
 from fastapi import Query
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
@@ -61,4 +62,14 @@ def get_crear_proceso_comercial_use_case():
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
         repositorio_prospectos=repositorio_prospectos
+    )
+
+def get_actualizar_fecha_estimada_cierre_use_case():
+    authorization_repository = AuthorizationRepositoryPostgres()
+    authorization_service = AuthorizationService(authorization_repository)
+    repositorio_procesos = RepositorioProcesosComercialesPostgres()
+
+    return ActualizarFechaEstimadaCierreUseCase(
+        authorization_service=authorization_service,
+        repositorio_procesos_comerciales=repositorio_procesos,
     )

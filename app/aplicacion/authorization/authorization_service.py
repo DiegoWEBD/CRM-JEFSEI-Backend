@@ -39,3 +39,6 @@ class AuthorizationService:
 
     def usuario_puede_actualizar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
         return self.authorization_repository.usuario_puede_actualizar_poliza(rut_usuario, numero_poliza)
+
+    def usuario_puede_actualizar_fecha_estimada_cierre(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
+        return self.authorization_repository.usuario_puede_actualizar_fecha_estimada_cierre(rut_usuario, id_proceso_comercial)
