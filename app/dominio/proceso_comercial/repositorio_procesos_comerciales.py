@@ -46,3 +46,7 @@ class RepositorioProcesosComerciales(ABC):
     @abstractmethod
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         pass
+
+    @abstractmethod
+    def actualizar_probabilidad_cierre_ejecutivo(self, id: int, probabilidad: float | None):
+        pass

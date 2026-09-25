@@ -32,6 +32,8 @@ class DictRowProcesoComercialAdapter:
         codigo_producto = self.row['codigo_producto']
         nombre_producto = self.row['nombre_producto']
         fecha_estimada_cierre = self.row['fecha_estimada_cierre']
+        probabilidad_cierre_ejecutivo = self.row['probabilidad_cierre_ejecutivo']
+        probabilidad_cierre = self.row['probabilidad_cierre']
 
         ejecutivo_comercial = None
         ejecutivo_evaluacion = None
@@ -66,7 +68,8 @@ class DictRowProcesoComercialAdapter:
             codigo=codigo_estado,
             etapa=etapa,
             nombre=nombre_estado,
-            fecha_registro=fecha_registro_estado
+            fecha_registro=fecha_registro_estado,
+            probabilidad_cierre=probabilidad_cierre
         )
 
         return ProcesoComercial(
@@ -78,5 +81,6 @@ class DictRowProcesoComercialAdapter:
             producto=producto,
             id_prospecto=id_prospecto,
             nombre_cliente=nombre_cliente,
-            fecha_estimada_cierre=fecha_estimada_cierre
+            fecha_estimada_cierre=fecha_estimada_cierre,
+            probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo
         )

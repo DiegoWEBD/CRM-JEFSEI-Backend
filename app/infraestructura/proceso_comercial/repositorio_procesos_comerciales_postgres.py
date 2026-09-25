@@ -34,7 +34,9 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PC.id_producto,
                     P.nombre as nombre_producto,
                     P.codigo as codigo_producto,
-                    PC.fecha_estimada_cierre
+                    PC.fecha_estimada_cierre,
+                    PC.probabilidad_cierre_ejecutivo,
+                    EI.probabilidad_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -90,7 +92,9 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PC.id_producto,
                     P.nombre as nombre_producto,
                     P.codigo as codigo_producto,
-                    PC.fecha_estimada_cierre
+                    PC.fecha_estimada_cierre,
+                    PC.probabilidad_cierre_ejecutivo,
+                    EI.probabilidad_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -622,6 +626,24 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id': id,
                     'fecha': fecha
+                }
+
+                cur.execute(query, params)
+
+    def actualizar_probabilidad_cierre_ejecutivo(self, id: int, probabilidad: float | None):
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update ProcesoComercial
+                    set probabilidad_cierre_ejecutivo = %(probabilidad)s
+                    where id = %(id)s
+                    and cerrado = false
+                '''
+
+                params = {
+                    'id': id,
+                    'probabilidad': probabilidad
                 }
 
                 cur.execute(query, params)
