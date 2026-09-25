@@ -19,3 +19,5 @@ class ProcesoComercialJson(BaseModel):
     etapa_actual: EtapaProcesoComercialJson
     cerrado: bool
     fecha_estimada_cierre: datetime | None = None
+    probabilidad_cierre_sistema: float = 0.0
+    probabilidad_cierre_ejecutivo: float | None = None

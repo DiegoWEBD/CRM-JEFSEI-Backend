@@ -14,6 +14,8 @@ def crear_proceso_comercial_mock(
     ejecutivo_comercial=None,
     ejecutivo_evaluacion=None,
     fecha_estimada_cierre: datetime | None = None,
+    probabilidad_cierre_sistema: float | None = None,
+    probabilidad_cierre_ejecutivo: float | None = None,
 ) -> ProcesoComercial:
     etapa = EtapaProcesoComercial(
         codigo="ETAPA_1",
@@ -26,6 +28,7 @@ def crear_proceso_comercial_mock(
         etapa=etapa,
         nombre="En gestión",
         fecha_registro=datetime(2026, 9, 1, 10, 0, 0),
+        probabilidad_cierre=probabilidad_cierre_sistema,
     )
     return ProcesoComercial(
         id=id,
@@ -37,4 +40,5 @@ def crear_proceso_comercial_mock(
         estado_actual=estado,
         cerrado=cerrado,
         fecha_estimada_cierre=fecha_estimada_cierre,
+        probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo,
     )

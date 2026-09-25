@@ -95,3 +95,68 @@ class TestUsuarioPuedeActualizarFechaEstimadaCierre:
         )
 
         assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeActualizarProbabilidadCierre:
+
+    def test_propios_y_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS"}]
+        prospecto = {"rut_ej_comercial_asignado": "12345678-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = prospecto
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_actualizar_probabilidad_cierre(
+            rut_usuario="12345678-9", id_proceso_comercial=1
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_propios_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "ADMINISTRAR_PROCESOS_COMERCIALES"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_actualizar_probabilidad_cierre(
+            rut_usuario="12345678-9", id_proceso_comercial=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS"}]
+        prospecto = {"rut_ej_comercial_asignado": "99999999-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = prospecto
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_actualizar_probabilidad_cierre(
+            rut_usuario="12345678-9", id_proceso_comercial=1
+        )
+
+        assert resultado is False
+
+    def test_proceso_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_actualizar_probabilidad_cierre(
+            rut_usuario="12345678-9", id_proceso_comercial=999
+        )
+
+        assert resultado is False
