@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso_comercial import EstadoInformativoProcesoComercial
 from app.dominio.producto.producto import Producto
 from app.dominio.usuario.usuario import Usuario
@@ -15,6 +17,7 @@ class ProcesoComercial:
         cerrado: bool,
         ejecutivo_renovacion: Usuario | None = None,
         asistente_renovacion: Usuario | None = None,
+        fecha_estimada_cierre: datetime | None = None,
     ):
         self.id = id
         self.ejecutivo_comercial = ejecutivo_comercial
@@ -26,3 +29,4 @@ class ProcesoComercial:
         self.cerrado = cerrado
         self.nombre_cliente = nombre_cliente
         self.id_prospecto = id_prospecto
+        self.fecha_estimada_cierre = fecha_estimada_cierre

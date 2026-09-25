@@ -31,6 +31,7 @@ class DictRowProcesoComercialAdapter:
         id_producto = self.row['id_producto']
         codigo_producto = self.row['codigo_producto']
         nombre_producto = self.row['nombre_producto']
+        fecha_estimada_cierre = self.row['fecha_estimada_cierre']
 
         ejecutivo_comercial = None
         ejecutivo_evaluacion = None
@@ -76,5 +77,6 @@ class DictRowProcesoComercialAdapter:
             ejecutivo_evaluacion=ejecutivo_evaluacion,
             producto=producto,
             id_prospecto=id_prospecto,
-            nombre_cliente=nombre_cliente
+            nombre_cliente=nombre_cliente,
+            fecha_estimada_cierre=fecha_estimada_cierre
         )

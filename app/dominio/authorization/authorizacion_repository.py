@@ -46,3 +46,7 @@ class AuthorizationRepository(ABC):
     @abstractmethod
     def usuario_puede_actualizar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
         pass
+
+    @abstractmethod
+    def usuario_puede_actualizar_fecha_estimada_cierre(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
+        pass

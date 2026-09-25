@@ -33,7 +33,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_EV.nombre as nombre_ej_evaluacion,
                     PC.id_producto,
                     P.nombre as nombre_producto,
-                    P.codigo as codigo_producto
+                    P.codigo as codigo_producto,
+                    PC.fecha_estimada_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -88,7 +89,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_EV.nombre as nombre_ej_evaluacion,
                     PC.id_producto,
                     P.nombre as nombre_producto,
-                    P.codigo as codigo_producto
+                    P.codigo as codigo_producto,
+                    PC.fecha_estimada_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -602,6 +604,24 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id,
                     'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
+                }
+
+                cur.execute(query, params)
+
+    def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update ProcesoComercial
+                    set fecha_estimada_cierre = %(fecha)s
+                    where id = %(id)s
+                    and cerrado = false
+                '''
+
+                params = {
+                    'id': id,
+                    'fecha': fecha
                 }
 
                 cur.execute(query, params)

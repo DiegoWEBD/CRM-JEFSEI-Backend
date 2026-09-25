@@ -21,5 +21,6 @@ class ProcesoComercialJsonAdapter:
             estado_actual=EstadoInformativoJsonAdapter(self.proceso.estado_actual).to_json(),
             etapa_actual=EtapaProcesoComercialJsonAdapter(self.proceso.estado_actual.etapa).to_json(),
             nombre_cliente=self.proceso.nombre_cliente,
-            cerrado=self.proceso.cerrado
+            cerrado=self.proceso.cerrado,
+            fecha_estimada_cierre=self.proceso.fecha_estimada_cierre
         )
