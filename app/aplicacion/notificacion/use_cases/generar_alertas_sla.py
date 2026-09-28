@@ -47,6 +47,7 @@ class GenerarAlertasSlaUseCase:
             return None
 
         rut_destinatario = self._resolver_destinatario(proceso)
+        
         if rut_destinatario is None:
             return None
 

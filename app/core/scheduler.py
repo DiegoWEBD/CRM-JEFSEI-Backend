@@ -16,6 +16,7 @@ def generar_alertas_sla_job() -> None:
     try:
         use_case = GenerarAlertasSlaUseCase(RepositorioNotificacionesPostgres())
         creadas = use_case.ejecutar()
+
         if creadas:
             logger.info('Generadas %s alertas SLA', len(creadas))
     except Exception:
