@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from app.presentacion.api.estado_informativo.dto.estado_informativo_json import EstadoInformativoJson
@@ -16,3 +18,6 @@ class ProcesoComercialJson(BaseModel):
     estado_actual: EstadoInformativoJson
     etapa_actual: EtapaProcesoComercialJson
     cerrado: bool
+    fecha_estimada_cierre: datetime | None = None
+    probabilidad_cierre_sistema: float = 0.0
+    probabilidad_cierre_ejecutivo: float | None = None
