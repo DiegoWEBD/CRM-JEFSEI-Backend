@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from app.core.config import settings
+from app.dominio.usuario.usuario import Usuario
+from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
+from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auth.schemas.auth import IniciarSesionRequest, TokenResponse
 from app.aplicacion.auth.use_cases.iniciar_sesion import IniciarSesionUseCase
@@ -29,3 +33,21 @@ def login(
         expire_minutes=response.expire_minutes,
         usuario=UsuarioJsonAdapter.Adapt(response.usuario)
     )
+
+
+@router.post('/ws-ticket', status_code=status.HTTP_200_OK)
+def crear_ticket_websocket(
+    usuario: Usuario = Depends(permisos_requeridos('VER_ALERTAS')),
+):
+    """Ticket efímero para abrir el WebSocket de notificaciones.
+
+    El navegador no puede leer la cookie httpOnly ``token`` (la fija Next.js en
+    su origen) y el handshake directo con el backend no la incluye, así que el
+    cliente intercambia aquí la cookie por un ticket de un solo propósito.
+    """
+    ticket = JwtAuthenticationService().crear_ticket_websocket(usuario.rut)
+
+    return {
+        'ticket': ticket,
+        'expira_en': settings.CRM_WS_TICKET_TTL_SEGUNDOS,
+    }

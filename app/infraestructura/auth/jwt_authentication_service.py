@@ -31,6 +31,26 @@ class JwtAuthenticationService(AuthenticationService):
             algorithm=settings.ACCESS_TOKEN_ALGORITHM
         )
 
+    def crear_ticket_websocket(self, rut: str) -> str:
+        """Ticket de un solo propósito que autoriza abrir el WebSocket de avisos.
+
+        A diferencia del access token no sirve para llamar a la API: solo tiene
+        el claim ``proposito='ws'`` y vive ``CRM_WS_TICKET_TTL_SEGUNDOS``.
+        """
+        ahora = datetime.now(timezone.utc)
+        payload = {
+            'rut': rut,
+            'proposito': 'ws',
+            'iat': ahora,
+            'exp': ahora + timedelta(seconds=settings.CRM_WS_TICKET_TTL_SEGUNDOS),
+        }
+
+        return jwt.encode(
+            payload,
+            settings.ACCESS_TOKEN_SECRET_KEY,
+            algorithm=settings.ACCESS_TOKEN_ALGORITHM,
+        )
+
     def decodificar_token(self, token: str) -> dict[str, Any] | None:
         try:
             payload = jwt.decode(

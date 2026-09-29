@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
@@ -35,6 +36,15 @@ class GenerarAlertasSlaUseCase:
 
             if self.repositorio_notificaciones.registrar(notificacion):
                 creadas.append(notificacion)
+
+        if creadas:
+            # Avisa a cada destinatario para que refresque su panel y su campana.
+            # Ocurre aquí (y no en el scheduler) para que ningún llamador pueda
+            # olvidarse de avisar.
+            hub.publicar_desde_hilo(
+                (alerta.rut_usuario for alerta in creadas),
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},
+            )
 
         return creadas
 

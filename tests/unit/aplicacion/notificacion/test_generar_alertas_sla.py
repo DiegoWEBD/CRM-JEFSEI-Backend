@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from tests.factories.notificacion_factory import (
     AHORA_REF,
@@ -281,3 +282,51 @@ class TestGenerarAlertasSlaCasosLimite:
 
         assert creadas == []
         repositorio_mock.registrar.assert_not_called()
+
+
+@pytest.mark.unit
+class TestGenerarAlertasSlaPublicacion:
+    """El aviso por WebSocket vive en el use case: el scheduler solo loguea."""
+
+    def test_publica_a_los_destinatarios_de_las_creadas(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11,
+            dias_limite=10,
+            rol_responsable="EJECUTIVO_COMERCIAL",
+            rut_ej_comercial="11111111-1",
+            ahora=AHORA_REF,
+        )
+        uc = _use_case(repositorio_mock, proceso)
+
+        with patch.object(hub, 'publicar_desde_hilo') as publicar:
+            uc.ejecutar(ahora=AHORA_REF)
+
+        publicar.assert_called_once()
+        ruts, payload = publicar.call_args.args
+        assert list(ruts) == ["11111111-1"]
+        assert payload == {
+            'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS,
+            'motivo': 'alertas_generadas',
+        }
+
+    def test_no_publica_si_no_creo_nada(self, repositorio_mock):
+        # Sin candidatos (o todas con dedupe ya existente) no hay nada que avisar.
+        repositorio_mock.obtener_procesos_alertables.return_value = []
+        uc = GenerarAlertasSlaUseCase(repositorio_mock)
+
+        with patch.object(hub, 'publicar_desde_hilo') as publicar:
+            uc.ejecutar(ahora=AHORA_REF)
+
+        publicar.assert_not_called()
+
+    def test_no_publica_si_todo_ya_estaba_registrado(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11, dias_limite=10, ahora=AHORA_REF
+        )
+        uc = _use_case(repositorio_mock, proceso, registrar_retorno=False)
+
+        with patch.object(hub, 'publicar_desde_hilo') as publicar:
+            creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert creadas == []
+        publicar.assert_not_called()

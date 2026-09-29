@@ -1,7 +1,11 @@
 from contextlib import asynccontextmanager
 
+import asyncio
+
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from app.core.config import settings
+from app.core.hub_notificaciones import hub
 from app.core.scheduler import detener_scheduler, iniciar_scheduler
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -25,7 +29,7 @@ from app.presentacion.api.exceptions.bad_request_exception import BadRequestExce
 from app.presentacion.api.gestion_comercial import gestion_comercial_router
 from app.presentacion.api.linea_negocio import linea_negocio_router
 from app.presentacion.api.metricas import metricas_router
-from app.presentacion.api.notificacion import notificacion_router
+from app.presentacion.api.notificacion import notificacion_router, ws_router
 from app.presentacion.api.poliza import poliza_router
 from app.presentacion.api.producto import producto_router
 from app.presentacion.api.proceso_comercial import proceso_comercial_router
@@ -39,6 +43,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # El hub de WebSockets publica desde threads (scheduler, endpoints), así que
+    # necesita referencia al event loop principal.
+    hub.capturar_loop(asyncio.get_running_loop())
     iniciar_scheduler()
     yield
     detener_scheduler()
@@ -50,10 +57,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-origins = [
-    'http://localhost:3000',
-    'http://localhost:3001'
-]
+origins = settings.origenes_permitidos
 
 app.add_middleware(
     CORSMiddleware,
@@ -305,3 +309,7 @@ app.include_router(
         Depends(get_current_user)
     ]
 )
+
+# El WebSocket se autentica con el ticket de /auth/ws-ticket (el navegador no
+# envía la cookie de sesión en un handshake cruzado), no con Depends(get_current_user).
+app.include_router(ws_router.router)
