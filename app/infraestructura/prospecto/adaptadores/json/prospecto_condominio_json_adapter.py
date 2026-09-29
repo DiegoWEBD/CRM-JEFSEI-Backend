@@ -34,7 +34,7 @@ class ProspectoCondominioJsonAdapter:
                         valor_reconstruccion_depreciacion, self.prospecto.porcentaje_espacios_comunes
                     )
 
-                    valor_reconstruccion_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion_espacio_comun)
+                    valor_reconstruccion_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion_depreciacion)
         
         return ProspectoCondominioJson(
             id=self.prospecto.id,

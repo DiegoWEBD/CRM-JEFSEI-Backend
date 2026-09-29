@@ -1,3 +1,5 @@
+from psycopg import sql
+
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
@@ -13,7 +15,12 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = 'select id, nombre from CompanySeguros order by nombre'
+                query = '''
+                    select id, nombre
+                    from CompanySeguros
+                    where eliminado = false
+                    order by nombre
+                '''
 
                 cur.execute(query)
                 rows = cur.fetchall()
@@ -32,7 +39,7 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
                     from CompanySeguros CS
                     left join FactorCuotasCompany FCC
                     on CS.id = FCC.id_company
-                    where CS.id = %(id)s
+                    where CS.id = %(id)s and CS.eliminado = false
                 '''
                 params = {
                     'id': id
@@ -46,6 +53,83 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
                 
                 return TupleRowsCompanySegurosAdapter(rows).to_company_seguros()
 
+    def _construir_where(
+        self,
+        texto_busqueda: str | None,
+        params: dict,
+    ) -> sql.Composable:
+        condiciones: list[sql.Composable] = [sql.SQL('eliminado = false')]
+
+        if texto_busqueda:
+            condiciones.append(sql.SQL(
+                'UNACCENT(LOWER(nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))'
+            ))
+            params['texto_busqueda'] = f'%{texto_busqueda.strip().lower()}%'
+
+        return sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+
+    def obtener_paginadas(
+        self,
+        texto_busqueda: str | None = None,
+        pagina: int = 1,
+        tamano_pagina: int = 15,
+    ) -> tuple[list[CompanySeguros], int]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                params: dict = {}
+                where_clause = self._construir_where(texto_busqueda, params)
+
+                count_query = sql.SQL(
+                    'select count(*) as total from CompanySeguros {where_clause}'
+                ).format(where_clause=where_clause)
+                cur.execute(count_query, params)
+                total = cur.fetchone()['total'] # type: ignore
+
+                offset = (pagina - 1) * tamano_pagina
+                params['tamano_pagina'] = tamano_pagina
+                params['offset'] = offset
+
+                data_query = sql.SQL('''
+                    select id, nombre
+                    from CompanySeguros
+                    {where_clause}
+                    order by nombre
+                    limit %(tamano_pagina)s offset %(offset)s
+                ''').format(where_clause=where_clause)
+                cur.execute(data_query, params)
+                rows = cur.fetchall()
+
+                if not rows:
+                    return [], total
+
+                companies = [TupleRowCompanySegurosResumenAdapter(row).to_company_seguros() for row in rows]
+
+                ids = [company.id for company in companies]
+
+                factores_query = '''
+                    select id_company, numero_cuotas, factor
+                    from FactorCuotasCompany
+                    where id_company = any(%(ids)s)
+                    order by numero_cuotas asc
+                '''
+                cur.execute(factores_query, {'ids': ids})
+                factores_rows = cur.fetchall()
+
+                factores_por_company: dict[int, list[FactorCuotasCompany]] = {}
+                for row in factores_rows:
+                    factores_por_company.setdefault(row['id_company'], []).append(
+                        FactorCuotasCompany(
+                            numero_cuotas=row['numero_cuotas'],
+                            factor=row['factor'],
+                        )
+                    )
+
+                for company in companies:
+                    company.factores_cuotas = factores_por_company.get(company.id, [])
+
+                return companies, total
+
     def obtener_factores_cuotas(self, id_company: int) -> list[FactorCuotasCompany]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -55,7 +139,8 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
                     from FactorCuotasCompany FCC
                     inner join CompanySeguros CS
                     on FCC.id_company = CS.id
-                    where CS.id = %(id)s
+                    where CS.id = %(id)s and CS.eliminado = false
+                    order by FCC.numero_cuotas asc
                 '''
                 params = {
                     'id': id_company
@@ -68,3 +153,111 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
                     return []
                 
                 return [DictRowFactorCuotasCompanyAdapter(row).to_factor_cuotas_company() for row in rows]
+
+    def existe_por_nombre(self, nombre: str, id_excluir: int | None = None) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    SELECT EXISTS(
+                        SELECT 1 FROM CompanySeguros
+                        WHERE UNACCENT(LOWER(nombre)) = UNACCENT(LOWER(%(nombre)s))
+                        AND eliminado = false
+                '''
+                params: dict = {
+                    'nombre': nombre.strip().lower(),
+                }
+
+                if id_excluir is not None:
+                    query += '''
+                        AND id <> %(id_excluir)s
+                    '''
+                    params['id_excluir'] = id_excluir
+
+                query += '''
+                    ) as total
+                '''
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return bool(row['total'])
+
+    def crear(self, nombre: str) -> CompanySeguros:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into CompanySeguros (nombre, eliminado)
+                    values (%(nombre)s, false)
+                    returning id, nombre
+                '''
+                params = {
+                    'nombre': nombre
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                conn.commit()
+
+                return CompanySeguros(
+                    id=row['id'],
+                    nombre=row['nombre'],
+                )
+
+    def actualizar_nombre(self, id: int, nombre: str) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update CompanySeguros
+                    set nombre = %(nombre)s
+                    where id = %(id)s
+                '''
+                params = {
+                    'id': id,
+                    'nombre': nombre,
+                }
+
+                cur.execute(query, params)
+                conn.commit()
+
+    def eliminar(self, id: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update CompanySeguros
+                    set eliminado = true
+                    where id = %(id)s
+                '''
+                params = {'id': id}
+
+                cur.execute(query, params)
+                conn.commit()
+
+    def reemplazar_factores_cuotas(
+        self, id_company: int, factores: list[tuple[int, float]]
+    ) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                delete_query = '''
+                    delete from FactorCuotasCompany
+                    where id_company = %(id_company)s
+                '''
+                cur.execute(delete_query, {'id_company': id_company})
+
+                insert_query = '''
+                    insert into FactorCuotasCompany (id_company, numero_cuotas, factor)
+                    values (%(id_company)s, %(numero_cuotas)s, %(factor)s)
+                '''
+
+                for numero_cuotas, factor in factores:
+                    cur.execute(insert_query, {
+                        'id_company': id_company,
+                        'numero_cuotas': numero_cuotas,
+                        'factor': factor,
+                    })
+
+                conn.commit()

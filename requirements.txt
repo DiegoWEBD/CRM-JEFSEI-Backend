@@ -12,6 +12,8 @@ anyio==4.14.2
     # via
     #   starlette
     #   watchfiles
+apscheduler==3.11.3
+    # via -r requirements.in
 bcrypt==4.0.1
     # via -r requirements.in
 cffi==2.1.0
@@ -98,7 +100,11 @@ typing-inspection==0.4.2
     #   pydantic
     #   pydantic-settings
 tzdata==2026.3
-    # via psycopg
+    # via
+    #   psycopg
+    #   tzlocal
+tzlocal==5.4.4
+    # via apscheduler
 uvicorn[standard]==0.51.0
     # via -r requirements.in
 watchfiles==1.2.0

@@ -1,3 +1,8 @@
+import os
+
+# El job programado de alertas no debe correr durante los tests
+os.environ.setdefault('CRM_INICIAR_SCHEDULER', 'false')
+
 import pytest
 from unittest.mock import MagicMock
 

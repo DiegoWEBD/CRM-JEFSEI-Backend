@@ -25,6 +25,6 @@ class ServicioCalculoReconstruccion:
 
     @staticmethod
     def calcular_valor_unidades(
-        valor_reconstruccion_espacio_comun: float
+        valor_reconstruccion_depreciacion: float
     ) -> float:
-        return round(valor_reconstruccion_espacio_comun * 0.5)
+        return round(valor_reconstruccion_depreciacion * 0.5)

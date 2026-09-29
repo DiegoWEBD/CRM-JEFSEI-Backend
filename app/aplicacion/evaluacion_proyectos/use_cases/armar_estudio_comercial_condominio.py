@@ -61,8 +61,6 @@ class ArmarEstudioComercialCondominioUseCase:
         if not self.authorization_service.usuario_puede_crear_estudio_comercial(usuario.rut, id_prospecto):
             raise UsuarioNoAutorizadoException
 
-        #monto_asegurado_actual = prospecto.planificacion_prospecto.monto_asegurado_vigente if prospecto.planificacion_prospecto else None
-        
         if prospecto.year_construccion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el año de construcción del condominio')
 
@@ -74,9 +72,6 @@ class ArmarEstudioComercialCondominioUseCase:
         
         if prospecto.porcentaje_espacios_comunes is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de espacios comunes')
-        
-        if prospecto.administrador is None:
-            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el administrador')
 
         if prospecto.uf_por_metro_cuadrado is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el valor de la UF / m²')
@@ -93,7 +88,7 @@ class ArmarEstudioComercialCondominioUseCase:
         rt.add('\f')
 
         self.datos_plantilla = {
-            'nombre_administrador': prospecto.administrador.nombre_administrador,
+            'nombre_administrador': prospecto.administrador.nombre_administrador if prospecto.administrador else '',
             'nombre_condominio': prospecto.nombre_riesgo.upper() if prospecto.nombre_riesgo else '',
             'metros_cuadrados': convertir_numero_a_formato_chileno(prospecto.metros_cuadrados),
             'year_construccion': prospecto.year_construccion,
@@ -436,7 +431,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
             datos_detalles.append({
                 'logo': logo,
-                'nombre_company': detalle.cotizacion.company.nombre,
+                'nombre_company': detalle.cotizacion.company.nombre.upper(),
                 'monto_asegurado': convertir_numero_a_formato_chileno(detalle.monto_asegurado),
                 'prima_anual': convertir_numero_a_formato_chileno(detalle.prima_bruta),
                 'valor_cuota_uf': convertir_numero_a_formato_chileno(detalle.valor_cuota),
