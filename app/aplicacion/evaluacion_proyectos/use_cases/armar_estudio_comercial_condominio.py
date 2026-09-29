@@ -431,7 +431,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
             datos_detalles.append({
                 'logo': logo,
-                'nombre_company': detalle.cotizacion.company.nombre,
+                'nombre_company': detalle.cotizacion.company.nombre.upper(),
                 'monto_asegurado': convertir_numero_a_formato_chileno(detalle.monto_asegurado),
                 'prima_anual': convertir_numero_a_formato_chileno(detalle.prima_bruta),
                 'valor_cuota_uf': convertir_numero_a_formato_chileno(detalle.valor_cuota),

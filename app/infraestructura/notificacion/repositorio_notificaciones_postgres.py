@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from psycopg import sql
+
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
@@ -107,6 +109,31 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return False
 
+    def _construir_where(
+        self,
+        rut_usuario: str,
+        no_leidas: bool | None,
+        nivel: str | None,
+        codigo_tipo: str | None,
+        params: dict,
+    ) -> sql.Composable:
+        condiciones: list[sql.Composable] = [sql.SQL('N.rut_usuario = %(rut_usuario)s')]
+        params['rut_usuario'] = rut_usuario
+
+        if no_leidas is not None:
+            condiciones.append(sql.SQL('N.leida = %(no_leidas)s'))
+            params['no_leidas'] = not no_leidas
+
+        if nivel:
+            condiciones.append(sql.SQL('N.nivel = %(nivel)s'))
+            params['nivel'] = nivel
+
+        if codigo_tipo:
+            condiciones.append(sql.SQL('N.codigo_tipo = %(codigo_tipo)s'))
+            params['codigo_tipo'] = codigo_tipo
+
+        return sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+
     def obtener_paginado(
         self,
         rut_usuario: str,
@@ -118,30 +145,22 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
     ) -> tuple[list[Notificacion], int]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                condiciones = ['N.rut_usuario = %(rut_usuario)s']
-                params: dict = {'rut_usuario': rut_usuario}
+                params: dict = {}
+                where_clause = self._construir_where(
+                    rut_usuario, no_leidas, nivel, codigo_tipo, params
+                )
 
-                if no_leidas is not None:
-                    condiciones.append('N.leida = %(no_leidas)s')
-                    params['no_leidas'] = not no_leidas
-
-                if nivel:
-                    condiciones.append('N.nivel = %(nivel)s')
-                    params['nivel'] = nivel
-
-                if codigo_tipo:
-                    condiciones.append('N.codigo_tipo = %(codigo_tipo)s')
-                    params['codigo_tipo'] = codigo_tipo
-
-                where_sql = ' where ' + ' and '.join(condiciones)
-
-                count_query = 'select count(*) as total from Notificacion N' + where_sql
+                count_query = sql.SQL('''
+                    select count(*) as total
+                    from Notificacion N
+                    {where_clause}
+                ''').format(where_clause=where_clause)
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 
-                data_query = '''
+                data_query = sql.SQL('''
                     select N.id,
                     N.rut_usuario,
                     N.codigo_tipo,
@@ -156,10 +175,10 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.fecha_leida,
                     N.created_at
                     from Notificacion N
-                ''' + where_sql + '''
+                    {where_clause}
                     order by N.created_at desc
                     limit %(tamano_pagina)s offset %(offset)s
-                '''
+                ''').format(where_clause=where_clause)
                 data_params = {**params, 'tamano_pagina': tamano_pagina, 'offset': offset}
                 cur.execute(data_query, data_params)
                 rows = cur.fetchall()

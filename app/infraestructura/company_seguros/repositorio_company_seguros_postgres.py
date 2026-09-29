@@ -1,3 +1,5 @@
+from psycopg import sql
+
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
@@ -51,6 +53,21 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
                 
                 return TupleRowsCompanySegurosAdapter(rows).to_company_seguros()
 
+    def _construir_where(
+        self,
+        texto_busqueda: str | None,
+        params: dict,
+    ) -> sql.Composable:
+        condiciones: list[sql.Composable] = [sql.SQL('eliminado = false')]
+
+        if texto_busqueda:
+            condiciones.append(sql.SQL(
+                'UNACCENT(LOWER(nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))'
+            ))
+            params['texto_busqueda'] = f'%{texto_busqueda.strip().lower()}%'
+
+        return sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+
     def obtener_paginadas(
         self,
         texto_busqueda: str | None = None,
@@ -60,32 +77,26 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                condiciones: list[str] = ['eliminado = false']
                 params: dict = {}
+                where_clause = self._construir_where(texto_busqueda, params)
 
-                if texto_busqueda:
-                    condiciones.append(
-                        'UNACCENT(LOWER(nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))'
-                    )
-                    params['texto_busqueda'] = f'%{texto_busqueda.strip().lower()}%'
-
-                where_clause = ' and '.join(condiciones)
-
-                count_query = f'select count(*) as total from CompanySeguros where {where_clause}'
+                count_query = sql.SQL(
+                    'select count(*) as total from CompanySeguros {where_clause}'
+                ).format(where_clause=where_clause)
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
                 params['tamano_pagina'] = tamano_pagina
                 params['offset'] = offset
 
-                data_query = f'''
+                data_query = sql.SQL('''
                     select id, nombre
                     from CompanySeguros
-                    where {where_clause}
+                    {where_clause}
                     order by nombre
                     limit %(tamano_pagina)s offset %(offset)s
-                '''
+                ''').format(where_clause=where_clause)
                 cur.execute(data_query, params)
                 rows = cur.fetchall()
 
