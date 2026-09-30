@@ -1,11 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dateutil.relativedelta import relativedelta
 from psycopg import sql
 
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 from app.infraestructura.poliza.adapadores.dictrow_poliza_adapter import DictRowPolizaAdapter
 
 
@@ -232,6 +234,7 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
     def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
         ESTADO_POLIZA_REGISTRADA = 'POLIZA_REGISTRADA'
+        fecha = datetime.now(tz=timezone.utc)
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -488,6 +491,16 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                 }
 
                 cur.execute(query, params)
+
+                ruts_alertas_leidas = marcar_alertas_sla_leidas(
+                    cur, poliza.id_proceso_comercial, fecha
+                )
+
+        if ruts_alertas_leidas:
+            hub.publicar_desde_hilo(
+                ruts_alertas_leidas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
 
     def obtener_polizas_panel(
         self,

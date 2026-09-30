@@ -15,8 +15,22 @@ class Settings(BaseSettings):
     CRM_INICIAR_SCHEDULER: bool = True
     CRM_SCHEDULER_INTERVALO_MINUTOS: int = 5
 
+    # WebSocket de notificaciones
+    # Los navegadores NO aplican CORS al handshake de un WebSocket: el origen se
+    # valida manualmente contra esta lista (ver ws_router).
+    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000,http://localhost:3001"
+    # Vida útil del ticket que autoriza la conexión (no es el JWT de sesión).
+    CRM_WS_TICKET_TTL_SEGUNDOS: int = 60
+    # El servidor emite "ping" con esta periodicidad para mantener viva la conexión
+    # y detectar cortes (un envío fallido dispara la reconexión del cliente).
+    CRM_WS_HEARTBEAT_SEGUNDOS: int = 30
+
     class Config:
         env_file = ".env"
         extra="ignore"
+
+    @property
+    def origenes_permitidos(self) -> list[str]:
+        return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
 
 settings = Settings() # type: ignore

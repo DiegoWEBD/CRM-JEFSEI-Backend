@@ -18,6 +18,7 @@ def generar_alertas_sla_job() -> None:
         creadas = use_case.ejecutar()
 
         if creadas:
+            # El aviso por WebSocket lo emite el use case; aquí solo se registra.
             logger.info('Generadas %s alertas SLA', len(creadas))
     except Exception:
         logger.exception('Error generando alertas SLA')

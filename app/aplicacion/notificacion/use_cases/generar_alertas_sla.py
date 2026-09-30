@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 
 
 # Umbral de aviso: al consumir el 70% del plazo la oportunidad queda "próximo a vencer".
-UMBRAL_POR_VENCER = 0.70
+UMBRAL_POR_VENCER = 0.7
 
 # Mapa rol_responsable -> campo del proceso que contiene al destinatario.
 # Sin fallback: un rol fuera del mapa no genera alerta.
@@ -35,6 +36,12 @@ class GenerarAlertasSlaUseCase:
 
             if self.repositorio_notificaciones.registrar(notificacion):
                 creadas.append(notificacion)
+
+        if creadas:
+            hub.publicar_desde_hilo(
+                (alerta.rut_usuario for alerta in creadas),
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},
+            )
 
         return creadas
 
