@@ -10,7 +10,7 @@ repositorio llamador, justo DESPUÉS de que la conexión haga commit.
 
 from datetime import datetime
 
-from psycopg import Cursor
+from psycopg import Cursor, sql
 from psycopg.rows import DictRow
 
 # Roles responsables del estado actual del proceso -> destinatario de la alerta.
@@ -73,14 +73,16 @@ def reasignar_destinatario_alertas(
     Solo se tocan procesos NO cerrados y alertas cuyo destinatario actual
     difiera del nuevo. Devuelve (RUTs anteriores, RUTs nuevos).
     """
-    condiciones = '''
-        N.entidad_tipo = 'PROCESO_COMERCIAL'
-        and N.leida = false
-        and N.rut_usuario is distinct from %(nuevo_rut)s
-        and PC.id_prospecto = %(id_prospecto)s
-        and PC.cerrado = false
-        and EI.rol_responsable = %(rol)s
-    '''
+    condiciones: list[sql.Composable] = [
+        sql.SQL("N.entidad_tipo = 'PROCESO_COMERCIAL'"),
+        sql.SQL('N.leida = false'),
+        sql.SQL('N.rut_usuario is distinct from %(nuevo_rut)s'),
+        sql.SQL('PC.id_prospecto = %(id_prospecto)s'),
+        sql.SQL('PC.cerrado = false'),
+        sql.SQL('EI.rol_responsable = %(rol)s'),
+    ]
+    where_condiciones = sql.SQL(' AND ').join(condiciones)
+
     params = {
         'id_prospecto': id_prospecto,
         'rol': rol,
@@ -88,15 +90,15 @@ def reasignar_destinatario_alertas(
     }
 
     # 1) RUTs que recibirán el cambio (antes del update)
-    query_previos = f'''
+    query_previos = sql.SQL('''
         select distinct N.rut_usuario
         from Notificacion N
         inner join ProcesoComercial PC
         on PC.id = N.entidad_id
         inner join EstadoInformativoProcesoComercial EI
         on EI.codigo = PC.codigo_estado_actual
-        where {condiciones}
-    '''
+        where {where_condiciones}
+    ''').format(where_condiciones=where_condiciones)
     cur.execute(query_previos, params)
     # Puede traer NULL (alerta huérfana que será reclamada): sin destinatario
     # que notificar.
@@ -105,15 +107,15 @@ def reasignar_destinatario_alertas(
     }
 
     # 2) Cambio de destinatario
-    query_update = f'''
+    query_update = sql.SQL('''
         update Notificacion N
         set rut_usuario = %(nuevo_rut)s
         from ProcesoComercial PC
         inner join EstadoInformativoProcesoComercial EI
         on EI.codigo = PC.codigo_estado_actual
         where N.entidad_id = PC.id
-        and {condiciones}
-    '''
+        and {where_condiciones}
+    ''').format(where_condiciones=where_condiciones)
     cur.execute(query_update, params)
 
     if cur.rowcount == 0:

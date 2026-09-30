@@ -67,8 +67,11 @@ class TestMarcarAlertasSlaLeidas:
 class TestReasignarDestinatarioAlertas:
 
     def _condiciones_en(self, cur) -> str:
+        # Las queries van compuestas con psycopg.sql: str() da el repr,
+        # para obtener el SQL hay que usar as_string().
         consultas = ' '.join(
-            str(call.args[0]).lower() for call in cur.execute.call_args_list
+            call.args[0].as_string(None).lower()
+            for call in cur.execute.call_args_list
         )
         return consultas
 
