@@ -7,7 +7,7 @@ from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotif
 
 
 # Umbral de aviso: al consumir el 70% del plazo la oportunidad queda "próximo a vencer".
-UMBRAL_POR_VENCER = 0.70
+UMBRAL_POR_VENCER = 0.7
 
 # Mapa rol_responsable -> campo del proceso que contiene al destinatario.
 # Sin fallback: un rol fuera del mapa no genera alerta.
@@ -38,9 +38,6 @@ class GenerarAlertasSlaUseCase:
                 creadas.append(notificacion)
 
         if creadas:
-            # Avisa a cada destinatario para que refresque su panel y su campana.
-            # Ocurre aquí (y no en el scheduler) para que ningún llamador pueda
-            # olvidarse de avisar.
             hub.publicar_desde_hilo(
                 (alerta.rut_usuario for alerta in creadas),
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},

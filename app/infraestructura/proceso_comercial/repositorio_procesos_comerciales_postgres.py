@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 
 from psycopg import sql
 
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_proceso_comercial_adapter import DictRowProcesoComercialAdapter
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_reporte_proceso_comercial_adapter import DictRowReporteProcesoComercialAdapter
 
@@ -526,6 +528,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
             with conn.cursor() as cur:
 
                 codigo_estado = 'GANADO' if ganado else 'PERDIDO'
+                fecha = datetime.now(tz=timezone.utc)
 
                 query = '''
                     update ProcesoComercial
@@ -538,7 +541,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id': id,
                     'cerrado': True,
-                    'fecha_cierre': datetime.now(tz=timezone.utc),
+                    'fecha_cierre': fecha,
                     'codigo_estado': codigo_estado,
                 }
 
@@ -564,12 +567,20 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id,
                     'codigo_estado': codigo_estado,
-                    'fecha_registro': datetime.now(tz=timezone.utc),
+                    'fecha_registro': fecha,
                     'observacion': observacion,
                     'rut_registrado_por': rut_usuario
                 }
 
                 cur.execute(query, params)
+
+                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
+
+        if ruts_alertas_leidas:
+            hub.publicar_desde_hilo(
+                ruts_alertas_leidas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
 
 
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
@@ -622,6 +633,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     return None
                 
                 id_proceso_comercial: int = row['id']
+                fecha = datetime.now(tz=timezone.utc)
                     
                 # Registro de historial
 
@@ -633,7 +645,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
                     'codigo_estado': ESTADO_OPORTUNIDAD_CREADA,
-                    'fecha_registro': datetime.now(tz=timezone.utc),
+                    'fecha_registro': fecha,
                     'rut_registrado_por': rut_usuario
                 }
 
@@ -654,10 +666,19 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                return id_proceso_comercial
+                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
+
+        if ruts_alertas_leidas:
+            hub.publicar_desde_hilo(
+                ruts_alertas_leidas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
+
+        return id_proceso_comercial
             
     def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
         ESTADO_ACEPTACION_CLIENTE = 'PROPUESTA_ACEPTADA'
+        fecha = datetime.now(tz=timezone.utc)
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -685,14 +706,14 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 params = {
                     'id_proceso_comercial': id,
                     'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
-                    'fecha_registro': datetime.now(tz=timezone.utc),
+                    'fecha_registro': fecha,
                     'rut_registrado_por': rut_usuario
                 }
 
                 cur.execute(query, params)
 
                 # Cambio de estado de proceso comercial
-                                                                
+                                                                 
                 query = '''
                     update ProcesoComercial
                     set codigo_estado_actual = %(codigo_estado)s
@@ -705,6 +726,15 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 }
 
                 cur.execute(query, params)
+
+                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
+
+        if ruts_alertas_leidas:
+            hub.publicar_desde_hilo(
+                ruts_alertas_leidas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
+
 
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         with obtener_conexion() as conn:

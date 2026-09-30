@@ -1,3 +1,4 @@
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.configuracion_condominio.servicio_calculo_depreciacion import ServicioCalculoDepreciacion
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.prospecto import Prospecto
@@ -6,6 +7,11 @@ from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.configuracion_condominio.repositorio_configuracion_condominio_postgres import RepositorioConfiguracionCondominioPostgres
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.notificacion.alertas_por_proceso import (
+    ROL_EJECUTIVO_COMERCIAL,
+    ROL_EJECUTIVO_EVALUACION_PROYECTOS,
+    reasignar_destinatario_alertas,
+)
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
 from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio
@@ -769,6 +775,18 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
+                # Solo cambia el destinatario de las alertas cuyo estado actual
+                # tenga al EJECUTIVO_COMERCIAL como rol responsable.
+                previos, nuevos = reasignar_destinatario_alertas(
+                    cur, prospecto.id, ROL_EJECUTIVO_COMERCIAL, rut
+                )
+
+        if previos or nuevos:
+            hub.publicar_desde_hilo(
+                previos | nuevos,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'destinatarios_reasignados'},
+            )
+
 
     def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id:
@@ -803,6 +821,18 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 }
 
                 cur.execute(query, params)
+
+                # Solo cambia el destinatario de las alertas cuyo estado actual
+                # tenga al EJECUTIVO_EVALUACION_PROYECTOS como rol responsable.
+                previos, nuevos = reasignar_destinatario_alertas(
+                    cur, prospecto.id, ROL_EJECUTIVO_EVALUACION_PROYECTOS, rut
+                )
+
+        if previos or nuevos:
+            hub.publicar_desde_hilo(
+                previos | nuevos,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'destinatarios_reasignados'},
+            )
 
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         with obtener_conexion() as conn:

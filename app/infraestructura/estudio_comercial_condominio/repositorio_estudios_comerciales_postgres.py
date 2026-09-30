@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 
 
 class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
@@ -53,6 +55,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                     raise Exception('Error al registrar el estudio comercial')
                 
                 id_proceso_comercial = row['id_proceso_comercial']
+                fecha = datetime.now(tz=timezone.utc)
 
                 # Registro de historial
 
@@ -76,7 +79,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                 params = {
                     'id_proceso_comercial': id_proceso_comercial,
                     'codigo_estado': 'ESTUDIO_DISPONIBLE',
-                    'fecha_registro': datetime.now(tz=timezone.utc),
+                    'fecha_registro': fecha,
                     'observacion': None,
                     'rut_registrado_por': rut_usuario
                 }
@@ -98,7 +101,15 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
 
                 cur.execute(query, params)
 
-                return id_estudio
+                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
+
+        if ruts_alertas_leidas:
+            hub.publicar_desde_hilo(
+                ruts_alertas_leidas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
+
+        return id_estudio
 
     def listar_por_id_solicitud(
         self,
