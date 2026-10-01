@@ -22,3 +22,27 @@ class TokenResponse(BaseModel):
     token_type: str
     expire_minutes: int
     usuario: UsuarioJson
+
+
+class RefreshRequest(BaseModel):
+    """El refresh token viaja en el cuerpo.
+
+    También se acepta la cookie por comodidad del frontend, pero el cuerpo es
+    el camino explícito: las cookies se adjuntan solas a cualquier request del
+    mismo origen, y no queremos que un endpoint de renovación se dispare sin
+    intención.
+    """
+
+    refresh_token: str = ''
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+    token_type: str
+    expire_minutes: int
+    id_sesion: str
+    refresh_token: str = ''
+
+
+class LogoutResponse(BaseModel):
+    detail: str = 'Sesión cerrada'

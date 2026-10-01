@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 class AuthenticationService(ABC):
 
@@ -17,4 +17,28 @@ class AuthenticationService(ABC):
 
     @abstractmethod
     def decodificar_token(self, token: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    def crear_access_token_de_sesion(
+        self,
+        data: dict[str, Any],
+        id_sesion: str,
+    ) -> str:
+        """Access token ligado a una sesión persistida.
+
+        El claim ``jti`` es el id de la sesión: es lo que permite que la
+        auditoría atribuya la acción a una sesión concreta y que una revocación
+        de esa sesión invalide el token.
+        """
+        pass
+
+    @abstractmethod
+    def crear_refresh_token(self, id_sesion: str) -> str:
+        """Refresh token opaco. Viaja al cliente en claro, se guarda hasheado."""
+        pass
+
+    @abstractmethod
+    def hashear_refresh_token(self, refresh_token: str) -> str:
+        """Huella irreversible con la que se busca el token en la base."""
         pass

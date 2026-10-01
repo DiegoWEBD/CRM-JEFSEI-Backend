@@ -1,0 +1,101 @@
+from enum import Enum
+
+
+class Categoria(str, Enum):
+    """Categoría del evento. Es un CHECK en la base, no un enum de PostgreSQL."""
+
+    AUTHENTICATION = 'AUTHENTICATION'
+    AUTHORIZATION = 'AUTHORIZATION'
+    SESSION = 'SESSION'
+    BUSINESS = 'BUSINESS'
+    SECURITY = 'SECURITY'
+    SYSTEM = 'SYSTEM'
+
+
+class Resultado(str, Enum):
+    SUCCESS = 'SUCCESS'
+    FAILED = 'FAILED'
+    DENIED = 'DENIED'
+    ERROR = 'ERROR'
+
+
+class TipoEvento(str, Enum):
+    """Catálogo de eventos auditables.
+
+    Se hereda de ``str`` a propósito: los valores viajan directo a psycopg y a
+    la respuesta JSON sin depender de un ``.value`` que se puede olvidar.
+    """
+
+    # --- Autenticación ---
+    LOGIN_SUCCESS = 'LOGIN_SUCCESS'
+    LOGIN_FAILED = 'LOGIN_FAILED'
+    LOGOUT = 'LOGOUT'
+    PASSWORD_CHANGE = 'PASSWORD_CHANGE'
+    PASSWORD_CHANGE_FAILED = 'PASSWORD_CHANGE_FAILED'
+    PASSWORD_RESET_REQUESTED = 'PASSWORD_RESET_REQUESTED'
+    PASSWORD_RESET_COMPLETED = 'PASSWORD_RESET_COMPLETED'
+    ACCOUNT_LOCKED = 'ACCOUNT_LOCKED'
+    ACCOUNT_UNLOCKED = 'ACCOUNT_UNLOCKED'
+
+    # --- Sesiones ---
+    SESSION_CREATED = 'SESSION_CREATED'
+    SESSION_REFRESHED = 'SESSION_REFRESHED'
+    SESSION_REVOKED = 'SESSION_REVOKED'
+    SESSION_EXPIRED = 'SESSION_EXPIRED'
+    # Refresh token ya usado presentado fuera de la ventana de gracia.
+    SESSION_REUSE_DETECTED = 'SESSION_REUSE_DETECTED'
+
+    # --- Autorización ---
+    AUTHORIZATION_DENIED = 'AUTHORIZATION_DENIED'
+    RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED'
+
+    # --- Usuarios, roles y permisos ---
+    USER_CREATED = 'USER_CREATED'
+    USER_UPDATED = 'USER_UPDATED'
+    USER_DELETED = 'USER_DELETED'
+    USER_DISABLED = 'USER_DISABLED'
+    USER_ENABLED = 'USER_ENABLED'
+    ROLE_ASSIGNED = 'ROLE_ASSIGNED'
+    ROLE_REMOVED = 'ROLE_REMOVED'
+    PERMISSION_GRANTED = 'PERMISSION_GRANTED'
+    PERMISSION_REVOKED = 'PERMISSION_REVOKED'
+
+    # --- Negocio: recursos críticos ---
+    CLIENTE_CREATE = 'CLIENTE_CREATE'
+    CLIENTE_UPDATE = 'CLIENTE_UPDATE'
+    CLIENTE_DELETE = 'CLIENTE_DELETE'
+    PROCESO_COMERCIAL_CREATE = 'PROCESO_COMERCIAL_CREATE'
+    PROCESO_COMERCIAL_UPDATE = 'PROCESO_COMERCIAL_UPDATE'
+    PROCESO_COMERCIAL_DELETE = 'PROCESO_COMERCIAL_DELETE'
+    COTIZACION_CREATE = 'COTIZACION_CREATE'
+    COTIZACION_UPDATE = 'COTIZACION_UPDATE'
+    COTIZACION_DELETE = 'COTIZACION_DELETE'
+    SOLICITUD_COTIZACION_CREATE = 'SOLICITUD_COTIZACION_CREATE'
+    SOLICITUD_COTIZACION_UPDATE = 'SOLICITUD_COTIZACION_UPDATE'
+
+    # --- Lecturas sensibles: no se auditan todos los GET (§37) ---
+    VIEW_CLIENTE_SENSITIVE = 'VIEW_CLIENTE_SENSITIVE'
+    EXPORT_CLIENTES = 'EXPORT_CLIENTES'
+    DOCUMENT_DOWNLOAD = 'DOCUMENT_DOWNLOAD'
+    VIEW_AUDIT_LOG = 'VIEW_AUDIT_LOG'
+    AUDIT_EXPORT = 'AUDIT_EXPORT'
+
+
+EVENTOS_CRITICOS: frozenset[TipoEvento] = frozenset({
+    TipoEvento.LOGIN_SUCCESS,
+    TipoEvento.LOGIN_FAILED,
+    TipoEvento.LOGOUT,
+    TipoEvento.PASSWORD_CHANGE,
+    TipoEvento.ACCOUNT_LOCKED,
+    TipoEvento.SESSION_REVOKED,
+    TipoEvento.AUTHORIZATION_DENIED,
+    TipoEvento.CLIENTE_DELETE,
+    TipoEvento.PROCESO_COMERCIAL_DELETE,
+    TipoEvento.COTIZACION_DELETE,
+    TipoEvento.ROLE_ASSIGNED,
+    TipoEvento.ROLE_REMOVED,
+    TipoEvento.PERMISSION_GRANTED,
+    TipoEvento.PERMISSION_REVOKED,
+    TipoEvento.USER_DISABLED,
+})
+"""Eventos cuya pérdida de auditoría no se acepta: escriben fail-closed (§22)."""

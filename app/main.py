@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
 
 import asyncio
+import logging
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from app.core.config import settings
+from app.core.contextos import obtener_request_id
 from app.core.hub_notificaciones import hub
+from app.core.logging_config import configurar_logging
 from app.core.scheduler import detener_scheduler, iniciar_scheduler
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -39,12 +42,16 @@ from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.recordatorio import recordatorio_router
 from app.presentacion.api.rol import rol_router
 from app.presentacion.api.solicitud_cotizacion import solicitud_cotizacion_router
+from app.infraestructura.auditoria.middleware_auditoria import MiddlewareAuditoria
 from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
 
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    configurar_logging()
     # El hub de WebSockets publica desde threads (scheduler, endpoints), así que
     # necesita referencia al event loop principal.
     hub.capturar_loop(asyncio.get_running_loop())
@@ -60,6 +67,13 @@ app = FastAPI(
 )
 
 origins = settings.origenes_permitidos
+
+# La auditoría va primero (de outermost a innermost) para que el X-Request-ID
+# esté disponible en toda la cadena, incluido el manejo de CORS. Se registra
+# después de CORSMiddleware porque en Starlette el último agregado es el más
+# externo: esto hace que el header de correlación llegue también a las
+# respuestas de CORS y a los redirect.
+app.add_middleware(MiddlewareAuditoria)
 
 app.add_middleware(
     CORSMiddleware,
@@ -130,9 +144,21 @@ async def conflict_handler(
 
 @app.exception_handler(Exception)
 async def internal_server_error_handler(
-    _: Request,
+    request: Request,
     exc: Exception,
 ):
+    # Antes esto devolvía el 500 sin registrar nada, dejando los errores sin
+    # rastro fuera del request_id que ahora exige la auditoría (§20, §44).
+    logger.exception(
+        'Error no controlado en %s %s',
+        request.method,
+        request.url.path,
+        extra={
+            'request_id': obtener_request_id() or '-',
+            'metodo_http': request.method,
+            'path': request.url.path,
+        },
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={'detail': 'Ha ocurrido un error interno en el servidor'},

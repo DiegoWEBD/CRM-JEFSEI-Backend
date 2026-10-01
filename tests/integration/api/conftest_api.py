@@ -4,8 +4,15 @@ from unittest.mock import MagicMock
 from app.main import app
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.aplicacion.auth.authentication_service import AuthenticationService
-from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.aplicacion.auditoria.audit_service import AuditService
+from app.dominio.auditoria.repositorio_sesiones import RepositorioSesiones
+from app.infraestructura.auditoria.repositorio_sesiones_postgres import RepositorioSesionesPostgres
+from app.presentacion.api.auth.dependencias.get_current_user import (
+    get_current_user,
+    get_repositorio_sesiones_dep,
+)
 from app.presentacion.api.auth.dependencias.get_iniciar_sesion_use_case import get_iniciar_sesion_use_case
+from app.presentacion.api.auth.dependencias.get_sesion_use_cases import get_audit_service
 from app.presentacion.api.usuario.deps import (
     get_obtener_usuario_use_case,
     get_obtener_usuarios_use_case,
@@ -14,7 +21,7 @@ from app.presentacion.api.usuario.deps import (
     get_eliminar_usuario_use_case,
 )
 from tests.factories.usuario_factory import crear_usuario_mock, crear_usuario_admin_mock
-from tests.factories.auth_factory import crear_token_mock, headers_auth
+from tests.factories.auth_factory import crear_token_mock, headers_auth, sesion_viva
 
 
 @pytest.fixture
@@ -58,6 +65,19 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
     def override_get_current_user():
         return usuario_autenticado
 
+    def override_get_audit_service():
+        # Los eventos críticos escriben fail-closed: sin la tabla de auditoría
+        # levantada, un 403 real se convertiría en 500. Estos tests miden
+        # autorización, no persistencia de auditoría, así que se aísla.
+        servicio = MagicMock(spec=AuditService)
+        servicio.con_usuario.side_effect = lambda scope, rut, id_sesion=None: scope
+        return servicio
+
+    def override_get_repositorio_sesiones():
+        repo = MagicMock(spec=RepositorioSesiones)
+        repo.obtener_por_id.side_effect = lambda id_sesion, conn=None: sesion_viva(id_sesion)
+        return repo
+
     def override_get_obtener_usuario_use_case():
         uc = MagicMock(spec=ObtenerUsuarioUseCase)
         uc.ejecutar.return_value = usuario_autenticado
@@ -94,6 +114,8 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
         return uc
 
     app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_audit_service] = override_get_audit_service
+    app.dependency_overrides[get_repositorio_sesiones_dep] = override_get_repositorio_sesiones
     app.dependency_overrides[get_obtener_usuario_use_case] = override_get_obtener_usuario_use_case
     app.dependency_overrides[get_obtener_usuarios_use_case] = override_get_obtener_usuarios_use_case
     app.dependency_overrides[get_registrar_usuario_use_case] = override_get_registrar_usuario_use_case

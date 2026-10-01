@@ -47,13 +47,15 @@ class TestIniciarSesionUseCase:
 
         repositorio_mock.buscar.return_value = usuario
         auth_service_mock.verificar_password.return_value = True
-        auth_service_mock.crear_access_token.return_value = "token_123"
+        auth_service_mock.crear_access_token_de_sesion.return_value = "token_123"
+        auth_service_mock.crear_refresh_token.return_value = "refresh_123"
 
         resultado = use_case.execute(rut="12345678-9", password="password123", contexto=crear_contexto_peticion_mock())
 
         assert resultado is not None
         assert isinstance(resultado, IniciarSesionResponseDTO)
         assert resultado.access_token == "token_123"
+        assert resultado.refresh_token == "refresh_123"
         assert resultado.usuario.rut == "12345678-9"
 
     def test_login_exitoso_registra_evento_auditoria(
@@ -152,13 +154,44 @@ class TestIniciarSesionUseCase:
 
         repositorio_mock.buscar.return_value = usuario
         auth_service_mock.verificar_password.return_value = True
-        auth_service_mock.crear_access_token.return_value = "token_123"
+        auth_service_mock.crear_access_token_de_sesion.return_value = "token_123"
+        auth_service_mock.crear_refresh_token.return_value = "refresh_123"
 
         use_case.execute(rut="12345678-9", password="password123", contexto=crear_contexto_peticion_mock())
 
-        call_args = auth_service_mock.crear_access_token.call_args[0][0]
+        # El token se emite ligado a la sesión: el id viaja como jti.
+        argumentos = auth_service_mock.crear_access_token_de_sesion.call_args
+        call_args = argumentos[0][0]
+        id_sesion = argumentos[0][1]
         assert "rut" in call_args
         assert "codigo_roles" in call_args
         assert "codigo_permisos" in call_args
         assert "VER_USUARIOS" in call_args["codigo_permisos"]
         assert "CREAR_PROSPECTOS" in call_args["codigo_permisos"]
+        assert id_sesion
+
+    def test_login_persiste_sesion_y_refresh_hasheado(
+        self, repositorio_mock, auth_service_mock
+    ):
+        from unittest.mock import MagicMock as _MagicMock
+        from app.dominio.auditoria.repositorio_sesiones import RepositorioSesiones
+
+        usuario = crear_usuario_mock(password_hash="hash_valido")
+        repositorio_mock.buscar.return_value = usuario
+        auth_service_mock.verificar_password.return_value = True
+        auth_service_mock.crear_access_token_de_sesion.return_value = "token_123"
+        auth_service_mock.crear_refresh_token.return_value = "refresh_123"
+        auth_service_mock.hashear_refresh_token.return_value = "hash_de_refresh_123"
+
+        repo_sesiones = _MagicMock(spec=RepositorioSesiones)
+        use_case = IniciarSesionUseCase(
+            repositorio_mock, auth_service_mock, repositorio_sesiones=repo_sesiones
+        )
+
+        resultado = use_case.execute(rut="12345678-9", password="password123")
+
+        repo_sesiones.crear.assert_called_once()
+        repo_sesiones.crear_refresh_token.assert_called_once()
+        # Nunca se guarda el refresh token en claro.
+        assert repo_sesiones.crear_refresh_token.call_args[0][1] == "hash_de_refresh_123"
+        assert resultado.id_sesion

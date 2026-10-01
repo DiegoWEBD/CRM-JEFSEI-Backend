@@ -8,3 +8,5 @@ class IniciarSesionResponseDTO:
     usuario: Usuario
     expire_minutes: int
     token_type: str = 'bearer'
+    refresh_token: str = ''
+    id_sesion: str = ''
