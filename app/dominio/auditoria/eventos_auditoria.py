@@ -1,0 +1,18 @@
+class CategoriaAuditoria:
+    AUTENTICACION = 'AUTENTICACION'
+    ACCION_NEGOCIO = 'ACCION_NEGOCIO'
+
+
+class EventoAuditoria:
+    LOGIN_EXITOSO = 'LOGIN_EXITOSO'
+    LOGIN_FALLIDO = 'LOGIN_FALLIDO'
+    LOGOUT = 'LOGOUT'
+    CREAR = 'CREAR'
+    ACTUALIZAR = 'ACTUALIZAR'
+    ELIMINAR = 'ELIMINAR'
+    EJECUTAR_ACCION = 'EJECUTAR_ACCION'
+
+
+class ResultadoAuditoria:
+    EXITO = 'EXITO'
+    FALLIDO = 'FALLIDO'

@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     # y detectar cortes (un envío fallido dispara la reconexión del cliente).
     CRM_WS_HEARTBEAT_SEGUNDOS: int = 30
 
+    # Auditoría
+    # Solo estos peers directos pueden fijar X-Forwarded-For / X-Real-IP; desde
+    # cualquier otro origen los headers se ignoran (anti-spoofing de IP).
+    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1"
+    # Apaga la captura de eventos de auditoría sin tocar código.
+    CRM_AUDITORIA_HABILITADA: bool = True
+
     class Config:
         env_file = ".env"
         extra="ignore"
@@ -32,5 +39,9 @@ class Settings(BaseSettings):
     @property
     def origenes_permitidos(self) -> list[str]:
         return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
+
+    @property
+    def proxies_confiables(self) -> list[str]:
+        return [proxy.strip() for proxy in self.CRM_PROXY_CONFIABLES.split(',') if proxy.strip()]
 
 settings = Settings() # type: ignore

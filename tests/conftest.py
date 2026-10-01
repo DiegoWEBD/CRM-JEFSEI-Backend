@@ -2,6 +2,9 @@ import os
 
 # El job programado de alertas no debe correr durante los tests
 os.environ.setdefault('CRM_INICIAR_SCHEDULER', 'false')
+# La captura de auditoría escribe en la base de datos: se apaga por defecto en
+# tests (los tests de middleware la habilitan explícitamente)
+os.environ.setdefault('CRM_AUDITORIA_HABILITADA', 'false')
 
 import pytest
 from unittest.mock import MagicMock
