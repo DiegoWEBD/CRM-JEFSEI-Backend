@@ -12,6 +12,7 @@ from app.infraestructura.notificacion.alertas_por_proceso import (
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
     reasignar_destinatario_alertas,
 )
+from app.infraestructura.notificacion.notificaciones_asignacion import registrar_notificacion_asignacion
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
 from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio
@@ -553,6 +554,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -588,6 +590,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -781,6 +785,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     cur, prospecto.id, ROL_EJECUTIVO_COMERCIAL, rut
                 )
 
+                if rut:
+                    registrar_notificacion_asignacion(
+                        cur,
+                        rut_asignado=rut,
+                        rol='ejecutivo comercial',
+                        entidad_tipo='PROSPECTO',
+                        entidad_id=prospecto.id,
+                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
+                        url_destino=f'/prospectos?id={prospecto.id}',
+                    )
+
         if previos or nuevos:
             hub.publicar_desde_hilo(
                 previos | nuevos,
@@ -828,6 +843,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     cur, prospecto.id, ROL_EJECUTIVO_EVALUACION_PROYECTOS, rut
                 )
 
+                if rut:
+                    registrar_notificacion_asignacion(
+                        cur,
+                        rut_asignado=rut,
+                        rol='ejecutivo de evaluación',
+                        entidad_tipo='PROSPECTO',
+                        entidad_id=prospecto.id,
+                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
+                        url_destino=f'/prospectos?id={prospecto.id}',
+                    )
+
         if previos or nuevos:
             hub.publicar_desde_hilo(
                 previos | nuevos,
@@ -871,6 +897,17 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
+                if rut:
+                    registrar_notificacion_asignacion(
+                        cur,
+                        rut_asignado=rut,
+                        rol='ejecutivo de cobranza',
+                        entidad_tipo='CLIENTE',
+                        entidad_id=prospecto.id_cliente,
+                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
+                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                    )
+
     def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id_cliente:
             return
@@ -904,3 +941,46 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 }
 
                 cur.execute(query, params)
+
+                if rut:
+                    registrar_notificacion_asignacion(
+                        cur,
+                        rut_asignado=rut,
+                        rol='ejecutivo de renovación',
+                        entidad_tipo='CLIENTE',
+                        entidad_id=prospecto.id_cliente,
+                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
+                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                    )
+
+    def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
+        if not prospecto.id_cliente:
+            return
+
+        rut = prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update Cliente
+                    set rut_as_renovacion_asignado = %(rut_as_renovacion)s
+                    where id = %(id_cliente)s
+                '''
+                params = {
+                    'rut_as_renovacion': rut,
+                    'id_cliente': prospecto.id_cliente
+                }
+
+                cur.execute(query, params)
+
+                if rut:
+                    registrar_notificacion_asignacion(
+                        cur,
+                        rut_asignado=rut,
+                        rol='asistente de renovación',
+                        entidad_tipo='CLIENTE',
+                        entidad_id=prospecto.id_cliente,
+                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
+                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                    )

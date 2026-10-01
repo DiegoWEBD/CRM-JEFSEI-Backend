@@ -21,6 +21,10 @@ ROL_EJECUTIVO_EVALUACION_PROYECTOS = 'EJECUTIVO_EVALUACION_PROYECTOS'
 # Únicos tipos de alerta generados por permanencia en estado (SLA).
 TIPOS_ALERTA_SLA = ('SLA_POR_VENCER', 'SLA_VENCIDO')
 
+# Alertas basadas en fecha estimada de cierre: se marcan leídas al cerrar el
+# proceso, NO en cada cambio de estado.
+TIPOS_ALERTA_FECHA = ('CIERRE_ESTIMADO_PROXIMO', 'FECHA_CIERRE_VENCIDA')
+
 
 def marcar_alertas_sla_leidas(
     cur: Cursor[DictRow],
@@ -123,3 +127,36 @@ def reasignar_destinatario_alertas(
 
     nuevos = {nuevo_rut} if nuevo_rut else set()
     return previos, nuevos
+
+
+def marcar_alertas_fecha_leidas(
+    cur: Cursor[DictRow],
+    id_proceso: int,
+    fecha: datetime,
+) -> list[str]:
+    """Marca como leídas las alertas de fecha (cierre) no leídas de un proceso.
+
+    Se usa al CERRAR el proceso: las alertas de cierre próximo / vencido dejan
+    de ser relevantes. Devuelve los RUTs cuyas alertas fueron marcadas.
+    """
+    query = '''
+        update Notificacion
+        set leida = true,
+        fecha_leida = %(fecha)s
+        where entidad_tipo = 'PROCESO_COMERCIAL'
+        and entidad_id = %(id_proceso)s
+        and codigo_tipo = any(%(tipos_fecha)s)
+        and leida = false
+        returning rut_usuario
+    '''
+    params = {
+        'fecha': fecha,
+        'id_proceso': id_proceso,
+        'tipos_fecha': list(TIPOS_ALERTA_FECHA),
+    }
+
+    cur.execute(query, params)
+
+    return [
+        row['rut_usuario'] for row in cur.fetchall() if row['rut_usuario']
+    ]

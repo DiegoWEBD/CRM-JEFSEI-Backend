@@ -7,7 +7,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
+from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_fecha_leidas, marcar_alertas_sla_leidas
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_proceso_comercial_adapter import DictRowProcesoComercialAdapter
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_reporte_proceso_comercial_adapter import DictRowReporteProcesoComercialAdapter
 
@@ -72,7 +72,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
-    def obtener_procesos_comerciales(self, id_prospecto: int, abiertos: bool | None = None) -> list[ProcesoComercial]:
+    def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -123,10 +123,11 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 params: dict = {}
 
-                query += """
-                    and PC.id_prospecto = %(id_prospecto)s
-                """
-                params["id_prospecto"] = id_prospecto
+                if id_prospecto is not None:
+                    query += """
+                        and PC.id_prospecto = %(id_prospecto)s
+                    """
+                    params["id_prospecto"] = id_prospecto
 
                 if abiertos is True:
                     query += """
@@ -667,11 +668,18 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 cur.execute(query, params)
 
                 ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
+                ruts_alertas_fecha = marcar_alertas_fecha_leidas(cur, id_proceso_comercial, fecha)
 
         if ruts_alertas_leidas:
             hub.publicar_desde_hilo(
                 ruts_alertas_leidas,
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
+
+        if ruts_alertas_fecha:
+            hub.publicar_desde_hilo(
+                ruts_alertas_fecha,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cierre'},
             )
 
         return id_proceso_comercial

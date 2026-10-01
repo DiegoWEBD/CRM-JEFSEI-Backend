@@ -15,7 +15,7 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
-    def obtener_procesos_comerciales(self, id_prospecto: int, abiertos: bool | None = None) -> list[ProcesoComercial]:
+    def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
         pass
 
     @abstractmethod

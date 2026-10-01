@@ -1,3 +1,4 @@
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -26,3 +27,9 @@ class AsignarEjecutivoEvaluacionUseCase:
             prospecto.ejecutivo_evaluacion_asignado = None
 
         self.repositorio_prospectos.asignar_ejecutivo_evaluacion_proyectos(prospecto, asignado_por)
+
+        if rut_ej_evaluacion is not None:
+            hub.publicar_desde_hilo(
+                [rut_ej_evaluacion],
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'asignacion_ejecutivo'},
+            )

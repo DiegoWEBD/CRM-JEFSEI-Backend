@@ -62,3 +62,7 @@ class RepositorioProspectos(ABC):
     @abstractmethod
     def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass
+
+    @abstractmethod
+    def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
+        pass
