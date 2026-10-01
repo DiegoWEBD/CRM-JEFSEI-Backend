@@ -33,14 +33,10 @@ class Settings(BaseSettings):
     # y detectar cortes (un envío fallido dispara la reconexión del cliente).
     CRM_WS_HEARTBEAT_SEGUNDOS: int = 30
 
-<<<<<<< HEAD
-    # Auditoría
-    # Solo estos peers directos pueden fijar X-Forwarded-For / X-Real-IP; desde
-    # cualquier otro origen los headers se ignoran (anti-spoofing de IP).
     CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1"
     # Apaga la captura de eventos de auditoría sin tocar código.
     CRM_AUDITORIA_HABILITADA: bool = True
-=======
+
     # --- Sistema de auditoría -------------------------------------------------
     # Interruptor maestro. En false el servicio de auditoría no escribe nada,
     # útil para levantar la API en una DB donde todavía no existe la tabla.
@@ -62,7 +58,6 @@ class Settings(BaseSettings):
     # el caso en local: entonces se usa request.client.host y se descarta
     # X-Forwarded-For por completo. En el VPS se declara el NGINX acá.
     AUDIT_TRUSTED_PROXIES: str = ""
->>>>>>> 36f98507cb018c0391d9351dfaa77453fbbbe47b
 
     class Config:
         env_file = ".env"
@@ -73,12 +68,7 @@ class Settings(BaseSettings):
         return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
 
     @property
-<<<<<<< HEAD
-    def proxies_confiables(self) -> list[str]:
-        return [proxy.strip() for proxy in self.CRM_PROXY_CONFIABLES.split(',') if proxy.strip()]
-=======
     def proxies_auditoria_confiables(self) -> list[str]:
         return [p.strip() for p in self.AUDIT_TRUSTED_PROXIES.split(',') if p.strip()]
->>>>>>> 36f98507cb018c0391d9351dfaa77453fbbbe47b
 
 settings = Settings() # type: ignore
