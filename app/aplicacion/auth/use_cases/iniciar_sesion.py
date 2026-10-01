@@ -29,7 +29,7 @@ class IniciarSesionUseCase:
             and self.authentication_service.verificar_password(password, usuario.password_hash)
         )
 
-        if not credenciales_validas:
+        if not usuario or not credenciales_validas:
             # Se registra el RUT intentado (sin la contraseña) para detectar
             # intentos de acceso no autorizados.
             self.servicio_auditoria.registrar_autenticacion(
