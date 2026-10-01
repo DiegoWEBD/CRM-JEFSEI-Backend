@@ -11,8 +11,10 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.infraestructura.auditoria.middleware_auditoria import MiddlewareAuditoria
 from app.presentacion.api.administrador_condominio import administrador_condominio_router
 from app.presentacion.api.archivo import archivo_router
+from app.presentacion.api.auditoria import auditoria_router
 from app.presentacion.api.auth import auth_router
 from app.presentacion.api.cliente import cliente_router
 from app.presentacion.api.cobranza import cobranza_router
@@ -66,6 +68,10 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+# Auditoría de acciones de negocio: se registra todo cambio de estado con la
+# identidad resuelta por get_current_user y la IP real del cliente.
+app.add_middleware(MiddlewareAuditoria)
 
 @app.exception_handler(RecursoNoEncontradoException)
 async def recurso_no_encontrado_handler(
@@ -305,6 +311,13 @@ app.include_router(
 
 app.include_router(
     router=notificacion_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=auditoria_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

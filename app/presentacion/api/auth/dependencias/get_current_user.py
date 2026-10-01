@@ -62,4 +62,8 @@ def get_current_user(
             detail="Usuario eliminado"
         )
 
+    # Expone la identidad en request.state para que el middleware de auditoría
+    # pueda atribuir la petición sin volver a consultar la base de datos.
+    request.state.usuario = usuario
+
     return usuario

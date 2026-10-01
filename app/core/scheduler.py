@@ -3,9 +3,11 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+from app.aplicacion.notificacion.use_cases.generar_alertas_cierre_estimado import GenerarAlertasCierreEstimadoUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.core.config import settings
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +20,23 @@ def generar_alertas_sla_job() -> None:
         creadas = use_case.ejecutar()
 
         if creadas:
-            # El aviso por WebSocket lo emite el use case; aquí solo se registra.
             logger.info('Generadas %s alertas SLA', len(creadas))
     except Exception:
         logger.exception('Error generando alertas SLA')
+
+
+def generar_alertas_cierre_estimado_job() -> None:
+    try:
+        use_case = GenerarAlertasCierreEstimadoUseCase(
+            RepositorioProcesosComercialesPostgres(),
+            RepositorioNotificacionesPostgres(),
+        )
+        creadas = use_case.ejecutar()
+
+        if creadas:
+            logger.info('Generadas %s alertas de cierre estimado', len(creadas))
+    except Exception:
+        logger.exception('Error generando alertas de cierre estimado')
 
 
 def iniciar_scheduler() -> BackgroundScheduler | None:
@@ -39,6 +54,13 @@ def iniciar_scheduler() -> BackgroundScheduler | None:
         generar_alertas_sla_job,
         trigger=IntervalTrigger(minutes=settings.CRM_SCHEDULER_INTERVALO_MINUTOS),
         id='generar_alertas_sla',
+        replace_existing=True,
+        max_instances=1,
+    )
+    _scheduler.add_job(
+        generar_alertas_cierre_estimado_job,
+        trigger=IntervalTrigger(minutes=settings.CRM_SCHEDULER_INTERVALO_MINUTOS),
+        id='generar_alertas_cierre_estimado',
         replace_existing=True,
         max_instances=1,
     )

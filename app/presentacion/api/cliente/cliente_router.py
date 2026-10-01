@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, status
 
+from app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion import AsignarAsistenteRenovacionUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_cobranza import AsignarEjecutivoCobranzaUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_renovacion import AsignarEjecutivoRenovacionUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.cliente.dependencias.deps import get_asignar_ejecutivo_cobranza_use_case, get_asignar_ejecutivo_renovacion_use_case
+from app.presentacion.api.cliente.dependencias.deps import get_asignar_asistente_renovacion_use_case, get_asignar_ejecutivo_cobranza_use_case, get_asignar_ejecutivo_renovacion_use_case
+from app.presentacion.api.cliente.dto.requests.asignar_asistente_renovacion_request import AsignarAsistenteRenovacionRequest
 from app.presentacion.api.cliente.dto.requests.asignar_ejecutivo_cobranza_request import AsignarEjecutivoCobranzaRequest
 from app.presentacion.api.cliente.dto.requests.asignar_ejecutivo_renovacion_request import AsignarEjecutivoRenovacionRequest
 
@@ -45,4 +47,22 @@ def asignar_ejecutivo_renovacion(
 
     return {
         'message': 'Ejecutivo de renovación asignado correctamente'
+    }
+
+
+@router.post('/{id_cliente}/asignar-as-renovacion', status_code=status.HTTP_200_OK)
+def asignar_asistente_renovacion(
+    id_cliente: int,
+    request: AsignarAsistenteRenovacionRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ASIGNAR_ASISTENTE_RENOVACION')),
+    use_case: AsignarAsistenteRenovacionUseCase = Depends(get_asignar_asistente_renovacion_use_case)
+):
+    use_case.ejecutar(
+        id_cliente=id_cliente,
+        rut_as_renovacion=request.rut_as_renovacion,
+        asignado_por=usuario
+    )
+
+    return {
+        'message': 'Asistente de renovación asignado correctamente'
     }

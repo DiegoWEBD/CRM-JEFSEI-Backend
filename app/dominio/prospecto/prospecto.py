@@ -24,6 +24,7 @@ class Prospecto:
         ejecutivo_evaluacion_asignado: Usuario | None = None,
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
+        asistente_renovacion_asignado: Usuario | None = None,
         ultima_actualizacion: datetime = datetime.now(tz=timezone.utc),
         planificacion_prospecto: PlanificacionProspecto | None = None,
         id: int | None = None,
@@ -44,6 +45,7 @@ class Prospecto:
         self.ejecutivo_evaluacion_asignado = ejecutivo_evaluacion_asignado
         self.ejecutivo_cobranza_asignado = ejecutivo_cobranza_asignado
         self.ejecutivo_renovacion_asignado = ejecutivo_renovacion_asignado
+        self.asistente_renovacion_asignado = asistente_renovacion_asignado
         self.id = id
         self.id_cliente = id_cliente
         self.planificacion_prospecto = planificacion_prospecto

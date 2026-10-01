@@ -1,3 +1,4 @@
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -30,3 +31,9 @@ class AsignarEjecutivoRenovacionUseCase:
             prospecto.ejecutivo_renovacion_asignado = None
 
         self.repositorio_prospectos.asignar_ejecutivo_renovacion(prospecto, asignado_por)
+
+        if rut_ej_renovacion is not None:
+            hub.publicar_desde_hilo(
+                [rut_ej_renovacion],
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'asignacion_ejecutivo'},
+            )

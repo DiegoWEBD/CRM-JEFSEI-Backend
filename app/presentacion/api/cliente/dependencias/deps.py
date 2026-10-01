@@ -1,3 +1,4 @@
+from app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion import AsignarAsistenteRenovacionUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_cobranza import AsignarEjecutivoCobranzaUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_renovacion import AsignarEjecutivoRenovacionUseCase
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
@@ -14,3 +15,9 @@ def get_asignar_ejecutivo_renovacion_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
     return AsignarEjecutivoRenovacionUseCase(repositorio_prospectos, repositorio_usuarios)
+
+
+def get_asignar_asistente_renovacion_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    repositorio_usuarios = RepositorioUsuariosPostgres()
+    return AsignarAsistenteRenovacionUseCase(repositorio_prospectos, repositorio_usuarios)

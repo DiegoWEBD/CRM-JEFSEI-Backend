@@ -110,6 +110,16 @@ class DictRowProspectoAdapter:
                 nombre = nombre_ej_renovacion_asignado
             )
 
+        rut_as_renovacion = self.row.get('rut_as_renovacion_asignado')
+        nombre_as_renovacion = self.row.get('nombre_as_renovacion_asignado')
+        asistente_renovacion = None
+
+        if rut_as_renovacion is not None:
+            asistente_renovacion = Usuario(
+                rut = rut_as_renovacion,
+                nombre = nombre_as_renovacion
+            )
+
         return Prospecto(
             id = id,
             id_cliente=id_cliente,
@@ -127,6 +137,7 @@ class DictRowProspectoAdapter:
             ejecutivo_evaluacion_asignado=ejecutivo_evaluacion,
             ejecutivo_cobranza_asignado=ejecutivo_cobranza,
             ejecutivo_renovacion_asignado=ejecutivo_renovacion,
+            asistente_renovacion_asignado=asistente_renovacion,
             planificacion_prospecto=planificacion,
             ultima_actualizacion=prospecto_updated_at,
             informacion_completa=informacion_completa,
