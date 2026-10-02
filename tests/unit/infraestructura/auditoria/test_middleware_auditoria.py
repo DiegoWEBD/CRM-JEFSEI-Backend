@@ -20,6 +20,7 @@ from app.infraestructura.auditoria.descripciones.resolvedor_nombres import (
 from app.infraestructura.auditoria.middleware_auditoria import (
     MiddlewareAuditoria,
     clasificar_evento,
+    extraer_error_response,
     parsear_entidad,
 )
 
@@ -40,6 +41,25 @@ async def endpoint_con_error(request: Request):
     raise RuntimeError("falla interna")
 
 
+async def endpoint_con_error_json(request: Request):
+    return JSONResponse(
+        {"detail": "Ya existe un prospecto con ese nombre"},
+        status_code=409,
+    )
+
+
+async def endpoint_con_error_validacion(request: Request):
+    return JSONResponse(
+        {
+            "detail": [
+                {"loc": ["body", "rut"], "msg": "field required", "type": "value_error"},
+                {"loc": ["body", "nombre"], "msg": "ensure this value has at least 3 characters", "type": "value_error"},
+            ]
+        },
+        status_code=422,
+    )
+
+
 async def endpoint_redireccion_slash(request: Request):
     # Replica el redirect_slashes de FastAPI: /recurso -> /recurso/
     return RedirectResponse(url="/recurso/", status_code=307)
@@ -53,6 +73,8 @@ def _crear_middleware() -> MiddlewareAuditoria:
         Route("/prospectos/{id}/asignar-ej-comercial", endpoint_con_usuario, methods=["POST"]),
         Route("/auth/login", endpoint_sin_usuario, methods=["POST"]),
         Route("/con-error", endpoint_con_error, methods=["POST"]),
+        Route("/con-error-json", endpoint_con_error_json, methods=["POST"]),
+        Route("/con-error-validacion", endpoint_con_error_validacion, methods=["POST"]),
         Route("/recurso", endpoint_redireccion_slash, methods=["POST"]),
         Route("/recurso/", endpoint_con_usuario, methods=["POST"]),
         Route("/procesos-comerciales/reportes", endpoint_sin_usuario, methods=["POST"]),
@@ -324,3 +346,79 @@ class TestDescripcionEnMiddleware:
             "El usuario 12345678-9 ha registrado la póliza H-002 en la oportunidad "
             "'Seguro Hogar' (442) de Jorge Maldonado Mena (680)"
         )
+
+
+@pytest.mark.unit
+class TestDetalleSegunResultado:
+
+    def test_exito_mantiene_descripcion_sin_error(self, cliente_con_auditoria):
+        client, servicio = cliente_con_auditoria
+
+        client.post("/prospectos", json={"nombre_riesgo": "Torre Las Condes"})
+
+        kwargs = servicio.registrar_accion_negocio.call_args.kwargs
+        assert kwargs["resultado"] == ResultadoAuditoria.EXITO
+        assert "Error" not in kwargs["detalle"]
+
+    def test_fallo_json_incluye_error_en_detalle(self, cliente_con_auditoria):
+        client, servicio = cliente_con_auditoria
+
+        response = client.post("/con-error-json")
+
+        assert response.status_code == 409
+        kwargs = servicio.registrar_accion_negocio.call_args.kwargs
+        assert kwargs["resultado"] == ResultadoAuditoria.FALLIDO
+        assert "— Error: Ya existe un prospecto con ese nombre" in kwargs["detalle"]
+
+    def test_fallo_validacion_incluye_errores_resumidos(self, cliente_con_auditoria):
+        client, servicio = cliente_con_auditoria
+
+        response = client.post("/con-error-validacion")
+
+        assert response.status_code == 422
+        kwargs = servicio.registrar_accion_negocio.call_args.kwargs
+        assert kwargs["resultado"] == ResultadoAuditoria.FALLIDO
+        assert "— Error:" in kwargs["detalle"]
+        assert "body → rut: field required" in kwargs["detalle"]
+
+    def test_fallo_sin_body_json_no_incluye_error(self, cliente_con_auditoria):
+        # El endpoint de error genérico (RuntimeError) devuelve plain text,
+        # así que no se extrae detail.
+        client, servicio = cliente_con_auditoria
+
+        response = client.post("/con-error")
+
+        assert response.status_code == 500
+        kwargs = servicio.registrar_accion_negocio.call_args.kwargs
+        assert kwargs["resultado"] == ResultadoAuditoria.FALLIDO
+        assert "Error" not in kwargs["detalle"]
+
+
+@pytest.mark.unit
+class TestExtraerErrorResponse:
+
+    def test_extrae_detail_string(self):
+        body = b'{"detail": "Recurso no encontrado"}'
+        assert extraer_error_response(body, False) == "Recurso no encontrado"
+
+    def test_extrae_detail_lista_validacion(self):
+        body = b'{"detail": [{"loc": ["body", "email"], "msg": "invalid email", "type": "value_error"}]}'
+        resultado = extraer_error_response(body, False)
+        assert "body" in resultado
+        assert "email" in resultado
+        assert "invalid email" in resultado
+
+    def test_retorna_none_si_truncado(self):
+        assert extraer_error_response(b'{"detail": "x"}', True) is None
+
+    def test_retorna_none_si_vacio(self):
+        assert extraer_error_response(b'', False) is None
+
+    def test_retorna_none_si_no_es_json(self):
+        assert extraer_error_response(b'not json', False) is None
+
+    def test_retorna_none_si_no_tiene_detail(self):
+        assert extraer_error_response(b'{"error": "otro"}', False) is None
+
+    def test_retorna_none_si_es_lista_raiz(self):
+        assert extraer_error_response(b'[1, 2, 3]', False) is None
