@@ -16,6 +16,8 @@ class AsignarEjecutivoEvaluacionUseCase:
         if not prospecto:
             raise RecursoNoEncontradoException('Prospecto no encontrado')
 
+        rut_anterior = prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None
+
         if rut_ej_evaluacion is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_evaluacion)
 
@@ -32,4 +34,10 @@ class AsignarEjecutivoEvaluacionUseCase:
             hub.publicar_desde_hilo(
                 [rut_ej_evaluacion],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'asignacion_ejecutivo'},
+            )
+
+        if rut_anterior and rut_anterior != rut_ej_evaluacion:
+            hub.publicar_desde_hilo(
+                [rut_anterior],
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
             )

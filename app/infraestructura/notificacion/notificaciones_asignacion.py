@@ -1,4 +1,4 @@
-"""Registro de notificaciones por asignación de ejecutivo/asistente.
+"""Registro de notificaciones por asignación/desasignación de ejecutivo/asistente.
 
 Trabaja sobre un cursor YA abierto, dentro de la transacción del llamador
 (asignación de ejecutivo), de modo que la notificación se confirma o revierte
@@ -13,6 +13,7 @@ from psycopg import Cursor
 from psycopg.rows import DictRow
 
 TIPO_ASIGNACION = 'ASIGNACION_EJECUTIVO'
+TIPO_DESASIGNACION = 'DESASIGNACION_EJECUTIVO'
 
 
 def registrar_notificacion_asignacion(
@@ -33,7 +34,6 @@ def registrar_notificacion_asignacion(
     ahora = datetime.now(tz=timezone.utc)
 
     titulo = f'Asignación de {detalle_asignacion}'
-    print(detalle_asignacion)
     mensaje = f'Se le ha asignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.'
 
     query = '''
@@ -79,6 +79,77 @@ def registrar_notificacion_asignacion(
         'entidad_id': entidad_id,
         'id_prospecto': id_prospecto,
         'dedupe_key': f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
+        'created_at': ahora,
+        'leible': True,
+    }
+
+    cur.execute(query, params)
+
+
+def registrar_notificacion_desasignacion(
+    cur: Cursor[DictRow],
+    *,
+    rut_desasignado: str,
+    detalle_asignacion: str,
+    entidad_tipo: str,
+    entidad_id: int,
+    nombre_entidad: str,
+    id_prospecto: int | None = None,
+) -> None:
+    """Inserta una notificación de desasignación dentro de la transacción del llamador.
+
+    Solo debe llamarse cuando se desasigna un ejecutivo (el RUT anterior no es None
+    y el nuevo RUT es None o diferente).
+    No retorna nada: el caso de uso conoce el destinatario y publica en el hub.
+    """
+    ahora = datetime.now(tz=timezone.utc)
+
+    titulo = f'Desasignación de {detalle_asignacion}'
+    mensaje = f'Se le ha desasignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.'
+
+    query = '''
+        insert into Notificacion(
+            rut_usuario,
+            codigo_tipo,
+            nivel,
+            titulo,
+            mensaje,
+            entidad_tipo,
+            entidad_id,
+            id_prospecto,
+            dedupe_key,
+            leida,
+            fecha_leida,
+            created_at,
+            leible
+        )
+        values (
+            %(rut_usuario)s,
+            %(codigo_tipo)s,
+            %(nivel)s,
+            %(titulo)s,
+            %(mensaje)s,
+            %(entidad_tipo)s,
+            %(entidad_id)s,
+            %(id_prospecto)s,
+            %(dedupe_key)s,
+            false,
+            null,
+            %(created_at)s,
+            true
+        )
+        on conflict (dedupe_key) do nothing
+    '''
+    params = {
+        'rut_usuario': rut_desasignado,
+        'codigo_tipo': TIPO_DESASIGNACION,
+        'nivel': 'INFO',
+        'titulo': titulo,
+        'mensaje': mensaje,
+        'entidad_tipo': entidad_tipo,
+        'entidad_id': entidad_id,
+        'id_prospecto': id_prospecto,
+        'dedupe_key': f'{TIPO_DESASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
         'created_at': ahora,
         'leible': True,
     }

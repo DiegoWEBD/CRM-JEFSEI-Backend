@@ -20,6 +20,8 @@ class AsignarAsistenteRenovacionUseCase:
         if not prospecto:
             raise RecursoNoEncontradoException('Cliente no encontrado')
 
+        rut_anterior = prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None
+
         if rut_as_renovacion is not None:
             usuario = self.repositorio_usuarios.buscar(rut_as_renovacion)
 
@@ -36,4 +38,10 @@ class AsignarAsistenteRenovacionUseCase:
             hub.publicar_desde_hilo(
                 [rut_as_renovacion],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'asignacion_ejecutivo'},
+            )
+
+        if rut_anterior and rut_anterior != rut_as_renovacion:
+            hub.publicar_desde_hilo(
+                [rut_anterior],
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
             )
