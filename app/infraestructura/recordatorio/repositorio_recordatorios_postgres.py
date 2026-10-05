@@ -57,7 +57,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     on RU.id_prospecto = P.id
                     where RU.rut_usuario = %(rut_usuario)s
                     and R.completado = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                 '''
 
                 params = {
@@ -148,7 +148,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     inner join Cliente C
                     on P.id_cliente = C.id
                     where R.completado = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                     and (
                         C.rut_ej_renovacion_asignado = %(rut_usuario)s
                         or C.rut_as_renovacion_asignado = %(rut_usuario)s
@@ -209,7 +209,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     on C.id_prospecto = PR.id
                     where R.completado = false
                     and P.cancelada = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                     and C.rut_ej_cobranza_asignado = %(rut_usuario)s
                 '''
 
