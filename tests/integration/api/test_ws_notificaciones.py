@@ -68,7 +68,12 @@ def client(usuario_autenticado):
     def override_marcar_leida():
         # Use case REAL sobre un repo mockeado: el aviso por WebSocket vive en el
         # use case, y mockearlo haría que esta suite no probara nada.
-        return MarcarNotificacionLeidaUseCase(MagicMock(spec=RepositorioNotificaciones))
+        from tests.factories.notificacion_factory import crear_notificacion_mock
+        repositorio = MagicMock(spec=RepositorioNotificaciones)
+        repositorio.buscar.return_value = crear_notificacion_mock(
+            id=7, nivel='INFO', leible=True, leida=False,
+        )
+        return MarcarNotificacionLeidaUseCase(repositorio)
 
     def override_marcar_todas():
         repositorio = MagicMock(spec=RepositorioNotificaciones)

@@ -23,7 +23,7 @@ def registrar_notificacion_asignacion(
     entidad_tipo: str,
     entidad_id: int,
     nombre_entidad: str,
-    url_destino: str,
+    id_prospecto: int | None = None,
 ) -> None:
     """Inserta una notificación de asignación dentro de la transacción del llamador.
 
@@ -44,11 +44,12 @@ def registrar_notificacion_asignacion(
             mensaje,
             entidad_tipo,
             entidad_id,
-            url_destino,
+            id_prospecto,
             dedupe_key,
             leida,
             fecha_leida,
-            created_at
+            created_at,
+            leible
         )
         values (
             %(rut_usuario)s,
@@ -58,11 +59,12 @@ def registrar_notificacion_asignacion(
             %(mensaje)s,
             %(entidad_tipo)s,
             %(entidad_id)s,
-            %(url_destino)s,
+            %(id_prospecto)s,
             %(dedupe_key)s,
             false,
             null,
-            %(created_at)s
+            %(created_at)s,
+            true
         )
         on conflict (dedupe_key) do nothing
     '''
@@ -74,9 +76,10 @@ def registrar_notificacion_asignacion(
         'mensaje': mensaje,
         'entidad_tipo': entidad_tipo,
         'entidad_id': entidad_id,
-        'url_destino': url_destino,
+        'id_prospecto': id_prospecto,
         'dedupe_key': f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{rol}:{ahora.isoformat()}',
         'created_at': ahora,
+        'leible': True,
     }
 
     cur.execute(query, params)

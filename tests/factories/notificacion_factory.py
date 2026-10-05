@@ -17,12 +17,16 @@ def crear_notificacion_mock(
     mensaje: str = "La oportunidad está por alcanzar el límite del estado",
     entidad_tipo: str | None = "PROCESO_COMERCIAL",
     entidad_id: int | None = 1,
-    url_destino: str | None = "/oportunidades?id=1",
+    id_prospecto: int | None = 1,
     dedupe_key: str = "SLA_POR_VENCER:1:CONTACTO_INICIAL",
     leida: bool = False,
     fecha_leida: datetime | None = None,
     created_at: datetime | None = None,
+    leible: bool | None = None,
 ) -> Notificacion:
+    if leible is None:
+        leible = nivel == 'INFO'
+
     return Notificacion(
         id=id,
         rut_usuario=rut_usuario,
@@ -32,16 +36,18 @@ def crear_notificacion_mock(
         mensaje=mensaje,
         entidad_tipo=entidad_tipo,
         entidad_id=entidad_id,
-        url_destino=url_destino,
+        id_prospecto=id_prospecto,
         dedupe_key=dedupe_key,
         leida=leida,
         fecha_leida=fecha_leida,
         created_at=created_at or AHORA_REF,
+        leible=leible,
     )
 
 
 def crear_proceso_alertable_sla_mock(
     id_proceso_comercial: int = 1,
+    id_prospecto: int = 1,
     codigo_estado: str = "CONTACTO_INICIAL",
     nombre_estado: str = "Contacto Inicial",
     nombre_etapa: str = "Prospección",
@@ -54,12 +60,17 @@ def crear_proceso_alertable_sla_mock(
     rut_ej_evaluacion: str | None = "22222222-2",
     cerrado: bool = False,
     ahora: datetime | None = None,
+    codigo_siguiente_estado: str | None = "ESTADO_SIGUIENTE",
+    nombre_siguiente_estado: str | None = "Estado Siguiente",
+    rol_responsable_siguiente: str | None = "EJECUTIVO_COMERCIAL",
+    accion_requerida: str | None = None,
 ) -> ProcesoAlertableSla:
     if ahora is None:
         ahora = AHORA_REF
 
     return ProcesoAlertableSla(
         id_proceso_comercial=id_proceso_comercial,
+        id_prospecto=id_prospecto,
         codigo_estado=codigo_estado,
         nombre_estado=nombre_estado,
         nombre_etapa=nombre_etapa,
@@ -71,4 +82,8 @@ def crear_proceso_alertable_sla_mock(
         rut_ej_comercial=rut_ej_comercial,
         rut_ej_evaluacion=rut_ej_evaluacion,
         cerrado=cerrado,
+        codigo_siguiente_estado=codigo_siguiente_estado,
+        nombre_siguiente_estado=nombre_siguiente_estado,
+        rol_responsable_siguiente=rol_responsable_siguiente,
+        accion_requerida=accion_requerida,
     )

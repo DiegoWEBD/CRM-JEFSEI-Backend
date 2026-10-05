@@ -140,9 +140,10 @@ class TestGenerarAlertasCierreEstimado:
         assert 'CIERRE_ESTIMADO_PROXIMO' in creadas[0].dedupe_key
         assert str(proceso.id) in creadas[0].dedupe_key
 
-    def test_url_destino_correcta(self):
+    def test_id_prospecto_correcto(self):
         proceso = crear_proceso_comercial_mock(
             id=42,
+            id_prospecto=7,
             fecha_estimada_cierre=AHORA_REF + timedelta(days=3),
             ejecutivo_comercial=_Ejecutivo('11111111-1'),
         )
@@ -150,7 +151,7 @@ class TestGenerarAlertasCierreEstimado:
 
         creadas = uc.ejecutar(ahora=AHORA_REF)
 
-        assert creadas[0].url_destino == '/oportunidades?id=42'
+        assert creadas[0].id_prospecto == 7
         assert creadas[0].entidad_id == 42
 
     def test_no_duplica_si_dedupe_key_existe(self):
@@ -189,3 +190,44 @@ class TestGenerarAlertasCierreEstimado:
             id_prospecto=None,
             abiertos=True,
         )
+
+    def test_mensaje_incluye_producto_y_cliente(self):
+        proceso = crear_proceso_comercial_mock(
+            nombre_cliente='Comunidad Edificio Exequiel Torre C',
+            fecha_estimada_cierre=AHORA_REF + timedelta(days=3),
+            ejecutivo_comercial=_Ejecutivo('11111111-1'),
+        )
+        uc, _, _ = _use_case([proceso])
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert len(creadas) == 1
+        assert "La oportunidad 'Seguro de Vida'" in creadas[0].mensaje
+        assert 'Comunidad Edificio Exequiel Torre C' in creadas[0].mensaje
+        assert 'tiene fecha de cierre estimada' in creadas[0].mensaje
+
+    def test_mensaje_critico_incluye_producto_y_cliente(self):
+        proceso = crear_proceso_comercial_mock(
+            nombre_cliente='Comunidad Edificio Exequiel Torre C',
+            fecha_estimada_cierre=AHORA_REF - timedelta(days=8),
+            ejecutivo_comercial=_Ejecutivo('11111111-1'),
+        )
+        uc, _, _ = _use_case([proceso])
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert len(creadas) == 1
+        assert "La oportunidad 'Seguro de Vida'" in creadas[0].mensaje
+        assert '8 días de atraso' in creadas[0].mensaje
+
+    def test_notificaciones_cierre_no_son_leibles(self):
+        proceso = crear_proceso_comercial_mock(
+            fecha_estimada_cierre=AHORA_REF + timedelta(days=3),
+            ejecutivo_comercial=_Ejecutivo('11111111-1'),
+        )
+        uc, _, _ = _use_case([proceso])
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert len(creadas) == 1
+        assert creadas[0].leible is False

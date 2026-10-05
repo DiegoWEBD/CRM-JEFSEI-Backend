@@ -21,7 +21,7 @@ class TestRegistrarNotificacionAsignacion:
             entidad_tipo='PROSPECTO',
             entidad_id=10,
             nombre_entidad='Cliente Test',
-            url_destino='/prospectos?id=10',
+            id_prospecto=10,
         )
 
         cur.execute.assert_called_once()
@@ -33,9 +33,10 @@ class TestRegistrarNotificacionAsignacion:
         assert params['nivel'] == 'INFO'
         assert params['entidad_tipo'] == 'PROSPECTO'
         assert params['entidad_id'] == 10
-        assert params['url_destino'] == '/prospectos?id=10'
+        assert params['id_prospecto'] == 10
         assert 'ejecutivo comercial' in params['titulo']
         assert 'Cliente Test' in params['mensaje']
+        assert params['leible'] is True
 
     def test_dedupe_key_es_unico_por_evento(self):
         cur = MagicMock()
@@ -47,7 +48,7 @@ class TestRegistrarNotificacionAsignacion:
             entidad_tipo='PROSPECTO',
             entidad_id=10,
             nombre_entidad='Cliente Test',
-            url_destino='/prospectos?id=10',
+            id_prospecto=10,
         )
 
         _, params = cur.execute.call_args[0]
@@ -63,7 +64,7 @@ class TestRegistrarNotificacionAsignacion:
             entidad_tipo='CLIENTE',
             entidad_id=5,
             nombre_entidad='Cliente ABC',
-            url_destino='/clientes?id=5',
+            id_prospecto=3,
         )
 
         assert resultado is None
@@ -78,7 +79,7 @@ class TestRegistrarNotificacionAsignacion:
             entidad_tipo='CLIENTE',
             entidad_id=5,
             nombre_entidad='Empresa XYZ',
-            url_destino='/clientes?id=5',
+            id_prospecto=3,
         )
 
         _, params = cur.execute.call_args[0]

@@ -61,12 +61,14 @@ class GenerarAlertasCierreEstimadoUseCase:
         if dias_restantes > UMBRAL_DIAS_PROXIMO:
             return None
 
+        desc_proceso = self._descripcion_proceso(proceso)
+
         if dias_restantes >= 0:
             codigo_tipo = 'CIERRE_ESTIMADO_PROXIMO'
             nivel = 'AVISO'
             titulo = 'Cierre estimado próximo'
             mensaje = (
-                f'{self._nombre_proceso(proceso)} tiene fecha de cierre estimada '
+                f'{desc_proceso} tiene fecha de cierre estimada '
                 f'el {proceso.fecha_estimada_cierre.strftime("%d/%m/%Y")} '
                 f'(faltan {dias_restantes} días).'
             )
@@ -76,7 +78,7 @@ class GenerarAlertasCierreEstimadoUseCase:
             atraso = abs(dias_restantes)
             titulo = 'Fecha de cierre vencida'
             mensaje = (
-                f'{self._nombre_proceso(proceso)} tiene fecha de cierre estimada '
+                f'{desc_proceso} tiene fecha de cierre estimada '
                 f'el {proceso.fecha_estimada_cierre.strftime("%d/%m/%Y")} '
                 f'({atraso} días de atraso).'
             )
@@ -92,11 +94,12 @@ class GenerarAlertasCierreEstimadoUseCase:
             mensaje=mensaje,
             entidad_tipo='PROCESO_COMERCIAL',
             entidad_id=proceso.id,
-            url_destino=f'/oportunidades?id={proceso.id}',
+            id_prospecto=proceso.id_prospecto,
             dedupe_key=f'{codigo_tipo}:{proceso.id}:{codigo_estado}',
             leida=False,
             fecha_leida=None,
             created_at=ahora,
+            leible=False,
         )
 
     def _resolver_destinatario(self, proceso) -> str | None:
@@ -105,7 +108,10 @@ class GenerarAlertasCierreEstimadoUseCase:
         return proceso.ejecutivo_comercial.rut
 
     @staticmethod
-    def _nombre_proceso(proceso) -> str:
+    def _descripcion_proceso(proceso) -> str:
+        nombre_producto = getattr(getattr(proceso, 'producto', None), 'nombre', None)
+        if nombre_producto and proceso.nombre_cliente:
+            return f"La oportunidad '{nombre_producto}' de {proceso.nombre_cliente}"
         if proceso.nombre_cliente:
             return proceso.nombre_cliente
         return f'Oportunidad #{proceso.id}'
