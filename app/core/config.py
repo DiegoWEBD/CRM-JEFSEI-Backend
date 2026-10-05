@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # WebSocket de notificaciones
     # Los navegadores NO aplican CORS al handshake de un WebSocket: el origen se
     # valida manualmente contra esta lista (ver ws_router).
-    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000,http://localhost:3001"
+    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000,https://crm-jefsei.cl"
     # Vida útil del ticket que autoriza la conexión (no es el JWT de sesión).
     CRM_WS_TICKET_TTL_SEGUNDOS: int = 60
     # El servidor emite "ping" con esta periodicidad para mantener viva la conexión
