@@ -72,7 +72,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 
@@ -167,7 +167,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 
@@ -225,7 +225,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 

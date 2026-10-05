@@ -19,7 +19,7 @@ class TestRegistrarNotificacionAsignacion:
         registrar_notificacion_asignacion(
             cur,
             rut_asignado='11111111-1',
-            rol='ejecutivo comercial',
+            detalle_asignacion='ejecutivo comercial',
             entidad_tipo='PROSPECTO',
             entidad_id=10,
             nombre_entidad='Cliente Test',
@@ -46,7 +46,7 @@ class TestRegistrarNotificacionAsignacion:
         registrar_notificacion_asignacion(
             cur,
             rut_asignado='11111111-1',
-            rol='ejecutivo comercial',
+            detalle_asignacion='ejecutivo comercial',
             entidad_tipo='PROSPECTO',
             entidad_id=10,
             nombre_entidad='Cliente Test',
@@ -62,7 +62,7 @@ class TestRegistrarNotificacionAsignacion:
         resultado = registrar_notificacion_asignacion(
             cur,
             rut_asignado='11111111-1',
-            rol='asistente de renovación',
+            detalle_asignacion='asistente de renovación',
             entidad_tipo='CLIENTE',
             entidad_id=5,
             nombre_entidad='Cliente ABC',
@@ -71,13 +71,13 @@ class TestRegistrarNotificacionAsignacion:
 
         assert resultado is None
 
-    def test_mensaje_incluye_rol_y_entidad(self):
+    def test_mensaje_incluye_detalle_y_entidad(self):
         cur = MagicMock()
 
         registrar_notificacion_asignacion(
             cur,
             rut_asignado='22222222-2',
-            rol='asistente de renovación',
+            detalle_asignacion='asistente de renovación',
             entidad_tipo='CLIENTE',
             entidad_id=5,
             nombre_entidad='Empresa XYZ',
