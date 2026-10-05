@@ -18,6 +18,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
             with conn.cursor() as cur:
                 query = '''
                     select PC.id as id_proceso_comercial,
+                    PRO.nombre as nombre_producto,
                     PC.id_prospecto,
                     EI.codigo as codigo_estado,
                     EI.nombre as nombre_estado,
@@ -35,6 +36,8 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     EI_SIGUIENTE.rol_responsable as rol_responsable_siguiente,
                     T.accion_requerida
                     from ProcesoComercial PC
+                    inner join Producto PRO
+                    on PC.id_producto = PRO.id
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
                     inner join HistorialEstadoInformativoProcesoComercial HI

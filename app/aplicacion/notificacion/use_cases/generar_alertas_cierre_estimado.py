@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 
 
@@ -45,7 +46,7 @@ class GenerarAlertasCierreEstimadoUseCase:
 
         return creadas
 
-    def _evaluar(self, proceso, ahora: datetime) -> Notificacion | None:
+    def _evaluar(self, proceso: ProcesoComercial, ahora: datetime) -> Notificacion | None:
         if proceso.cerrado:
             return None
 
@@ -108,10 +109,6 @@ class GenerarAlertasCierreEstimadoUseCase:
         return proceso.ejecutivo_comercial.rut
 
     @staticmethod
-    def _descripcion_proceso(proceso) -> str:
-        nombre_producto = getattr(getattr(proceso, 'producto', None), 'nombre', None)
-        if nombre_producto and proceso.nombre_cliente:
-            return f"La oportunidad '{nombre_producto}' de {proceso.nombre_cliente}"
-        if proceso.nombre_cliente:
-            return proceso.nombre_cliente
-        return f'Oportunidad #{proceso.id}'
+    def _descripcion_proceso(proceso: ProcesoComercial) -> str:
+        return f"La oportunidad '{proceso.producto.nombre}' de {proceso.nombre_cliente}"
+

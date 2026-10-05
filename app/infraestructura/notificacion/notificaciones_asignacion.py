@@ -19,7 +19,7 @@ def registrar_notificacion_asignacion(
     cur: Cursor[DictRow],
     *,
     rut_asignado: str,
-    rol: str,
+    detalle_asignacion: str,
     entidad_tipo: str,
     entidad_id: int,
     nombre_entidad: str,
@@ -32,8 +32,9 @@ def registrar_notificacion_asignacion(
     """
     ahora = datetime.now(tz=timezone.utc)
 
-    titulo = f'Asignación de {rol}'
-    mensaje = f'Se le ha asignado como {rol} del {entidad_tipo.lower()} {nombre_entidad}.'
+    titulo = f'Asignación de {detalle_asignacion}'
+    print(detalle_asignacion)
+    mensaje = f'Se le ha asignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.'
 
     query = '''
         insert into Notificacion(
@@ -77,7 +78,7 @@ def registrar_notificacion_asignacion(
         'entidad_tipo': entidad_tipo,
         'entidad_id': entidad_id,
         'id_prospecto': id_prospecto,
-        'dedupe_key': f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{rol}:{ahora.isoformat()}',
+        'dedupe_key': f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
         'created_at': ahora,
         'leible': True,
     }

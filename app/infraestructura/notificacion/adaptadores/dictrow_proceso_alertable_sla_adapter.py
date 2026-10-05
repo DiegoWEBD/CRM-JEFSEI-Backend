@@ -28,4 +28,5 @@ class DictRowProcesoAlertableSlaAdapter:
             nombre_siguiente_estado=r['nombre_siguiente_estado'],
             rol_responsable_siguiente=r['rol_responsable_siguiente'],
             accion_requerida=r['accion_requerida'],
+            nombre_producto=r['nombre_producto'],
         )

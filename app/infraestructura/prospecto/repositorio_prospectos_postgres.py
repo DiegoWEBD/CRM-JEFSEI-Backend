@@ -789,7 +789,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     registrar_notificacion_asignacion(
                         cur,
                         rut_asignado=rut,
-                        rol='ejecutivo comercial',
+                        detalle_asignacion='gestión comercial',
                         entidad_tipo='PROSPECTO',
                         entidad_id=prospecto.id,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
@@ -847,7 +847,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     registrar_notificacion_asignacion(
                         cur,
                         rut_asignado=rut,
-                        rol='ejecutivo de evaluación',
+                        detalle_asignacion='evaluación técnica',
                         entidad_tipo='PROSPECTO',
                         entidad_id=prospecto.id,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
@@ -901,7 +901,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     registrar_notificacion_asignacion(
                         cur,
                         rut_asignado=rut,
-                        rol='ejecutivo de cobranza',
+                        detalle_asignacion='cobranza',
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
@@ -946,7 +946,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     registrar_notificacion_asignacion(
                         cur,
                         rut_asignado=rut,
-                        rol='ejecutivo de renovación',
+                        detalle_asignacion='renovación',
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
@@ -978,7 +978,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     registrar_notificacion_asignacion(
                         cur,
                         rut_asignado=rut,
-                        rol='asistente de renovación',
+                        detalle_asignacion='asistencia de renovación',
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
