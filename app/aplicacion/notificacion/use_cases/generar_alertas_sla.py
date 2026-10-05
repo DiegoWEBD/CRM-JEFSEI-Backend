@@ -143,6 +143,4 @@ class GenerarAlertasSlaUseCase:
 
     @staticmethod
     def _nombre_proceso(proceso: ProcesoAlertableSla) -> str:
-        if proceso.nombre_prospecto:
-            return proceso.nombre_prospecto
-        return f'Oportunidad #{proceso.id_proceso_comercial}'
+        return f"La oportunidad '{proceso.nombre_producto}' de {proceso.nombre_prospecto}"

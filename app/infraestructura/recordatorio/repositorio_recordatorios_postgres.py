@@ -57,7 +57,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     on RU.id_prospecto = P.id
                     where RU.rut_usuario = %(rut_usuario)s
                     and R.completado = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                 '''
 
                 params = {
@@ -72,7 +72,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 
@@ -148,7 +148,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     inner join Cliente C
                     on P.id_cliente = C.id
                     where R.completado = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                     and (
                         C.rut_ej_renovacion_asignado = %(rut_usuario)s
                         or C.rut_as_renovacion_asignado = %(rut_usuario)s
@@ -167,7 +167,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 
@@ -209,7 +209,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     on C.id_prospecto = PR.id
                     where R.completado = false
                     and P.cancelada = false
-                    and R.fecha_recordatorio < (%(fecha)s::date + interval '1 day')
+                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
                     and C.rut_ej_cobranza_asignado = %(rut_usuario)s
                 '''
 
@@ -225,7 +225,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
 
                 count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
                 cur.execute(count_query, params)
-                total = cur.fetchone()['total']
+                total = cur.fetchone()['total'] # type: ignore
 
                 offset = (pagina - 1) * tamano_pagina
 

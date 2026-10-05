@@ -19,6 +19,7 @@ class ProcesoAlertableSla:
         rut_ej_comercial: str | None,
         rut_ej_evaluacion: str | None,
         cerrado: bool,
+        nombre_producto: str | None,
         codigo_siguiente_estado: str | None = None,
         nombre_siguiente_estado: str | None = None,
         rol_responsable_siguiente: str | None = None,
@@ -37,6 +38,7 @@ class ProcesoAlertableSla:
         self.rut_ej_comercial = rut_ej_comercial
         self.rut_ej_evaluacion = rut_ej_evaluacion
         self.cerrado = cerrado
+        self.nombre_producto = nombre_producto
         # Datos del siguiente estado (destino de la transición principal).
         # NULL = sin transición principal -> no genera alertas SLA.
         self.codigo_siguiente_estado = codigo_siguiente_estado

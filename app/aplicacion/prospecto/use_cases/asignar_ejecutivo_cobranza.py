@@ -20,6 +20,8 @@ class AsignarEjecutivoCobranzaUseCase:
         if not prospecto:
             raise RecursoNoEncontradoException('Cliente no encontrado')
 
+        rut_anterior = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
+
         if rut_ej_cobranza is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_cobranza)
 
@@ -36,4 +38,10 @@ class AsignarEjecutivoCobranzaUseCase:
             hub.publicar_desde_hilo(
                 [rut_ej_cobranza],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'asignacion_ejecutivo'},
+            )
+
+        if rut_anterior and rut_anterior != rut_ej_cobranza:
+            hub.publicar_desde_hilo(
+                [rut_anterior],
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
             )

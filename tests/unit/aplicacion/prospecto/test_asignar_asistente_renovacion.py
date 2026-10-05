@@ -8,11 +8,12 @@ from app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion import (
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 
 
-def _prospecto_mock(id_cliente=5):
+def _prospecto_mock(id_cliente=5, asistente_previo=None):
     p = MagicMock()
     p.id_cliente = id_cliente
     p.nombre_riesgo = 'Cliente Test'
     p.id = 1
+    p.asistente_renovacion_asignado = asistente_previo
     return p
 
 
@@ -66,29 +67,35 @@ class TestAsignarAsistenteRenovacion:
         assert prospecto.asistente_renovacion_asignado is None
         repo_prospectos.asignar_asistente_renovacion.assert_called_once()
 
+    @pytest.mark.parametrize(
+        'previo, nuevo, esperados',
+        [
+            # (asistente previo, RUT nuevo, [(RUT destino, motivo)])
+            ('33333333-3', '11111111-1', [('11111111-1', 'asignacion_ejecutivo'),
+                                           ('33333333-3', 'desasignacion_ejecutivo')]),
+            ('33333333-3', None,           [('33333333-3', 'desasignacion_ejecutivo')]),
+            (None,        '11111111-1',   [('11111111-1', 'asignacion_ejecutivo')]),
+            (None,        None,            []),
+        ],
+    )
     @patch('app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion.hub')
-    def test_publica_en_hub_al_asignar(self, mock_hub):
-        prospecto = _prospecto_mock()
-        usuario = MagicMock()
-        usuario.rut = '11111111-1'
+    def test_notifica_a_los_usuarios_correctos(self, mock_hub, previo, nuevo, esperados):
+        """Verifica que cada usuario correcto recibe la notificación de asignación o desasignación."""
+        asistente_previo = MagicMock(rut=previo) if previo else None
+        prospecto = _prospecto_mock(asistente_previo=asistente_previo)
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = prospecto
         repo_usuarios = MagicMock()
-        repo_usuarios.buscar.return_value = usuario
+        if nuevo:
+            repo_usuarios.buscar.return_value = MagicMock(rut=nuevo)
         uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, repo_usuarios)
 
-        uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
+        uc.ejecutar(id_cliente=5, rut_as_renovacion=nuevo, asignado_por=MagicMock())
 
-        mock_hub.publicar_desde_hilo.assert_called_once()
+        for rut_esperado, motivo_esperado in esperados:
+            mock_hub.publicar_desde_hilo.assert_any_call(
+                [rut_esperado],
+                {'evento': 'notificaciones_actualizadas', 'motivo': motivo_esperado},
+            )
 
-    @patch('app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion.hub')
-    def test_no_publica_al_desasignar(self, mock_hub):
-        prospecto = _prospecto_mock()
-        repo_prospectos = MagicMock()
-        repo_prospectos.buscar_cliente.return_value = prospecto
-        repo_usuarios = MagicMock()
-        uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, repo_usuarios)
-
-        uc.ejecutar(id_cliente=5, rut_as_renovacion=None, asignado_por=MagicMock())
-
-        mock_hub.publicar_desde_hilo.assert_not_called()
+        assert mock_hub.publicar_desde_hilo.call_count == len(esperados)
