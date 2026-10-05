@@ -35,10 +35,15 @@ CODIGO_NO_AUTORIZADO = 1008
 
 def _origen_permitido(websocket: WebSocket) -> bool:
     origen = websocket.headers.get('origin')
-    # Los navegadores siempre envían Origin; ausente solo en clientes de prueba
-    # (wscat, TestClient), que no plantean el riesgo de un sitio cruzado.
+
+    # Clientes que no envían Origin (wscat, TestClient, etc.).
     if not origen:
         return True
+
+    # "*" permite conexiones desde cualquier origen.
+    if '*' in settings.origenes_permitidos:
+        return True
+
     return origen in settings.origenes_permitidos
 
 

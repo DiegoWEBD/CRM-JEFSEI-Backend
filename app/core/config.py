@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # WebSocket de notificaciones
     # Los navegadores NO aplican CORS al handshake de un WebSocket: el origen se
     # valida manualmente contra esta lista (ver ws_router).
-    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000,https://crm-jefsei.cl,http://172.19.0.4"
+    CRM_ORIGENES_PERMITIDOS: str = "*"
     # Vida útil del ticket que autoriza la conexión (no es el JWT de sesión).
     CRM_WS_TICKET_TTL_SEGUNDOS: int = 60
     # El servidor emite "ping" con esta periodicidad para mantener viva la conexión
@@ -38,7 +38,14 @@ class Settings(BaseSettings):
 
     @property
     def origenes_permitidos(self) -> list[str]:
-        return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
+        if self.CRM_ORIGENES_PERMITIDOS.strip() == "*":
+            return ["*"]
+
+        return [
+            origen.strip()
+            for origen in self.CRM_ORIGENES_PERMITIDOS.split(',')
+            if origen.strip()
+        ]
 
     @property
     def proxies_confiables(self) -> list[str]:
