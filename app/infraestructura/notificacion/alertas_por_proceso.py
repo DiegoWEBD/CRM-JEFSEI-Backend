@@ -68,7 +68,8 @@ def reasignar_destinatario_alertas(
     nuevo_rut: str | None,
 ) -> tuple[set[str], set[str]]:
     """Cambia el destinatario de las alertas no leídas de los procesos abiertos
-    de un prospecto cuyo estado actual tenga `rol` como responsable.
+    de un prospecto cuyo estado siguiente (destino de la transición principal)
+    tenga `rol` como responsable.
 
     - `nuevo_rut` con valor: las alertas pasan a ese ejecutivo.
     - `nuevo_rut` None (desasignación): las alertas quedan sin destinatario
@@ -83,9 +84,19 @@ def reasignar_destinatario_alertas(
         sql.SQL('N.rut_usuario is distinct from %(nuevo_rut)s'),
         sql.SQL('PC.id_prospecto = %(id_prospecto)s'),
         sql.SQL('PC.cerrado = false'),
-        sql.SQL('EI.rol_responsable = %(rol)s'),
+        sql.SQL('EI_SIGUIENTE.rol_responsable = %(rol)s'),
     ]
     where_condiciones = sql.SQL(' AND ').join(condiciones)
+
+    # Join con la transición principal + estado destino para resolver el
+    # rol responsable del siguiente estado (no el actual).
+    join_transicion = sql.SQL('''
+        inner join TransicionEstadoProcesoComercial T
+        on T.codigo_estado_origen = PC.codigo_estado_actual
+        and T.es_principal = true
+        inner join EstadoInformativoProcesoComercial EI_SIGUIENTE
+        on EI_SIGUIENTE.codigo = T.codigo_estado_destino
+    ''')
 
     params = {
         'id_prospecto': id_prospecto,
@@ -99,10 +110,9 @@ def reasignar_destinatario_alertas(
         from Notificacion N
         inner join ProcesoComercial PC
         on PC.id = N.entidad_id
-        inner join EstadoInformativoProcesoComercial EI
-        on EI.codigo = PC.codigo_estado_actual
+        {join_transicion}
         where {where_condiciones}
-    ''').format(where_condiciones=where_condiciones)
+    ''').format(join_transicion=join_transicion, where_condiciones=where_condiciones)
     cur.execute(query_previos, params)
     # Puede traer NULL (alerta huérfana que será reclamada): sin destinatario
     # que notificar.
@@ -115,11 +125,10 @@ def reasignar_destinatario_alertas(
         update Notificacion N
         set rut_usuario = %(nuevo_rut)s
         from ProcesoComercial PC
-        inner join EstadoInformativoProcesoComercial EI
-        on EI.codigo = PC.codigo_estado_actual
+        {join_transicion}
         where N.entidad_id = PC.id
         and {where_condiciones}
-    ''').format(where_condiciones=where_condiciones)
+    ''').format(join_transicion=join_transicion, where_condiciones=where_condiciones)
     cur.execute(query_update, params)
 
     if cur.rowcount == 0:

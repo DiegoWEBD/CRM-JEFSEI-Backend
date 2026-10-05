@@ -18,6 +18,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
             with conn.cursor() as cur:
                 query = '''
                     select PC.id as id_proceso_comercial,
+                    PC.id_prospecto,
                     EI.codigo as codigo_estado,
                     EI.nombre as nombre_estado,
                     EPC.nombre as nombre_etapa,
@@ -28,7 +29,11 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     EI.rol_responsable,
                     PC.rut_ej_comercial,
                     PC.rut_ej_evaluacion,
-                    PC.cerrado
+                    PC.cerrado,
+                    T.codigo_estado_destino as codigo_siguiente_estado,
+                    EI_SIGUIENTE.nombre as nombre_siguiente_estado,
+                    EI_SIGUIENTE.rol_responsable as rol_responsable_siguiente,
+                    T.accion_requerida
                     from ProcesoComercial PC
                     inner join Prospecto PR
                     on PC.id_prospecto = PR.id
@@ -44,6 +49,11 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     and EI.codigo = PC.codigo_estado_actual
                     inner join EtapaProcesoComercial EPC
                     on EI.codigo_etapa = EPC.codigo
+                    left join TransicionEstadoProcesoComercial T
+                    on T.codigo_estado_origen = EI.codigo
+                    and T.es_principal = true
+                    left join EstadoInformativoProcesoComercial EI_SIGUIENTE
+                    on EI_SIGUIENTE.codigo = T.codigo_estado_destino
                     where PC.cerrado = false
                 '''
 
@@ -51,6 +61,34 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                 rows = cur.fetchall()
 
                 return [DictRowProcesoAlertableSlaAdapter(row).to_proceso_alertable_sla() for row in rows]
+
+    def obtener_ruts_por_roles(self, roles: list[str]) -> dict[str, list[str]]:
+        """Devuelve {rol: [rut1, rut2, ...]} para los roles dados.
+
+        Solo incluye usuarios habilitados y no eliminados.
+        Se usa para el fan-out de alertas SLA a roles sin asignación
+        por proceso (p.ej. GERENTE_COMERCIAL).
+        """
+        if not roles:
+            return {}
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select RU.codigo_rol, U.rut
+                    from RolUsuario RU
+                    inner join Usuario U on U.rut = RU.rut_usuario
+                    where RU.codigo_rol = any(%(roles)s)
+                    and U.habilitado = true
+                    and U.eliminado = false
+                '''
+                cur.execute(query, {'roles': roles})
+                rows = cur.fetchall()
+
+                resultado: dict[str, list[str]] = {r: [] for r in roles}
+                for row in rows:
+                    resultado[row['codigo_rol']].append(row['rut'])
+                return resultado
 
     def registrar(self, notificacion: Notificacion) -> bool:
         with obtener_conexion() as conn:
@@ -64,11 +102,12 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                         mensaje,
                         entidad_tipo,
                         entidad_id,
-                        url_destino,
+                        id_prospecto,
                         dedupe_key,
                         leida,
                         fecha_leida,
-                        created_at
+                        created_at,
+                        leible
                     )
                     values (
                         %(rut_usuario)s,
@@ -78,11 +117,12 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                         %(mensaje)s,
                         %(entidad_tipo)s,
                         %(entidad_id)s,
-                        %(url_destino)s,
+                        %(id_prospecto)s,
                         %(dedupe_key)s,
                         false,
                         null,
-                        %(created_at)s
+                        %(created_at)s,
+                        %(leible)s
                     )
                     on conflict (dedupe_key) do nothing
                     returning id
@@ -95,9 +135,10 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     'mensaje': notificacion.mensaje,
                     'entidad_tipo': notificacion.entidad_tipo,
                     'entidad_id': notificacion.entidad_id,
-                    'url_destino': notificacion.url_destino,
+                    'id_prospecto': notificacion.id_prospecto,
                     'dedupe_key': notificacion.dedupe_key,
                     'created_at': notificacion.created_at or datetime.now(tz=timezone.utc),
+                    'leible': notificacion.leible,
                 }
 
                 cur.execute(query, params)
@@ -169,11 +210,12 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.mensaje,
                     N.entidad_tipo,
                     N.entidad_id,
-                    N.url_destino,
+                    N.id_prospecto,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,
-                    N.created_at
+                    N.created_at,
+                    N.leible
                     from Notificacion N
                     {where_clause}
                     order by N.created_at desc
@@ -192,11 +234,41 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     select count(*) as total
                     from Notificacion
                     where rut_usuario = %(rut_usuario)s
+                    and leible = true
                     and leida = false
                 '''
                 cur.execute(query, {'rut_usuario': rut_usuario})
 
-                return cur.fetchone()['total']
+                return cur.fetchone()['total'] # type: ignore
+
+    def buscar(self, id_notificacion: int) -> Notificacion | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    where N.id = %(id)s
+                '''
+                cur.execute(query, {'id': id_notificacion})
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                return DictRowNotificacionAdapter(row).to_notificacion()
 
     def marcar_leida(self, id_notificacion: int, rut_usuario: str) -> None:
         with obtener_conexion() as conn:
@@ -239,6 +311,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     fecha_leida = %(fecha_leida)s
                     where rut_usuario = %(rut_usuario)s
                     and leida = false
+                    and leible = true
                 '''
                 params = {
                     'rut_usuario': rut_usuario,

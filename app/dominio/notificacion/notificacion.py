@@ -13,11 +13,12 @@ class Notificacion:
         mensaje: str,
         entidad_tipo: str | None,
         entidad_id: int | None,
-        url_destino: str | None,
+        id_prospecto: int | None,
         dedupe_key: str,
         leida: bool,
         fecha_leida: datetime | None,
         created_at: datetime | None,
+        leible: bool = True,
     ):
         self.id = id
         self.rut_usuario = rut_usuario
@@ -27,8 +28,9 @@ class Notificacion:
         self.mensaje = mensaje
         self.entidad_tipo = entidad_tipo
         self.entidad_id = entidad_id
-        self.url_destino = url_destino
+        self.id_prospecto = id_prospecto
         self.dedupe_key = dedupe_key
         self.leida = leida
         self.fecha_leida = fecha_leida
         self.created_at = created_at
+        self.leible = leible

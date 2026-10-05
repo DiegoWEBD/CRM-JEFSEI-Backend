@@ -12,6 +12,7 @@ class DictRowProcesoAlertableSlaAdapter:
         r = self.row
         return ProcesoAlertableSla(
             id_proceso_comercial=r['id_proceso_comercial'],
+            id_prospecto=r['id_prospecto'],
             codigo_estado=r['codigo_estado'],
             nombre_estado=r['nombre_estado'],
             nombre_etapa=r['nombre_etapa'],
@@ -23,4 +24,8 @@ class DictRowProcesoAlertableSlaAdapter:
             rut_ej_comercial=r['rut_ej_comercial'],
             rut_ej_evaluacion=r['rut_ej_evaluacion'],
             cerrado=r['cerrado'],
+            codigo_siguiente_estado=r['codigo_siguiente_estado'],
+            nombre_siguiente_estado=r['nombre_siguiente_estado'],
+            rol_responsable_siguiente=r['rol_responsable_siguiente'],
+            accion_requerida=r['accion_requerida'],
         )

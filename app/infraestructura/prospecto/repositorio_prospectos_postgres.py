@@ -793,7 +793,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         entidad_tipo='PROSPECTO',
                         entidad_id=prospecto.id,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        url_destino=f'/prospectos?id={prospecto.id}',
+                        id_prospecto=prospecto.id,
                     )
 
         if previos or nuevos:
@@ -851,7 +851,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         entidad_tipo='PROSPECTO',
                         entidad_id=prospecto.id,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        url_destino=f'/prospectos?id={prospecto.id}',
+                        id_prospecto=prospecto.id,
                     )
 
         if previos or nuevos:
@@ -905,7 +905,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                        id_prospecto=prospecto.id,
                     )
 
     def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
@@ -950,7 +950,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                        id_prospecto=prospecto.id,
                     )
 
     def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
@@ -982,5 +982,5 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         entidad_tipo='CLIENTE',
                         entidad_id=prospecto.id_cliente,
                         nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        url_destino=f'/clientes?id={prospecto.id_cliente}',
+                        id_prospecto=prospecto.id,
                     )

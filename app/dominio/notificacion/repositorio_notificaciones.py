@@ -28,7 +28,22 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def obtener_ruts_por_roles(self, roles: list[str]) -> dict[str, list[str]]:
+        """Devuelve {rol: [rut1, rut2, ...]} para los roles dados.
+
+        Solo incluye usuarios habilitados y no eliminados.
+        Se usa para el fan-out de alertas SLA a roles sin asignación
+        por proceso (p.ej. GERENTE_COMERCIAL).
+        """
+        pass
+
+    @abstractmethod
     def obtener_contador_no_leidas(self, rut_usuario: str) -> int:
+        pass
+
+    @abstractmethod
+    def buscar(self, id_notificacion: int) -> Notificacion | None:
+        """Busca una notificación por id. Retorna None si no existe."""
         pass
 
     @abstractmethod
@@ -37,5 +52,5 @@ class RepositorioNotificaciones(ABC):
 
     @abstractmethod
     def marcar_todas_leidas(self, rut_usuario: str) -> int:
-        """Marca todas las no leídas del usuario. Retorna el total marcado."""
+        """Marca todas las no leíbles y no leídas del usuario. Retorna el total marcado."""
         pass

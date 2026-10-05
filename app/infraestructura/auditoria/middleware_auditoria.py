@@ -77,13 +77,71 @@ def parsear_body_json(headers: Headers, cuerpo: bytes, truncado: bool) -> dict |
     return datos if isinstance(datos, dict) else None
 
 
+# Tope para el body de respuesta observado; solo se necesita el campo "detail"
+# de los JSON de error, que rara vez supera 1 KB.
+MAX_BYTES_RESPONSE = 8 * 1024
+
+
+def _es_response_json(headers_pairs: list) -> bool:
+    """Determina si los headers de respuesta indican Content-Type JSON."""
+    for nombre, valor in headers_pairs:
+        if nombre == b'content-type' and b'application/json' in valor:
+            return True
+    return False
+
+
+def extraer_error_response(cuerpo: bytes, truncado: bool) -> str | None:
+    """Extrae el campo ``detail`` del JSON de respuesta de error.
+
+    FastAPI y los exception handlers del sistema devuelven
+    ``{"detail": "mensaje"}``.  Para errores de validación de Pydantic el
+    campo ``detail`` es una lista de objetos; se serializan de forma
+    resumida (máximo 3 ítems) para no saturar el registro de auditoría.
+    """
+    if truncado or not cuerpo:
+        return None
+    try:
+        datos = json.loads(cuerpo.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+    if not isinstance(datos, dict):
+        return None
+
+    detail = datos.get('detail')
+    if isinstance(detail, str):
+        return detail
+    if isinstance(detail, list):
+        # Errores de validación de Pydantic / FastAPI
+        partes = []
+        for item in detail[:3]:
+            if isinstance(item, dict):
+                # {"loc": [...], "msg": "...", "type": "..."}
+                msg = item.get('msg', '')
+                loc = item.get('loc')
+                if loc:
+                    msg = f'{" → ".join(str(l) for l in loc)}: {msg}'
+                partes.append(msg)
+            else:
+                partes.append(str(item))
+        return '; '.join(partes) if partes else None
+    return None
+
+
 class MiddlewareAuditoria:
     """Registra todo cambio de estado (POST/PUT/PATCH/DELETE) en RegistroAuditoria.
 
     La escritura ocurre tras responder, en el threadpool y con la identidad
-    resuelta por get_current_user (scope['state']['usuario']). El body se
-    observa al pasar para construir la descripción humana de la acción, sin
-    almacenarse nunca. Nunca interrumpe la respuesta aunque la auditoría falle.
+    resuelta por get_current_user (scope['state']['usuario']). El body de la
+    petición se observa al pasar para construir la descripción humana de la
+    acción, sin almacenarse nunca.
+
+    Cuando la respuesta es un error (status >= 400) con Content-Type JSON, se
+    extrae el campo ``detail`` para enriquecer el ``detalle`` del registro con
+    el motivo real del fallo, en lugar de solo describir la intención del
+    usuario.
+
+    Nunca interrumpe la respuesta aunque la auditoría falle.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -136,11 +194,35 @@ class MiddlewareAuditoria:
         status_code = 500
         inicio = time.perf_counter()
 
+        # Se observa el body de respuesta solo cuando el status indica error
+        # y el Content-Type es JSON, para extraer el mensaje de "detail".
+        response_body = bytearray()
+        response_truncado = False
+        response_headers_pairs: list = []
+        es_response_json = False
+
         async def send_wrapper(message: Message) -> None:
-            nonlocal status_code
+            nonlocal status_code, response_truncado, es_response_json
             if message['type'] == 'http.response.start':
                 status_code = message['status']
                 MutableHeaders(scope=message)['X-Request-ID'] = id_peticion
+                # Guardar headers de respuesta para detectar JSON.
+                if auditar and status_code >= 400:
+                    response_headers_pairs = message.get('headers', [])
+                    es_response_json = _es_response_json(response_headers_pairs)
+            elif (
+                auditar
+                and status_code >= 400
+                and es_response_json
+                and message['type'] == 'http.response.body'
+                and not response_truncado
+            ):
+                fragmento = message.get('body', b'') or b''
+                if len(response_body) + len(fragmento) > MAX_BYTES_RESPONSE:
+                    response_truncado = True
+                    response_body.clear()
+                else:
+                    response_body.extend(fragmento)
             await send(message)
 
         try:
@@ -152,9 +234,15 @@ class MiddlewareAuditoria:
             if auditar and not (300 <= status_code < 400):
                 duracion_ms = int((time.perf_counter() - inicio) * 1000)
                 body = parsear_body_json(headers, bytes(cuerpo), cuerpo_truncado)
+                error_detail = (
+                    extraer_error_response(bytes(response_body), response_truncado)
+                    if status_code >= 400
+                    else None
+                )
                 await run_in_threadpool(
                     self._registrar_evento,
-                    scope, headers, metodo, ruta, status_code, duracion_ms, id_peticion, body,
+                    scope, headers, metodo, ruta, status_code, duracion_ms,
+                    id_peticion, body, error_detail,
                 )
 
     def _registrar_evento(
@@ -167,6 +255,7 @@ class MiddlewareAuditoria:
         duracion_ms: int,
         id_peticion: str,
         body: dict | None,
+        error_detail: str | None = None,
     ) -> None:
         try:
             usuario = scope.get('state', {}).get('usuario')
@@ -187,9 +276,23 @@ class MiddlewareAuditoria:
                 resolvedor=self.resolvedor_nombres,
             )
 
+            resultado = (
+                ResultadoAuditoria.EXITO
+                if status_code < 400
+                else ResultadoAuditoria.FALLIDO
+            )
+
+            # Para acciones fallidas se adjunta el motivo del error extraído
+            # del response JSON, dando contexto real al registro de auditoría
+            # en lugar de solo describir la intención del usuario.
+            if resultado == ResultadoAuditoria.FALLIDO and error_detail:
+                detalle = f'{descripcion} — Error: {error_detail}'
+            else:
+                detalle = descripcion
+
             self.servicio_auditoria.registrar_accion_negocio(
                 evento=evento,
-                resultado=ResultadoAuditoria.EXITO if status_code < 400 else ResultadoAuditoria.FALLIDO,
+                resultado=resultado,
                 contexto=contexto,
                 estado_http=status_code,
                 rut_usuario=rut_usuario,
@@ -199,7 +302,7 @@ class MiddlewareAuditoria:
                 entidad_tipo=entidad_tipo,
                 entidad_id=entidad_id,
                 duracion_ms=duracion_ms,
-                detalle=descripcion,
+                detalle=detalle,
             )
         except Exception:
             logger.exception('No se pudo auditar la petición %s %s', metodo, ruta)

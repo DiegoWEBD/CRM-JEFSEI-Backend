@@ -75,7 +75,7 @@ class TestReasignarDestinatarioAlertas:
         )
         return consultas
 
-    def test_filtra_por_rol_del_estado_actual_y_procesos_abiertos(self):
+    def test_filtra_por_rol_del_estado_siguiente_y_procesos_abiertos(self):
         cur = _cursor_con_fetchall([{'rut_usuario': '11111111-1'}], rowcount=1)
 
         reasignar_destinatario_alertas(
@@ -84,11 +84,13 @@ class TestReasignarDestinatarioAlertas:
 
         consultas = self._condiciones_en(cur)
         assert 'update notificacion' in consultas
-        assert 'ei.rol_responsable = %(rol)s' in consultas
+        assert 'ei_siguiente.rol_responsable = %(rol)s' in consultas
         assert 'pc.codigo_estado_actual' in consultas
         assert 'pc.cerrado = false' in consultas
         assert 'n.leida = false' in consultas
         assert 'n.rut_usuario is distinct from %(nuevo_rut)s' in consultas
+        assert 'transicionestadoprocesocomercial' in consultas
+        assert 'es_principal' in consultas
 
         assert cur.execute.call_count == 2
         for call in cur.execute.call_args_list:
