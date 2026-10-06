@@ -1,6 +1,6 @@
-# app/core/config.py
 from pydantic_settings import BaseSettings
 
+# La configuración de la aplicación se obtiene de variables de entorno, con valores por defecto para pruebas locales.
 class Settings(BaseSettings):
     ACCESS_TOKEN_SECRET_KEY: str = "test-secret-key-for-ci"
     ACCESS_TOKEN_ALGORITHM: str = "HS256"
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # WebSocket de notificaciones
     # Los navegadores NO aplican CORS al handshake de un WebSocket: el origen se
     # valida manualmente contra esta lista (ver ws_router).
-    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000,https://crm-jefsei.cl,http://172.19.0.4"
+    CRM_ORIGENES_PERMITIDOS: str = "http://localhost:3000"
     # Vida útil del ticket que autoriza la conexión (no es el JWT de sesión).
     CRM_WS_TICKET_TTL_SEGUNDOS: int = 60
     # El servidor emite "ping" con esta periodicidad para mantener viva la conexión
