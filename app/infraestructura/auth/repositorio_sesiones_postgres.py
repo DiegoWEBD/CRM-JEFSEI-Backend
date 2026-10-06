@@ -1,8 +1,15 @@
 from datetime import datetime
 from uuid import UUID
 
+from psycopg import sql
+from psycopg.rows import DictRow
+
 from app.dominio.auth.sesion import Sesion
 from app.dominio.auth.repositorio_sesiones import RepositorioSesiones
+from app.dominio.auth.sesion_con_usuario import SesionConUsuario
+from app.infraestructura.auth.adaptadores.dictrow_sesion_adapter import (
+    DictRowSesionAdapter,
+)
 from app.infraestructura.db.conexion import obtener_conexion
 
 
@@ -133,3 +140,95 @@ class RepositorioSesionesPostgres(RepositorioSesiones):
                     ''',
                     {'rut': rut, 'motivo': motivo},
                 )
+
+    # ── Consulta paginada para administración ──────────────────
+
+    def _construir_where_sesiones(
+        self,
+        texto_busqueda: str | None,
+        rut_usuario: str | None,
+        estado: str | None,
+        params: dict[str, object],
+    ) -> sql.Composed:
+        condiciones: list[sql.Composed] = []
+
+        if texto_busqueda:
+            condiciones.append(sql.SQL(
+                '('
+                'UNACCENT(LOWER(s.ip)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(s.rut_usuario)) LIKE UNACCENT(LOWER(%(texto_busqueda)s)) '
+                'OR UNACCENT(LOWER(u.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))'
+                ')'
+            ))
+            params['texto_busqueda'] = f'%{texto_busqueda}%'
+
+        if rut_usuario:
+            condiciones.append(sql.SQL('s.rut_usuario = %(rut_usuario)s'))
+            params['rut_usuario'] = rut_usuario
+
+        if estado == 'activas':
+            condiciones.append(sql.SQL(
+                's.revocado_en IS NULL AND s.expira_en > now()'
+            ))
+        elif estado == 'inactivas':
+            condiciones.append(sql.SQL(
+                '(s.revocado_en IS NOT NULL OR s.expira_en <= now())'
+            ))
+        # 'todas' o None → sin filtro de estado
+
+        if not condiciones:
+            return sql.SQL('')
+
+        return sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+
+    def obtener_sesiones_paginadas(
+        self,
+        texto_busqueda: str | None,
+        rut_usuario: str | None,
+        estado: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[SesionConUsuario], int]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                params: dict[str, object] = {}
+                where_clause = self._construir_where_sesiones(
+                    texto_busqueda, rut_usuario, estado, params,
+                )
+
+                count_query = sql.SQL('''
+                    SELECT COUNT(*) AS total
+                    FROM sesion s
+                    LEFT JOIN usuario u ON u.rut = s.rut_usuario
+                    {where_clause}
+                ''').format(where_clause=where_clause)
+                cur.execute(count_query, params)
+                total: int = cur.fetchone()['total']  # type: ignore[assignment]
+
+                offset = (pagina - 1) * tamano_pagina
+
+                data_query = sql.SQL('''
+                    SELECT
+                        s.id, s.rut_usuario, u.nombre AS nombre_usuario,
+                        s.ip, s.user_agent, s.creado_en, s.expira_en,
+                        s.ultimo_acceso, s.revocado_en, s.motivo_revocacion
+                    FROM sesion s
+                    LEFT JOIN usuario u ON u.rut = s.rut_usuario
+                    {where_clause}
+                    ORDER BY s.creado_en DESC
+                    LIMIT %(tamano_pagina)s OFFSET %(offset)s
+                ''').format(where_clause=where_clause)
+                page_params: dict[str, object] = {
+                    **params,
+                    'tamano_pagina': tamano_pagina,
+                    'offset': offset,
+                }
+                cur.execute(data_query, page_params)
+                rows: list[DictRow] = cur.fetchall()  # type: ignore[assignment]
+
+                sesiones = [
+                    DictRowSesionAdapter(row).to_sesion_con_usuario()
+                    for row in rows
+                ]
+
+                return sesiones, total

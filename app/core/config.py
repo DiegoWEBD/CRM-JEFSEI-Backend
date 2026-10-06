@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ACCESS_TOKEN_SECRET_KEY: str = "test-secret-key-for-ci"
     ACCESS_TOKEN_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
 
     # Refresh token
     REFRESH_TOKEN_EXPIRE_DIAS: int = 30

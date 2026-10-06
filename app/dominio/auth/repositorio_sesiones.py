@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app.dominio.auth.sesion import Sesion
+from app.dominio.auth.sesion_con_usuario import SesionConUsuario
 
 
 class RepositorioSesiones(ABC):
@@ -67,4 +68,16 @@ class RepositorioSesiones(ABC):
     @abstractmethod
     def revocar_sesiones_usuario(self, rut: str, motivo: str) -> None:
         """Revoca todas las sesiones activas de un usuario."""
+        pass
+
+    @abstractmethod
+    def obtener_sesiones_paginadas(
+        self,
+        texto_busqueda: str | None,
+        rut_usuario: str | None,
+        estado: str | None,
+        pagina: int,
+        tamano_pagina: int,
+    ) -> tuple[list[SesionConUsuario], int]:
+        """Retorna (sesiones con nombre de usuario, total)."""
         pass

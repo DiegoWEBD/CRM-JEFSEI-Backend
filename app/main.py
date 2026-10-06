@@ -38,6 +38,7 @@ from app.presentacion.api.proceso_comercial import proceso_comercial_router
 from app.presentacion.api.prospecto import prospecto_router
 from app.presentacion.api.recordatorio import recordatorio_router
 from app.presentacion.api.rol import rol_router
+from app.presentacion.api.sesiones import sesiones_router
 from app.presentacion.api.solicitud_cotizacion import solicitud_cotizacion_router
 from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
@@ -318,6 +319,13 @@ app.include_router(
 
 app.include_router(
     router=auditoria_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=sesiones_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

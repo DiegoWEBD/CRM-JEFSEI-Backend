@@ -121,6 +121,7 @@ class JwtAuthenticationService(AuthenticationService):
         return access_token, refresh_token
 
     def rotar_tokens(self, refresh_token_plano: str) -> tuple[str, str]:
+        print('Rotando tokens con refresh token:', refresh_token_plano)
         sesiones = self._requiere_sesiones()
         ahora = datetime.now(timezone.utc)
         token_hash = self._hash_token(refresh_token_plano)
@@ -178,6 +179,8 @@ class JwtAuthenticationService(AuthenticationService):
             # no se cachean en el token de refresh.
         })
 
+        print('Tokens rotados. Nuevo access token:', nuevo_access)
+        print('Nuevo refresh token:', nuevo_refresh)
         return nuevo_access, nuevo_refresh
 
     def revocar_sesion(self, sesion_id: UUID, motivo: str) -> None:
