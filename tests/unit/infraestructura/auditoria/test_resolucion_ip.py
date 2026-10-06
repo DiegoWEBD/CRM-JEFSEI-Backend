@@ -46,3 +46,24 @@ class TestResolucionIpOrigen:
         ip = resolver_ip_origen(headers, "127.0.0.1")
 
         assert ip == "127.0.0.1"
+
+    def test_peer_dentro_de_rango_cidr_es_proxy_confiable(self):
+        headers = {"x-forwarded-for": "200.10.20.30"}
+
+        ip = resolver_ip_origen(headers, "172.19.0.4")
+
+        assert ip == "200.10.20.30"
+
+    def test_peer_fuera_de_rango_cidr_no_es_proxy_confiable(self):
+        headers = {"x-forwarded-for": "200.10.20.30"}
+
+        ip = resolver_ip_origen(headers, "10.0.0.5")
+
+        assert ip == "10.0.0.5"
+
+    def test_peer_ipv6_en_rango_cidr(self):
+        headers = {"x-forwarded-for": "200.10.20.30"}
+
+        ip = resolver_ip_origen(headers, "fe80::1")
+
+        assert ip == "fe80::1"

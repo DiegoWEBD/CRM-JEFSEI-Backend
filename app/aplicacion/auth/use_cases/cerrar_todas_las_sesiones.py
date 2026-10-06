@@ -1,12 +1,10 @@
-from uuid import UUID
-
 from app.aplicacion.auditoria.dtos.contexto_peticion import ContextoPeticion
 from app.aplicacion.auditoria.servicio_auditoria import ServicioAuditoria
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.dominio.auditoria.eventos_auditoria import EventoAuditoria, ResultadoAuditoria
 
 
-class CerrarSesionUseCase:
+class CerrarTodasLasSesionesUseCase:
 
     def __init__(
         self,
@@ -20,15 +18,12 @@ class CerrarSesionUseCase:
         self,
         rut: str,
         nombre: str | None,
-        sesion_id: UUID | None,
         contexto: ContextoPeticion,
     ) -> None:
-        # Revocar la sesión en base de datos
-        if sesion_id is not None:
-            self.authentication_service.revocar_sesion(sesion_id, motivo='logout')
+        self.authentication_service.revocar_todas_las_sesiones(rut, motivo='logout_all')
 
         self.servicio_auditoria.registrar_autenticacion(
-            evento=EventoAuditoria.LOGOUT,
+            evento='LOGOUT_ALL',
             resultado=ResultadoAuditoria.EXITO,
             contexto=contexto,
             rut_usuario=rut,

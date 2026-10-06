@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Refresh token
+    REFRESH_TOKEN_EXPIRE_DIAS: int = 30
+    REFRESH_TOKEN_REUSE_GRACE_SEGUNDOS: int = 30
+
     DATABASE_HOST: str = "localhost"
     DB_PORT: int = 5432
     POSTGRES_DB: str = "test_db"

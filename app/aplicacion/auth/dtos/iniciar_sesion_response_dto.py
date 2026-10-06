@@ -5,6 +5,7 @@ from app.dominio.usuario.usuario import Usuario
 @dataclass
 class IniciarSesionResponseDTO:
     access_token: str
+    refresh_token: str
     usuario: Usuario
     expire_minutes: int
     token_type: str = 'bearer'

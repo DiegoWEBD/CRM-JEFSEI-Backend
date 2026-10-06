@@ -5,7 +5,8 @@ from app.aplicacion.auth.dtos.iniciar_sesion_response_dto import IniciarSesionRe
 from app.dominio.auditoria.eventos_auditoria import EventoAuditoria, ResultadoAuditoria
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.core.config import settings
-    
+
+
 class IniciarSesionUseCase:
 
     def __init__(
@@ -30,8 +31,6 @@ class IniciarSesionUseCase:
         )
 
         if not usuario or not credenciales_validas:
-            # Se registra el RUT intentado (sin la contraseña) para detectar
-            # intentos de acceso no autorizados.
             self.servicio_auditoria.registrar_autenticacion(
                 evento=EventoAuditoria.LOGIN_FALLIDO,
                 resultado=ResultadoAuditoria.FALLIDO,
@@ -47,13 +46,18 @@ class IniciarSesionUseCase:
             for permiso in rol.permisos
         ))
 
-        token = self.authentication_service.crear_access_token({
-            "rut": usuario.rut,
-            "nombre": usuario.nombre,
-            "codigo_roles": [rol.codigo for rol in usuario.roles],
-            "nombre_roles": [rol.nombre for rol in usuario.roles],
-            "codigo_permisos": codigo_permisos
-        })
+        # Crea sesión + access token + refresh token en una sola operación
+        access_token, refresh_token = self.authentication_service.crear_sesion_y_tokens(
+            claims={
+                "rut": usuario.rut,
+                "nombre": usuario.nombre,
+                "codigo_roles": [rol.codigo for rol in usuario.roles],
+                "nombre_roles": [rol.nombre for rol in usuario.roles],
+                "codigo_permisos": codigo_permisos,
+            },
+            ip=contexto.ip_origen,
+            user_agent=contexto.user_agent,
+        )
 
         self.servicio_auditoria.registrar_autenticacion(
             evento=EventoAuditoria.LOGIN_EXITOSO,
@@ -64,7 +68,8 @@ class IniciarSesionUseCase:
         )
 
         return IniciarSesionResponseDTO(
-            access_token=token,
+            access_token=access_token,
+            refresh_token=refresh_token,
             usuario=usuario,
-            expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         )

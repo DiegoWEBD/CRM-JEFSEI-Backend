@@ -6,6 +6,7 @@ from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.get_iniciar_sesion_use_case import get_iniciar_sesion_use_case
+from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
 from app.presentacion.api.usuario.deps import (
     get_obtener_usuario_use_case,
     get_obtener_usuarios_use_case,
@@ -28,6 +29,8 @@ def mock_auth_service():
     service.hash_password.return_value = "hashed_password_123"
     service.verificar_password.return_value = True
     service.crear_access_token.return_value = "mock_jwt_token"
+    service.crear_sesion_y_tokens.return_value = ("mock_jwt_token", "mock_refresh_token")
+    service.obtener_sesion_viva.return_value = MagicMock()  # Sesión siempre viva en tests
     return service
 
 
@@ -88,10 +91,14 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
         from app.aplicacion.auth.dtos.iniciar_sesion_response_dto import IniciarSesionResponseDTO
         uc.execute.return_value = IniciarSesionResponseDTO(
             access_token="mock_jwt_token",
+            refresh_token="mock_refresh_token",
             usuario=usuario_autenticado,
-            expire_minutes=60,
+            expire_minutes=15,
         )
         return uc
+
+    def override_get_auth_service():
+        return mock_auth_service
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_obtener_usuario_use_case] = override_get_obtener_usuario_use_case
@@ -100,6 +107,7 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
     app.dependency_overrides[get_actualizar_usuario_use_case] = override_get_actualizar_usuario_use_case
     app.dependency_overrides[get_eliminar_usuario_use_case] = override_get_eliminar_usuario_use_case
     app.dependency_overrides[get_iniciar_sesion_use_case] = override_get_iniciar_sesion_use_case
+    app.dependency_overrides[get_authentication_service_dependency] = override_get_auth_service
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:

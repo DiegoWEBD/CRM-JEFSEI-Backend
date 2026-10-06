@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 from jose import jwt
 
 
@@ -11,6 +12,7 @@ def crear_token_mock(
     exp_minutes: int = 60,
     secret_key: str = "test-secret-key-for-mocks",
     algorithm: str = "HS256",
+    sid: str | None = None,
 ) -> str:
     if codigo_roles is None:
         codigo_roles = ["ADMIN"]
@@ -31,6 +33,8 @@ def crear_token_mock(
         "codigo_roles": codigo_roles,
         "nombre_roles": nombre_roles,
         "codigo_permisos": codigo_permisos,
+        "sid": sid or str(uuid4()),
+        "jti": str(uuid4()),
         "exp": datetime.now(timezone.utc) + timedelta(minutes=exp_minutes),
     }
 
