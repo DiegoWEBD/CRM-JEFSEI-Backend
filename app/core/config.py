@@ -1,36 +1,24 @@
-# app/core/config.py
 from pydantic_settings import BaseSettings
 
+# Configuración obtenida de variables de entorno, sin valores por defecto
 class Settings(BaseSettings):
-    ACCESS_TOKEN_SECRET_KEY: str = "test-secret-key-for-ci"
-    ACCESS_TOKEN_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_SECRET_KEY: str
+    ACCESS_TOKEN_ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
 
-    DATABASE_HOST: str = "localhost"
-    DB_PORT: int = 5432
-    POSTGRES_DB: str = "test_db"
-    POSTGRES_USER: str = "test_user"
-    POSTGRES_PASSWORD: str = "test_password"
+    DATABASE_HOST: str
+    DB_PORT: int
+    POSTGRES_DB: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
 
-    CRM_INICIAR_SCHEDULER: bool = True
-    CRM_SCHEDULER_INTERVALO_MINUTOS: int = 5
-
-    # WebSocket de notificaciones
-    # Los navegadores NO aplican CORS al handshake de un WebSocket: el origen se
-    # valida manualmente contra esta lista (ver ws_router).
-    CRM_ORIGENES_PERMITIDOS: str = "*"
-    # Vida útil del ticket que autoriza la conexión (no es el JWT de sesión).
-    CRM_WS_TICKET_TTL_SEGUNDOS: int = 60
-    # El servidor emite "ping" con esta periodicidad para mantener viva la conexión
-    # y detectar cortes (un envío fallido dispara la reconexión del cliente).
-    CRM_WS_HEARTBEAT_SEGUNDOS: int = 30
-
-    # Auditoría
-    # Solo estos peers directos pueden fijar X-Forwarded-For / X-Real-IP; desde
-    # cualquier otro origen los headers se ignoran (anti-spoofing de IP).
-    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1"
-    # Apaga la captura de eventos de auditoría sin tocar código.
-    CRM_AUDITORIA_HABILITADA: bool = True
+    CRM_INICIAR_SCHEDULER: bool
+    CRM_SCHEDULER_INTERVALO_MINUTOS: int
+    CRM_ORIGENES_PERMITIDOS: str
+    CRM_WS_TICKET_TTL_SEGUNDOS: KeyboardInterrupt
+    CRM_WS_HEARTBEAT_SEGUNDOS: int
+    CRM_PROXY_CONFIABLES: str
+    CRM_AUDITORIA_HABILITADA: bool
 
     class Config:
         env_file = ".env"
@@ -38,14 +26,7 @@ class Settings(BaseSettings):
 
     @property
     def origenes_permitidos(self) -> list[str]:
-        if self.CRM_ORIGENES_PERMITIDOS.strip() == "*":
-            return ["*"]
-
-        return [
-            origen.strip()
-            for origen in self.CRM_ORIGENES_PERMITIDOS.split(',')
-            if origen.strip()
-        ]
+        return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
 
     @property
     def proxies_confiables(self) -> list[str]:
