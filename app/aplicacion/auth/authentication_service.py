@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from app.dominio.auth.sesion import Sesion
+from app.dominio.usuario.usuario import Usuario
 
 
 class AuthenticationService(ABC):
@@ -20,7 +21,13 @@ class AuthenticationService(ABC):
     # ── JWT (bajo nivel) ────────────────────────────────────────
 
     @abstractmethod
-    def crear_access_token(self, data: dict[str, Any]) -> str:
+    def crear_access_token(self, usuario: Usuario, sid: str | None = None) -> str:
+        """Firma el access token (JWT) a partir del usuario.
+
+        Es el único punto donde se arman los claims de identidad
+        (rut, nombre, codigo_roles, nombre_roles, codigo_permisos):
+        login y refresh pasan por acá, así que siempre emiten los mismos.
+        """
         pass
 
     @abstractmethod
@@ -32,7 +39,7 @@ class AuthenticationService(ABC):
     @abstractmethod
     def crear_sesion_y_tokens(
         self,
-        claims: dict[str, Any],
+        usuario: Usuario,
         ip: str | None = None,
         user_agent: str | None = None,
     ) -> tuple[str, str]:
@@ -43,10 +50,12 @@ class AuthenticationService(ABC):
         pass
 
     @abstractmethod
-    def rotar_tokens(self, refresh_token_plano: str) -> tuple[str, str]:
-        """Valida el refresh token, lo rota y emite un nuevo par.
+    def rotar_refresh_token(self, refresh_token_plano: str) -> tuple[Sesion, str]:
+        """Valida el refresh token y rota la familia.
 
-        Retorna (nuevo_access_token, nuevo_refresh_token).
+        Retorna (sesion, nuevo_refresh_token). No emite el access token:
+        quien lo arma es el caso de uso, con el usuario actualizado desde
+        la base de datos (mismos claims que el login).
 
         Raises:
             RefreshTokenInvalidoError: token inválido o expirado.

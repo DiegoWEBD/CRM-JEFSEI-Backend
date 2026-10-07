@@ -155,7 +155,7 @@ class TestWebSocketNotificaciones:
 
     def test_ticket_sin_proposito_websocket_se_cierra(self, client):
         # Un access token de sesión no sirve para abrir el canal.
-        token = _jwt_real.crear_access_token({'rut': RUT_ADMIN})
+        token = _jwt_real.crear_access_token(crear_usuario_mock(rut=RUT_ADMIN))
 
         with pytest.raises(WebSocketDisconnect) as excinfo:
             with client.websocket_connect(f'/ws/notificaciones?ticket={token}'):

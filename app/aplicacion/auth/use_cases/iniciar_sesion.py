@@ -40,21 +40,11 @@ class IniciarSesionUseCase:
             )
             return None
 
-        codigo_permisos = list(set(
-            permiso.codigo
-            for rol in usuario.roles
-            for permiso in rol.permisos
-        ))
-
-        # Crea sesión + access token + refresh token en una sola operación
+        # Crea sesión + access token + refresh token en una sola operación.
+        # Los claims (nombre, roles y permisos) los arma el servicio a
+        # partir del usuario: es el mismo camino que usa el refresh.
         access_token, refresh_token = self.authentication_service.crear_sesion_y_tokens(
-            claims={
-                "rut": usuario.rut,
-                "nombre": usuario.nombre,
-                "codigo_roles": [rol.codigo for rol in usuario.roles],
-                "nombre_roles": [rol.nombre for rol in usuario.roles],
-                "codigo_permisos": codigo_permisos,
-            },
+            usuario=usuario,
             ip=contexto.ip_origen,
             user_agent=contexto.user_agent,
         )

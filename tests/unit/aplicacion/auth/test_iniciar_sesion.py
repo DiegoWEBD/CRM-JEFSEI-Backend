@@ -158,10 +158,12 @@ class TestIniciarSesionUseCase:
 
         use_case.execute(rut="12345678-9", password="password123", contexto=crear_contexto_peticion_mock())
 
+        # El caso de uso delega al servicio el armado de claims: le pasa
+        # el usuario completo (con roles y permisos) en vez de un dict.
         call_args = auth_service_mock.crear_sesion_y_tokens.call_args
-        claims = call_args.kwargs.get("claims") or call_args[0][0]
-        assert "rut" in claims
-        assert "codigo_roles" in claims
-        assert "codigo_permisos" in claims
-        assert "VER_USUARIOS" in claims["codigo_permisos"]
-        assert "CREAR_PROSPECTOS" in claims["codigo_permisos"]
+        usuario_pasado = call_args.kwargs.get("usuario") or call_args[0][0]
+        assert usuario_pasado is usuario
+        assert usuario_pasado.roles[0].codigo == "EJECUTIVO"
+        codigos_permisos = [p.codigo for r in usuario_pasado.roles for p in r.permisos]
+        assert "VER_USUARIOS" in codigos_permisos
+        assert "CREAR_PROSPECTOS" in codigos_permisos

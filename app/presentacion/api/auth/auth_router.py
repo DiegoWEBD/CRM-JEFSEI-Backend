@@ -8,7 +8,6 @@ from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticatio
 from app.infraestructura.auth.repositorio_sesiones_postgres import RepositorioSesionesPostgres
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
-from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
 from app.presentacion.api.auth.dependencias.rate_limiter import rate_limit_login
 from app.presentacion.api.auth.dependencias.get_cerrar_sesion_use_case import get_cerrar_sesion_use_case
 from app.presentacion.api.auth.dependencias.get_cerrar_todas_las_sesiones_use_case import get_cerrar_todas_las_sesiones_use_case
@@ -20,11 +19,12 @@ from app.presentacion.api.auth.schemas.auth import (
     RefreshRequest,
     RefreshResponse,
 )
-from app.aplicacion.auth.authentication_service import AuthenticationService
+from app.aplicacion.auth.use_cases.refrescar_token import RefrescarTokenUseCase
 from app.aplicacion.auth.use_cases.cerrar_sesion import CerrarSesionUseCase
 from app.aplicacion.auth.use_cases.cerrar_todas_las_sesiones import CerrarTodasLasSesionesUseCase
 from app.aplicacion.auth.use_cases.iniciar_sesion import IniciarSesionUseCase
 from app.presentacion.api.auth.dependencias.get_iniciar_sesion_use_case import get_iniciar_sesion_use_case
+from app.presentacion.api.auth.dependencias.get_refrescar_token_use_case import get_refrescar_token_use_case
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -64,15 +64,18 @@ def login(
 @router.post('/refresh', response_model=RefreshResponse, status_code=status.HTTP_200_OK)
 def refresh(
     body: RefreshRequest,
-    authentication_service: AuthenticationService = Depends(get_authentication_service_dependency),
+    use_case: RefrescarTokenUseCase = Depends(get_refrescar_token_use_case),
 ):
     """Rota el refresh token y emite un nuevo access token.
 
     El BFF (Next.js) lee la cookie ``refresh_token`` del navegador, la envía
     aquí en el body, y setea las nuevas cookies en la respuesta al cliente.
+    El access token se arma con los claims del usuario actualizado en la
+    base de datos (mismos claims que el login).
     """
     try:
-        nuevo_access, nuevo_refresh = authentication_service.rotar_tokens(body.refresh_token)
+        print('[auth] /auth/refresh: recibida petición de rotación', flush=True)
+        response = use_case.execute(body.refresh_token)
     except RefreshTokenInvalidoError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,10 +88,10 @@ def refresh(
         )
 
     return RefreshResponse(
-        access_token=nuevo_access,
-        refresh_token=nuevo_refresh,
-        token_type='bearer',
-        expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        access_token=response.access_token,
+        refresh_token=response.refresh_token,
+        token_type=response.token_type,
+        expire_minutes=response.expire_minutes,
     )
 
 

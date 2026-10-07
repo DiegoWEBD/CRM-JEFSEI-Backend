@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.dominio.auth.exceptions import RefreshTokenInvalidoError, RefreshTokenReusadoError
 from app.dominio.auth.repositorio_sesiones import RepositorioSesiones
 from app.dominio.auth.sesion import Sesion
+from app.dominio.usuario.usuario import Usuario
 
 
 class JwtAuthenticationService(AuthenticationService):
@@ -33,8 +34,26 @@ class JwtAuthenticationService(AuthenticationService):
 
     # ── JWT (bajo nivel) ────────────────────────────────────────
 
-    def crear_access_token(self, data: dict[str, Any]) -> str:
-        to_encode = data.copy()
+    @staticmethod
+    def _claims_de_usuario(usuario: Usuario) -> dict[str, Any]:
+        """Claims de identidad compartidos por login y refresh."""
+        return {
+            "rut": usuario.rut,
+            "nombre": usuario.nombre,
+            "codigo_roles": [rol.codigo for rol in usuario.roles],
+            "nombre_roles": [rol.nombre for rol in usuario.roles],
+            "codigo_permisos": list(set(
+                permiso.codigo
+                for rol in usuario.roles
+                for permiso in rol.permisos
+            )),
+        }
+
+    def crear_access_token(self, usuario: Usuario, sid: str | None = None) -> str:
+        to_encode = self._claims_de_usuario(usuario)
+        if sid is not None:
+            to_encode["sid"] = sid
+        to_encode["jti"] = str(uuid4())
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         to_encode.update({"exp": expire})
         return jwt.encode(
@@ -89,7 +108,7 @@ class JwtAuthenticationService(AuthenticationService):
 
     def crear_sesion_y_tokens(
         self,
-        claims: dict[str, Any],
+        usuario: Usuario,
         ip: str | None = None,
         user_agent: str | None = None,
     ) -> tuple[str, str]:
@@ -99,15 +118,14 @@ class JwtAuthenticationService(AuthenticationService):
         refresh_expira = ahora + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DIAS)
 
         sesion_id = sesiones.crear_sesion(
-            rut_usuario=claims["rut"],
+            rut_usuario=usuario.rut,
             ip=ip,
             user_agent=user_agent,
             expira_en=sesion_expira,
         )
 
-        # Access token con sid y jti
-        claims_con_sesion = {**claims, "sid": str(sesion_id), "jti": str(uuid4())}
-        access_token = self.crear_access_token(claims_con_sesion)
+        # Access token con sid y jti (claims completos desde el usuario)
+        access_token = self.crear_access_token(usuario, sid=str(sesion_id))
 
         # Refresh token opaco
         refresh_token = secrets.token_urlsafe(32)
@@ -120,17 +138,24 @@ class JwtAuthenticationService(AuthenticationService):
 
         return access_token, refresh_token
 
-    def rotar_tokens(self, refresh_token_plano: str) -> tuple[str, str]:
-        print('Rotando tokens con refresh token:', refresh_token_plano)
+    def rotar_refresh_token(self, refresh_token_plano: str) -> tuple[Sesion, str]:
+        """Valida el refresh token y rota la familia.
+
+        No emite el access token: el caso de uso lo arma con el usuario
+        actualizado desde la base de datos (mismos claims que el login).
+        """
         sesiones = self._requiere_sesiones()
         ahora = datetime.now(timezone.utc)
         token_hash = self._hash_token(refresh_token_plano)
+        print('[auth] Rotando refresh token (hash: {}...)'.format(token_hash[:8]), flush=True)
 
         registro = sesiones.obtener_sesion_por_refresh_hash(token_hash)
         if registro is None:
             raise RefreshTokenInvalidoError()
 
-        # Token ya usado → posible robo
+        en_ventana_de_gracia = False
+
+        # Token ya usado → posible robo o refresco concurrente
         if registro['token_usado_en'] is not None:
             grace = timedelta(seconds=settings.REFRESH_TOKEN_REUSE_GRACE_SEGUNDOS)
             if ahora > registro['token_usado_en'] + grace:
@@ -140,19 +165,21 @@ class JwtAuthenticationService(AuthenticationService):
                     motivo='reuse_detectado',
                 )
                 raise RefreshTokenReusadoError()
-            # Dentro de la gracia: respuesta idempotente (concurrente)
-            # Buscamos el token de reemplazo y devolvemos los mismos datos
-            raise RefreshTokenInvalidoError()  # el cliente debe reintentar
+            # Dentro de la gracia: refresco concurrente (dos pestañas).
+            # Rotar de todos modos de forma idempotente.
+            print('[auth] Refresh concurrente dentro de ventana de gracia, rotando de todos modos', flush=True)
+            en_ventana_de_gracia = True
 
-        # Token expirado
-        if ahora > registro['token_expira_en']:
-            raise RefreshTokenInvalidoError()
+        if not en_ventana_de_gracia:
+            # Token expirado
+            if ahora > registro['token_expira_en']:
+                raise RefreshTokenInvalidoError()
 
-        # Sesión revocada o expirada
-        if registro['sesion_revocado_en'] is not None:
-            raise RefreshTokenInvalidoError()
-        if ahora > registro['sesion_expira_en']:
-            raise RefreshTokenInvalidoError()
+            # Sesión revocada o expirada
+            if registro['sesion_revocado_en'] is not None:
+                raise RefreshTokenInvalidoError()
+            if ahora > registro['sesion_expira_en']:
+                raise RefreshTokenInvalidoError()
 
         sesion_id = registro['sesion_id']
         sesion = sesiones.obtener_sesion_viva(sesion_id)
@@ -170,18 +197,8 @@ class JwtAuthenticationService(AuthenticationService):
         sesiones.marcar_refresh_usado(registro['token_id'], nuevo_token_id)
         sesiones.actualizar_ultimo_acceso(sesion_id)
 
-        # Nuevo access token con los mismos claims de identidad
-        nuevo_access = self.crear_access_token({
-            "rut": sesion.rut_usuario,
-            "sid": str(sesion_id),
-            "jti": str(uuid4()),
-            # Los roles/permisos se revalidan en get_current_user,
-            # no se cachean en el token de refresh.
-        })
-
-        print('Tokens rotados. Nuevo access token:', nuevo_access)
-        print('Nuevo refresh token:', nuevo_refresh)
-        return nuevo_access, nuevo_refresh
+        print('[auth] Refresh token rotado exitosamente', flush=True)
+        return sesion, nuevo_refresh
 
     def revocar_sesion(self, sesion_id: UUID, motivo: str) -> None:
         self._requiere_sesiones().revocar_sesion(sesion_id, motivo)
