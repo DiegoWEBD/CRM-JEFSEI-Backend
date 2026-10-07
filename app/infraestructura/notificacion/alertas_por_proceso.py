@@ -85,6 +85,8 @@ def reasignar_destinatario_alertas(
         sql.SQL('PC.id_prospecto = %(id_prospecto)s'),
         sql.SQL('PC.cerrado = false'),
         sql.SQL('EI_SIGUIENTE.rol_responsable = %(rol)s'),
+        sql.SQL("N.codigo_tipo != 'CIERRE_ESTIMADO_PROXIMO'"),
+        sql.SQL("N.codigo_tipo != 'FECHA_CIERRE_VENCIDA'"),
     ]
     where_condiciones = sql.SQL(' AND ').join(condiciones)
 
