@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Auditoría
     # Solo estos peers directos pueden fijar X-Forwarded-For / X-Real-IP; desde
     # cualquier otro origen los headers se ignoran (anti-spoofing de IP).
-    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1"
+    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1,172.17.0.0/16,172.19.0.0/16"
     # Apaga la captura de eventos de auditoría sin tocar código.
     CRM_AUDITORIA_HABILITADA: bool = True
 
