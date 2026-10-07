@@ -4,6 +4,7 @@ from pydantic import BaseModel, field_validator
 
 from app.presentacion.api.usuario.dto.usuario_json import UsuarioJson
 
+
 class IniciarSesionRequest(BaseModel):
     rut: str
     password: str
@@ -19,6 +20,18 @@ class IniciarSesionRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     expire_minutes: int
     usuario: UsuarioJson
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expire_minutes: int

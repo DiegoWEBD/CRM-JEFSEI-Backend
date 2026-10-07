@@ -4,7 +4,11 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ACCESS_TOKEN_SECRET_KEY: str = "test-secret-key-for-ci"
     ACCESS_TOKEN_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
+
+    # Refresh token
+    REFRESH_TOKEN_EXPIRE_DIAS: int = 30
+    REFRESH_TOKEN_REUSE_GRACE_SEGUNDOS: int = 30
 
     DATABASE_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -28,7 +32,7 @@ class Settings(BaseSettings):
     # Auditoría
     # Solo estos peers directos pueden fijar X-Forwarded-For / X-Real-IP; desde
     # cualquier otro origen los headers se ignoran (anti-spoofing de IP).
-    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1"
+    CRM_PROXY_CONFIABLES: str = "127.0.0.1,::1,172.17.0.0/16,172.19.0.0/16"
     # Apaga la captura de eventos de auditoría sin tocar código.
     CRM_AUDITORIA_HABILITADA: bool = True
 

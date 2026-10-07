@@ -47,13 +47,14 @@ class TestIniciarSesionUseCase:
 
         repositorio_mock.buscar.return_value = usuario
         auth_service_mock.verificar_password.return_value = True
-        auth_service_mock.crear_access_token.return_value = "token_123"
+        auth_service_mock.crear_sesion_y_tokens.return_value = ("token_123", "refresh_abc")
 
         resultado = use_case.execute(rut="12345678-9", password="password123", contexto=crear_contexto_peticion_mock())
 
         assert resultado is not None
         assert isinstance(resultado, IniciarSesionResponseDTO)
         assert resultado.access_token == "token_123"
+        assert resultado.refresh_token == "refresh_abc"
         assert resultado.usuario.rut == "12345678-9"
 
     def test_login_exitoso_registra_evento_auditoria(
@@ -62,6 +63,7 @@ class TestIniciarSesionUseCase:
         usuario = crear_usuario_mock(password_hash="hash_valido")
         repositorio_mock.buscar.return_value = usuario
         auth_service_mock.verificar_password.return_value = True
+        auth_service_mock.crear_sesion_y_tokens.return_value = ("token", "refresh")
 
         use_case.execute(rut="12345678-9", password="password123", contexto=contexto)
 
@@ -142,7 +144,7 @@ class TestIniciarSesionUseCase:
 
         assert resultado is None
 
-    def test_login_genera_token_con_permisos(self, use_case, repositorio_mock, auth_service_mock):
+    def test_login_genera_sesion_con_permisos(self, use_case, repositorio_mock, auth_service_mock):
         permisos = [
             crear_permiso_mock(codigo="VER_USUARIOS"),
             crear_permiso_mock(codigo="CREAR_PROSPECTOS"),
@@ -152,13 +154,16 @@ class TestIniciarSesionUseCase:
 
         repositorio_mock.buscar.return_value = usuario
         auth_service_mock.verificar_password.return_value = True
-        auth_service_mock.crear_access_token.return_value = "token_123"
+        auth_service_mock.crear_sesion_y_tokens.return_value = ("token_123", "refresh_abc")
 
         use_case.execute(rut="12345678-9", password="password123", contexto=crear_contexto_peticion_mock())
 
-        call_args = auth_service_mock.crear_access_token.call_args[0][0]
-        assert "rut" in call_args
-        assert "codigo_roles" in call_args
-        assert "codigo_permisos" in call_args
-        assert "VER_USUARIOS" in call_args["codigo_permisos"]
-        assert "CREAR_PROSPECTOS" in call_args["codigo_permisos"]
+        # El caso de uso delega al servicio el armado de claims: le pasa
+        # el usuario completo (con roles y permisos) en vez de un dict.
+        call_args = auth_service_mock.crear_sesion_y_tokens.call_args
+        usuario_pasado = call_args.kwargs.get("usuario") or call_args[0][0]
+        assert usuario_pasado is usuario
+        assert usuario_pasado.roles[0].codigo == "EJECUTIVO"
+        codigos_permisos = [p.codigo for r in usuario_pasado.roles for p in r.permisos]
+        assert "VER_USUARIOS" in codigos_permisos
+        assert "CREAR_PROSPECTOS" in codigos_permisos

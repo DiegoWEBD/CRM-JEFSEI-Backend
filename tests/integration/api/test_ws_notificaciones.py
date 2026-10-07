@@ -1,8 +1,10 @@
 import pytest
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 from starlette.websockets import WebSocketDisconnect
 
+from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
@@ -14,6 +16,7 @@ from app.core.hub_notificaciones import (
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
 from app.main import app
+from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.notificacion.dependencias.deps import (
     get_marcar_notificacion_leida_use_case,
@@ -31,6 +34,9 @@ from tests.factories.usuario_factory import (
 RUT_ADMIN = '12345678-9'
 RUT_SIN_PERMISO = '22222222-2'
 
+# JWT real para decodificar tokens (no toca BD)
+_jwt_real = JwtAuthenticationService()
+
 
 def _usuario_sin_ver_alertas() -> object:
     rol = crear_rol_mock(
@@ -41,8 +47,23 @@ def _usuario_sin_ver_alertas() -> object:
     return crear_usuario_mock(rut=RUT_SIN_PERMISO, roles=[rol])
 
 
+def _mock_auth_service(sesion_viva: bool = True) -> AuthenticationService:
+    """Servicio mock que decodifica tokens de verdad pero no toca la BD.
+
+    Args:
+        sesion_viva: si True, obtener_sesion_viva devuelve una sesión mock.
+                     Si False, devuelve None (sesión revocada/no existe).
+    """
+    mock_service = MagicMock(spec=AuthenticationService)
+    mock_service.decodificar_token.side_effect = _jwt_real.decodificar_token
+    mock_service.obtener_sesion_viva.return_value = (
+        MagicMock() if sesion_viva else None
+    )
+    return mock_service
+
+
 def _ticket(rut: str = RUT_ADMIN) -> str:
-    return JwtAuthenticationService().crear_ticket_websocket(rut)
+    return _jwt_real.crear_ticket_websocket(rut, sid=str(uuid4()))
 
 
 @pytest.fixture
@@ -84,6 +105,7 @@ def client(usuario_autenticado):
     app.dependency_overrides[get_obtener_usuario_use_case] = override_obtener_usuario
     app.dependency_overrides[get_marcar_notificacion_leida_use_case] = override_marcar_leida
     app.dependency_overrides[get_marcar_notificaciones_leidas_use_case] = override_marcar_todas
+    app.dependency_overrides[get_authentication_service_dependency] = lambda: _mock_auth_service(sesion_viva=True)
 
     from starlette.testclient import TestClient
 
@@ -103,7 +125,7 @@ class TestTicketWebSocket:
         cuerpo = response.json()
         assert cuerpo['expira_en'] > 0
 
-        payload = JwtAuthenticationService().decodificar_token(cuerpo['ticket'])
+        payload = _jwt_real.decodificar_token(cuerpo['ticket'])
         assert payload is not None
         assert payload['proposito'] == 'ws'
         assert payload['rut'] == RUT_ADMIN
@@ -133,7 +155,7 @@ class TestWebSocketNotificaciones:
 
     def test_ticket_sin_proposito_websocket_se_cierra(self, client):
         # Un access token de sesión no sirve para abrir el canal.
-        token = JwtAuthenticationService().crear_access_token({'rut': RUT_ADMIN})
+        token = _jwt_real.crear_access_token(crear_usuario_mock(rut=RUT_ADMIN))
 
         with pytest.raises(WebSocketDisconnect) as excinfo:
             with client.websocket_connect(f'/ws/notificaciones?ticket={token}'):
@@ -159,6 +181,26 @@ class TestWebSocketNotificaciones:
             mensaje = websocket.receive_json()
 
         assert mensaje['evento'] == EVENTO_CONEXION_ABIERTA
+
+    def test_sesion_revocada_no_conecta(self, client):
+        """La validación de sesión rechaza tickets con sesión revocada o inexistente."""
+        app.dependency_overrides[get_authentication_service_dependency] = (
+            lambda: _mock_auth_service(sesion_viva=False)
+        )
+
+        try:
+            with pytest.raises(WebSocketDisconnect) as excinfo:
+                with client.websocket_connect(
+                    f'/ws/notificaciones?ticket={_ticket()}',
+                    headers={'origin': 'http://localhost:3000'},
+                ):
+                    pass
+        finally:
+            app.dependency_overrides[get_authentication_service_dependency] = (
+                lambda: _mock_auth_service(sesion_viva=True)
+            )
+
+        assert excinfo.value.code == 1008
 
     def test_usuario_sin_permiso_no_conecta(self, client):
         app.dependency_overrides[get_obtener_usuario_use_case] = lambda: MagicMock(

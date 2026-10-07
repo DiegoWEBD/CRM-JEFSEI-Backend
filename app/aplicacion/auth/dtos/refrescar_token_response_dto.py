@@ -3,7 +3,7 @@ from app.dominio.usuario.usuario import Usuario
 
 
 @dataclass
-class IniciarSesionResponseDTO:
+class RefrescarTokenResponseDTO:
     access_token: str
     refresh_token: str
     usuario: Usuario

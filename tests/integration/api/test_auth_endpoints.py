@@ -17,7 +17,7 @@ class TestAuthEndpoints:
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-        assert data["expire_minutes"] == 60
+        assert data["expire_minutes"] == 15
         assert "usuario" in data
         assert data["usuario"]["rut"] == "12345678-9"
 

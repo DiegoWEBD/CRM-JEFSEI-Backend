@@ -7,13 +7,18 @@ query string.
 
 El handshake de un WebSocket **no está cubierto por CORS**: el ``Origin`` se
 valida manualmente contra ``settings.origenes_permitidos``.
+
+El ticket incluye ``sid`` (id de sesión); el handshake valida que la sesión
+sigua viva (no revocada) antes de aceptar la conexión.
 """
 
 import asyncio
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
+from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.core.config import settings
 from app.core.hub_notificaciones import (
@@ -22,7 +27,7 @@ from app.core.hub_notificaciones import (
     hub,
 )
 from app.dominio.usuario.usuario import Usuario
-from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
+from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
 from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case
 
 logger = logging.getLogger(__name__)
@@ -64,14 +69,24 @@ def _usuario_autorizado(
     return None
 
 
-def _desempaquetar_ticket(ticket: str | None) -> str | None:
+def _desempaquetar_ticket(
+    ticket: str | None,
+    authentication_service: AuthenticationService,
+) -> tuple[str | None, str | None]:
+    """Extrae (rut, sid) del ticket. Retorna (None, None) si no es válido."""
     if not ticket:
-        return None
-    payload = JwtAuthenticationService().decodificar_token(ticket)
+        return None, None
+    payload = authentication_service.decodificar_token(ticket)
     if not payload or payload.get('proposito') != 'ws':
-        return None
+        return None, None
     rut = payload.get('rut')
-    return rut if isinstance(rut, str) and rut else None
+    sid = payload.get('sid')
+    if not isinstance(rut, str) or not rut:
+        return None, None
+    # sid puede ser None en tickets antiguos (transición)
+    if sid and not isinstance(sid, str):
+        sid = None
+    return rut, sid
 
 
 async def _reenviar(websocket: WebSocket, cola: asyncio.Queue) -> None:
@@ -98,15 +113,27 @@ async def _escuchar(websocket: WebSocket) -> None:
 async def ws_notificaciones(
     websocket: WebSocket,
     use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case),
+    authentication_service: AuthenticationService = Depends(get_authentication_service_dependency),
 ) -> None:
     if not _origen_permitido(websocket):
         await websocket.close(code=CODIGO_NO_AUTORIZADO)
         return
 
-    rut = _desempaquetar_ticket(websocket.query_params.get('ticket'))
+    rut, sid = _desempaquetar_ticket(websocket.query_params.get('ticket'), authentication_service)
     if not rut:
         await websocket.close(code=CODIGO_NO_AUTORIZADO)
         return
+
+    # Validar que la sesión siga viva (no revocada, no expirada).
+    # Cualquier error (UUID inválido, BD caída, etc.) cierra con 1008 (fail-closed).
+    if sid:
+        try:
+            sesion = authentication_service.obtener_sesion_viva(UUID(sid))
+        except Exception:
+            sesion = None
+        if sesion is None:
+            await websocket.close(code=CODIGO_NO_AUTORIZADO)
+            return
 
     usuario = _usuario_autorizado(use_case, rut)
     if usuario is None:
