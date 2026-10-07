@@ -20,19 +20,37 @@ class GenerarAlertasCierreEstimadoUseCase:
         self.repositorio_procesos = repositorio_procesos
         self.repositorio_notificaciones = repositorio_notificaciones
 
-    def ejecutar(self, ahora: datetime | None = None) -> list[Notificacion]:
+    def ejecutar(
+        self,
+        ahora: datetime | None = None,
+        id_prospecto: int | None = None,
+        verificar_existencia: bool = True,
+    ) -> list[Notificacion]:
         if ahora is None:
             ahora = datetime.now(tz=timezone.utc)
 
         creadas: list[Notificacion] = []
 
         for proceso in self.repositorio_procesos.obtener_procesos_comerciales(
-            id_prospecto=None,
+            id_prospecto=id_prospecto,
             abiertos=True,
         ):
             notificacion = self._evaluar(proceso, ahora)
 
             if notificacion is None:
+                continue
+
+            # Guarda anti-duplicado del scheduler: mientras exista una alerta
+            # del mismo tipo/proceso/usuario (leída o no), no se vuelve a crear.
+            # La re-evaluación tras reasignar ejecutivo comercial pasa
+            # verificar_existencia=False: las previas quedaron leídas y la
+            # clave nueva (con timestamp) no colisiona, de modo que el nuevo
+            # responsable recibe una alerta creada en ese momento.
+            if verificar_existencia and self.repositorio_notificaciones.existe_alerta_proceso(
+                notificacion.codigo_tipo,
+                notificacion.entidad_id,
+                notificacion.rut_usuario,
+            ):
                 continue
 
             if self.repositorio_notificaciones.registrar(notificacion):
@@ -84,8 +102,6 @@ class GenerarAlertasCierreEstimadoUseCase:
                 f'({atraso} días de atraso).'
             )
 
-        codigo_estado = proceso.estado_actual.codigo if proceso.estado_actual else ''
-
         return Notificacion(
             id=None,
             rut_usuario=rut_destinatario,
@@ -96,7 +112,7 @@ class GenerarAlertasCierreEstimadoUseCase:
             entidad_tipo='PROCESO_COMERCIAL',
             entidad_id=proceso.id,
             id_prospecto=proceso.id_prospecto,
-            dedupe_key=f'{codigo_tipo}:{proceso.id}:{codigo_estado}',
+            dedupe_key=f'{codigo_tipo}:{proceso.id}:{rut_destinatario}:{ahora.isoformat()}',
             leida=False,
             fecha_leida=None,
             created_at=ahora,

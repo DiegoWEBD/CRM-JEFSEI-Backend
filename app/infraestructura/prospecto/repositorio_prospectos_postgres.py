@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.configuracion_condominio.servicio_calculo_depreciacion import ServicioCalculoDepreciacion
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
@@ -10,6 +12,7 @@ from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.notificacion.alertas_por_proceso import (
     ROL_EJECUTIVO_COMERCIAL,
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
+    marcar_alertas_fecha_leidas_por_prospecto,
     reasignar_destinatario_alertas,
 )
 from app.infraestructura.notificacion.notificaciones_asignacion import registrar_notificacion_asignacion, registrar_notificacion_desasignacion
@@ -750,7 +753,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             return
 
         rut = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
-        
+        ruts_alertas_fecha: set[str] = set()
+
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -793,6 +797,16 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     cur, prospecto.id, ROL_EJECUTIVO_COMERCIAL, rut
                 )
 
+                # Con cambio de ejecutivo, las alertas de cierre del anterior
+                # dejan de ser relevantes: quedan leídas y luego el caso de uso
+                # re-evalúa para crear la alerta nueva del nuevo destinatario.
+                if rut_anterior != rut:
+                    ruts_alertas_fecha = set(
+                        marcar_alertas_fecha_leidas_por_prospecto(
+                            cur, prospecto.id, datetime.now(tz=timezone.utc)
+                        )
+                    )
+
                 if rut:
                     registrar_notificacion_asignacion(
                         cur,
@@ -815,9 +829,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         id_prospecto=prospecto.id,
                     )
 
-        if previos or nuevos:
+        if previos or nuevos or ruts_alertas_fecha:
             hub.publicar_desde_hilo(
-                previos | nuevos,
+                previos | nuevos | ruts_alertas_fecha,
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'destinatarios_reasignados'},
             )
 

@@ -16,6 +16,16 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def existe_alerta_proceso(self, codigo_tipo: str, id_proceso: int, rut_usuario: str) -> bool:
+        """Indica si ya existe una alerta de ese tipo para el proceso y el RUT.
+
+        Guarda anti-duplicado: la dedupe_key de las alertas de cierre incluye
+        timestamp, por lo que el UNIQUE ya no evita duplicados entre corridas
+        del scheduler.
+        """
+        pass
+
+    @abstractmethod
     def obtener_paginado(
         self,
         rut_usuario: str,

@@ -171,3 +171,41 @@ def marcar_alertas_fecha_leidas(
     return [
         row['rut_usuario'] for row in cur.fetchall() if row['rut_usuario']
     ]
+
+
+def marcar_alertas_fecha_leidas_por_prospecto(
+    cur: Cursor[DictRow],
+    id_prospecto: int,
+    fecha: datetime,
+) -> list[str]:
+    """Marca como leídas las alertas de fecha (cierre) no leídas del prospecto.
+
+    Se usa al ASIGNAR/REASIGNAR/DESASIGNAR el ejecutivo comercial: las alertas
+    de cierre próximo / vencido del ejecutivo anterior dejan de ser relevantes.
+    Solo toca procesos NO cerrados. Devuelve los RUTs cuyas alertas fueron
+    marcadas (para que el llamador publique el refresco correspondiente).
+    """
+    query = '''
+        update Notificacion N
+        set leida = true,
+        fecha_leida = %(fecha)s
+        from ProcesoComercial PC
+        where PC.id = N.entidad_id
+        and N.entidad_tipo = 'PROCESO_COMERCIAL'
+        and PC.id_prospecto = %(id_prospecto)s
+        and PC.cerrado = false
+        and N.codigo_tipo = any(%(tipos_fecha)s)
+        and N.leida = false
+        returning N.rut_usuario
+    '''
+    params = {
+        'fecha': fecha,
+        'id_prospecto': id_prospecto,
+        'tipos_fecha': list(TIPOS_ALERTA_FECHA),
+    }
+
+    cur.execute(query, params)
+
+    return [
+        row['rut_usuario'] for row in cur.fetchall() if row['rut_usuario']
+    ]

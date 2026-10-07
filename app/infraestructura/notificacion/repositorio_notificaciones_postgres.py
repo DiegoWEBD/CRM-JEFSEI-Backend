@@ -153,6 +153,29 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return False
 
+    def existe_alerta_proceso(self, codigo_tipo: str, id_proceso: int, rut_usuario: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select exists(
+                        select 1 from Notificacion
+                        where codigo_tipo = %(codigo_tipo)s
+                        and entidad_tipo = 'PROCESO_COMERCIAL'
+                        and entidad_id = %(id_proceso)s
+                        and rut_usuario = %(rut_usuario)s
+                    ) as existe
+                '''
+                params = {
+                    'codigo_tipo': codigo_tipo,
+                    'id_proceso': id_proceso,
+                    'rut_usuario': rut_usuario,
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return bool(row['existe']) if row else False
+
     def _construir_where(
         self,
         rut_usuario: str,
