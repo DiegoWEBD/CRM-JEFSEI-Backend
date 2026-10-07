@@ -1,7 +1,7 @@
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
-from app.aplicacion.notificacion.use_cases.obtener_contador_no_leidas import ObtenerContadorNoLeidasUseCase
+from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_oportunidades_en_riesgo import ObtenerOportunidadesEnRiesgoUseCase
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
@@ -18,9 +18,9 @@ def get_obtener_notificaciones_use_case():
     return ObtenerNotificacionesUseCase(repositorio)
 
 
-def get_obtener_contador_no_leidas_use_case():
+def get_obtener_contador_notificaciones_use_case():
     repositorio = RepositorioNotificacionesPostgres()
-    return ObtenerContadorNoLeidasUseCase(repositorio)
+    return ObtenerContadorNotificacionesUseCase(repositorio)
 
 
 def get_marcar_notificacion_leida_use_case():

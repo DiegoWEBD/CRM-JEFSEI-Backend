@@ -38,7 +38,7 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
-    def obtener_contador_no_leidas(self, rut_usuario: str) -> int:
+    def contar(self, rut_usuario: str, leidas: bool, leibles: bool) -> int:
         pass
 
     @abstractmethod

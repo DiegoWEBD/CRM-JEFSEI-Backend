@@ -230,19 +230,18 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows], total
 
-    def obtener_contador_no_leidas(self, rut_usuario: str) -> int:
+    def contar(self, rut_usuario: str, leidas: bool, leibles: bool) -> int:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
                     select count(*) as total
                     from Notificacion
                     where rut_usuario = %(rut_usuario)s
-                    and leible = true
-                    and leida = false
+                    and leida = %(leidas)s
+                    and leible = %(leibles)s
                 '''
-                cur.execute(query, {'rut_usuario': rut_usuario})
-
-                return cur.fetchone()['total'] # type: ignore
+                cur.execute(query, {'rut_usuario': rut_usuario, 'leidas': leidas, 'leibles': leibles})
+                return cur.fetchone()['total'] # type: ignore   
 
     def buscar(self, id_notificacion: int) -> Notificacion | None:
         with obtener_conexion() as conn:
