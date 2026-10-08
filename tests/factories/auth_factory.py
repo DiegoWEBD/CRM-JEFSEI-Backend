@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from jose import jwt
+import jwt
 
 
 def crear_token_mock(
