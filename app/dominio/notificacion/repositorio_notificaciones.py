@@ -26,6 +26,20 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def buscar_notificaciones_proceso_comercial(self, id_proceso_comercial: int) -> list[Notificacion]:
+        """Todas las notificaciones ligadas al proceso comercial (leídas o no)."""
+        pass
+
+    @abstractmethod
+    def actualizar(self, notificacion: Notificacion) -> None:
+        """Actualiza todos los campos editables de la notificación por id.
+
+        Es idempotente: si la notificación no cambió, no tiene ningún efecto
+        observable. No toca `id` ni `created_at` (inmutables).
+        """
+        pass
+
+    @abstractmethod
     def obtener_paginado(
         self,
         rut_usuario: str,

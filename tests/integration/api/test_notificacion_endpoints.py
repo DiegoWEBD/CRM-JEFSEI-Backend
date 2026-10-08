@@ -6,13 +6,13 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.notificacion.dependencias.deps import (
     get_obtener_notificaciones_use_case,
-    get_obtener_contador_no_leidas_use_case,
+    get_obtener_contador_notificaciones_use_case,
     get_marcar_notificacion_leida_use_case,
     get_marcar_notificaciones_leidas_use_case,
     get_obtener_oportunidades_en_riesgo_use_case,
 )
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
-from app.aplicacion.notificacion.use_cases.obtener_contador_no_leidas import ObtenerContadorNoLeidasUseCase
+from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
 from app.aplicacion.notificacion.use_cases.obtener_oportunidades_en_riesgo import ObtenerOportunidadesEnRiesgoUseCase
@@ -50,7 +50,7 @@ def client(usuario_autenticado):
         return uc
 
     def override_contador():
-        uc = MagicMock(spec=ObtenerContadorNoLeidasUseCase)
+        uc = MagicMock(spec=ObtenerContadorNotificacionesUseCase)
         uc.ejecutar.return_value = 3
         return uc
 
@@ -69,7 +69,7 @@ def client(usuario_autenticado):
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_obtener_notificaciones_use_case] = override_obtener_notificaciones
-    app.dependency_overrides[get_obtener_contador_no_leidas_use_case] = override_contador
+    app.dependency_overrides[get_obtener_contador_notificaciones_use_case] = override_contador
     app.dependency_overrides[get_marcar_notificacion_leida_use_case] = override_marcar_leida
     app.dependency_overrides[get_marcar_notificaciones_leidas_use_case] = override_marcar_todas
     app.dependency_overrides[get_obtener_oportunidades_en_riesgo_use_case] = override_en_riesgo
@@ -160,7 +160,7 @@ class TestNotificacionesEndpoints:
         response = client.get("/notificaciones/contador", headers=headers_auth_validos)
 
         assert response.status_code == 200
-        assert response.json() == {"contador": 3}
+        assert response.json() == {"no_leibles": 3, "no_leidas": 3}
 
     def test_marcar_leida(self, client, headers_auth_validos):
         response = client.patch(

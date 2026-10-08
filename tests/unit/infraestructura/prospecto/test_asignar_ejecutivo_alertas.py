@@ -1,4 +1,3 @@
-from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -54,17 +53,15 @@ def _prospecto(id: int | None = 1, ejecutivo=None) -> Prospecto:
 @pytest.mark.unit
 @patch(f'{MODULO}.hub')
 @patch(f'{MODULO}.reasignar_destinatario_alertas')
-@patch(f'{MODULO}.marcar_alertas_fecha_leidas_por_prospecto')
 @patch(f'{MODULO}.obtener_conexion')
 class TestAsignarEjecutivoComercial:
 
     def test_cambia_destinatario_solo_segun_rol_responsable(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
+        self, mock_conexion, mock_reasignar, mock_hub
     ):
         conexion, _ = _conexion_mock()
         mock_conexion.return_value = conexion
         _registrar_commit(conexion)
-        mock_marcar.return_value = set()
         mock_reasignar.return_value = ({'11111111-1'}, {'22222222-2'})
         prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
 
@@ -76,11 +73,10 @@ class TestAsignarEjecutivoComercial:
         assert args[2] == 'EJECUTIVO_COMERCIAL'
         assert args[3] == '22222222-2'
 
-    def test_publica_recien_despues_del_commit(self, mock_conexion, mock_marcar, mock_reasignar, mock_hub):
+    def test_publica_recien_despues_del_commit(self, mock_conexion, mock_reasignar, mock_hub):
         conexion, _ = _conexion_mock()
         mock_conexion.return_value = conexion
         estado = _registrar_commit(conexion)
-        mock_marcar.return_value = set()
         mock_reasignar.return_value = ({'11111111-1'}, {'22222222-2'})
 
         def _publicar(*args, **kwargs):
@@ -98,12 +94,11 @@ class TestAsignarEjecutivoComercial:
         )
 
     def test_desasignacion_pone_alertas_en_null_y_notifica_solo_a_previos(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
+        self, mock_conexion, mock_reasignar, mock_hub
     ):
         conexion, _ = _conexion_mock()
         mock_conexion.return_value = conexion
         _registrar_commit(conexion)
-        mock_marcar.return_value = set()
         mock_reasignar.return_value = ({'11111111-1'}, set())
         prospecto = _prospecto(ejecutivo=None)
 
@@ -117,11 +112,10 @@ class TestAsignarEjecutivoComercial:
         )
 
     def test_sin_alertas_afectadas_no_publica(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
+        self, mock_conexion, mock_reasignar, mock_hub
     ):
         conexion, _ = _conexion_mock()
         mock_conexion.return_value = conexion
-        mock_marcar.return_value = set()
         mock_reasignar.return_value = (set(), set())
         prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
 
@@ -130,73 +124,14 @@ class TestAsignarEjecutivoComercial:
 
         mock_hub.publicar_desde_hilo.assert_not_called()
 
-    def test_sin_prospecto_no_hace_nada(self, mock_conexion, mock_marcar, mock_reasignar, mock_hub):
+    def test_sin_prospecto_no_hace_nada(self, mock_conexion, mock_reasignar, mock_hub):
         prospecto = _prospecto(id=None, ejecutivo=SimpleNamespace(rut='22222222-2'))
 
         repo = RepositorioProspectosPostgres()
         repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
 
         mock_conexion.assert_not_called()
-        mock_marcar.assert_not_called()
         mock_reasignar.assert_not_called()
-        mock_hub.publicar_desde_hilo.assert_not_called()
-
-    def test_marca_alertas_fecha_leidas_dentro_de_la_transaccion(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
-    ):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        estado = _registrar_commit(conexion)
-        mock_reasignar.return_value = (set(), set())
-
-        def _dentro_de_transaccion(*args, **kwargs):
-            assert not estado['commiteado'], 'marcó alertas de fecha fuera de la transacción'
-            return {'11111111-1'}
-
-        mock_marcar.side_effect = _dentro_de_transaccion
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        args = mock_marcar.call_args.args
-        assert args[0] is cursor
-        assert args[1] == 1
-        assert isinstance(args[2], datetime)
-
-    def test_publica_ruts_de_alertas_fecha_junto_con_reasignados(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
-    ):
-        conexion, _ = _conexion_mock()
-        mock_conexion.return_value = conexion
-        _registrar_commit(conexion)
-        mock_marcar.return_value = {'33333333-3'}
-        mock_reasignar.return_value = ({'11111111-1'}, {'22222222-2'})
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            {'11111111-1', '22222222-2', '33333333-3'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
-        )
-
-    def test_sin_cambio_de_rut_no_marca_alertas_fecha(
-        self, mock_conexion, mock_marcar, mock_reasignar, mock_hub
-    ):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        _registrar_commit(conexion)
-        cursor.fetchone.return_value = {'rut_ej_comercial_asignado': '22222222-2'}
-        mock_marcar.return_value = set()
-        mock_reasignar.return_value = (set(), set())
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        mock_marcar.assert_not_called()
         mock_hub.publicar_desde_hilo.assert_not_called()
 
 

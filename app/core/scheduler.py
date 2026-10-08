@@ -3,6 +3,7 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_cierre_estimado import GenerarAlertasCierreEstimadoUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.core.config import settings
@@ -27,9 +28,14 @@ def generar_alertas_sla_job() -> None:
 
 def generar_alertas_cierre_estimado_job() -> None:
     try:
+        generar_alerta_cierre = GenerarAlertaCierreEstimadoUseCase(
+            RepositorioProcesosComercialesPostgres(),
+            RepositorioNotificacionesPostgres(),
+        )
         use_case = GenerarAlertasCierreEstimadoUseCase(
             RepositorioProcesosComercialesPostgres(),
             RepositorioNotificacionesPostgres(),
+            generar_alerta_cierre,
         )
         creadas = use_case.ejecutar()
 

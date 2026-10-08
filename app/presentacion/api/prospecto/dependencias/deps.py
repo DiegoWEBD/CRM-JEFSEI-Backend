@@ -2,7 +2,7 @@ from fastapi import Query
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
-from app.aplicacion.notificacion.use_cases.generar_alertas_cierre_estimado import GenerarAlertasCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
@@ -79,11 +79,17 @@ def get_registrar_prospecto_use_case():
 def get_asignar_ejecutivo_comercial_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
-    generar_alertas_cierre = GenerarAlertasCierreEstimadoUseCase(
+
+    return AsignarEjecutivoComercialUseCase(
+        repositorio_prospectos,
+        repositorio_usuarios,
         RepositorioProcesosComercialesPostgres(),
         RepositorioNotificacionesPostgres(),
+        GenerarAlertaCierreEstimadoUseCase(
+            RepositorioProcesosComercialesPostgres(),
+            RepositorioNotificacionesPostgres(),
+        ),
     )
-    return AsignarEjecutivoComercialUseCase(repositorio_prospectos, repositorio_usuarios, generar_alertas_cierre)
 
 def get_asignar_ejecutivo_evaluacion_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()

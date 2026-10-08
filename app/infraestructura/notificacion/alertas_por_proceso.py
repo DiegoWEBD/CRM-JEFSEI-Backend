@@ -13,6 +13,8 @@ from datetime import datetime
 from psycopg import Cursor, sql
 from psycopg.rows import DictRow
 
+from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_FECHA
+
 # Roles responsables del estado actual del proceso -> destinatario de la alerta.
 # El mismo mapa CAMPO_POR_ROL de GenerarAlertasSlaUseCase, en sentido inverso.
 ROL_EJECUTIVO_COMERCIAL = 'EJECUTIVO_COMERCIAL'
@@ -21,9 +23,9 @@ ROL_EJECUTIVO_EVALUACION_PROYECTOS = 'EJECUTIVO_EVALUACION_PROYECTOS'
 # Únicos tipos de alerta generados por permanencia en estado (SLA).
 TIPOS_ALERTA_SLA = ('SLA_POR_VENCER', 'SLA_VENCIDO')
 
-# Alertas basadas en fecha estimada de cierre: se marcan leídas al cerrar el
-# proceso, NO en cada cambio de estado.
-TIPOS_ALERTA_FECHA = ('CIERRE_ESTIMADO_PROXIMO', 'FECHA_CIERRE_VENCIDA')
+# Alertas basadas en fecha estimada de cierre (definidas en dominio): se
+# marcan leídas al cerrar el proceso, al (re)establecer su fecha de cierre y
+# al cambiar el ejecutivo comercial asignado.
 
 
 def marcar_alertas_sla_leidas(
@@ -163,44 +165,6 @@ def marcar_alertas_fecha_leidas(
     params = {
         'fecha': fecha,
         'id_proceso': id_proceso,
-        'tipos_fecha': list(TIPOS_ALERTA_FECHA),
-    }
-
-    cur.execute(query, params)
-
-    return [
-        row['rut_usuario'] for row in cur.fetchall() if row['rut_usuario']
-    ]
-
-
-def marcar_alertas_fecha_leidas_por_prospecto(
-    cur: Cursor[DictRow],
-    id_prospecto: int,
-    fecha: datetime,
-) -> list[str]:
-    """Marca como leídas las alertas de fecha (cierre) no leídas del prospecto.
-
-    Se usa al ASIGNAR/REASIGNAR/DESASIGNAR el ejecutivo comercial: las alertas
-    de cierre próximo / vencido del ejecutivo anterior dejan de ser relevantes.
-    Solo toca procesos NO cerrados. Devuelve los RUTs cuyas alertas fueron
-    marcadas (para que el llamador publique el refresco correspondiente).
-    """
-    query = '''
-        update Notificacion N
-        set leida = true,
-        fecha_leida = %(fecha)s
-        from ProcesoComercial PC
-        where PC.id = N.entidad_id
-        and N.entidad_tipo = 'PROCESO_COMERCIAL'
-        and PC.id_prospecto = %(id_prospecto)s
-        and PC.cerrado = false
-        and N.codigo_tipo = any(%(tipos_fecha)s)
-        and N.leida = false
-        returning N.rut_usuario
-    '''
-    params = {
-        'fecha': fecha,
-        'id_prospecto': id_prospecto,
         'tipos_fecha': list(TIPOS_ALERTA_FECHA),
     }
 

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from app.aplicacion.notificacion.use_cases.obtener_contador_no_leidas import ObtenerContadorNoLeidasUseCase
+from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from tests.factories.notificacion_factory import crear_notificacion_mock
@@ -89,19 +89,21 @@ class TestObtenerNotificaciones:
 
 
 @pytest.mark.unit
-class TestObtenerContadorNoLeidas:
+class TestObtenerContadorNotificaciones:
 
     def test_retorna_contador_del_repositorio(self, repositorio_mock):
-        repositorio_mock.obtener_contador_no_leidas.return_value = 7
-        uc = ObtenerContadorNoLeidasUseCase(repositorio_mock)
+        repositorio_mock.contar.return_value = 7
+        uc = ObtenerContadorNotificacionesUseCase(repositorio_mock)
 
-        assert uc.ejecutar(rut_usuario="12345678-9") == 7
-        repositorio_mock.obtener_contador_no_leidas.assert_called_once_with(
-            rut_usuario="12345678-9"
+        assert uc.ejecutar(rut_usuario="12345678-9", leidas=False, leibles=True) == 7
+        repositorio_mock.contar.assert_called_once_with(
+            rut_usuario="12345678-9",
+            leidas=False,
+            leibles=True,
         )
 
     def test_sin_no_leidas_retorna_cero(self, repositorio_mock):
-        repositorio_mock.obtener_contador_no_leidas.return_value = 0
-        uc = ObtenerContadorNoLeidasUseCase(repositorio_mock)
+        repositorio_mock.contar.return_value = 0
+        uc = ObtenerContadorNotificacionesUseCase(repositorio_mock)
 
-        assert uc.ejecutar(rut_usuario="12345678-9") == 0
+        assert uc.ejecutar(rut_usuario="12345678-9", leidas=False, leibles=True) == 0

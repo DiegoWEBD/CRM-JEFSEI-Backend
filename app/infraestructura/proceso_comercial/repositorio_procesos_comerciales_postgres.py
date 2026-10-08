@@ -178,26 +178,27 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     params["texto_busqueda"] = f"%{texto_busqueda}%"
 
                 if ejecutivos:
-                    placeholders = ", ".join(
-                        f"%(ejecutivo_{i})s" for i in range(len(ejecutivos))
+                    placeholders_ejecutivos = sql.SQL(", ").join(
+                        sql.Placeholder(f"ejecutivo_{i}") for i in range(len(ejecutivos))
                     )
-                    condiciones.append(sql.SQL(f"base.rut_ej_comercial IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.rut_ej_comercial IN ({})").format(placeholders_ejecutivos))
+                    
                     for i, rut in enumerate(ejecutivos):
                         params[f"ejecutivo_{i}"] = rut
 
                 if etapas:
-                    placeholders = ", ".join(
-                        f"%(etapa_{i})s" for i in range(len(etapas))
+                    placeholders_etapas = sql.SQL(", ").join(
+                        sql.Placeholder(f"etapa_{i}") for i in range(len(etapas))
                     )
-                    condiciones.append(sql.SQL(f"base.codigo_etapa IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.codigo_etapa IN ({})").format(placeholders_etapas))
                     for i, codigo in enumerate(etapas):
                         params[f"etapa_{i}"] = codigo
 
                 if estados_comerciales:
-                    placeholders = ", ".join(
-                        f"%(estado_comercial_{i})s" for i in range(len(estados_comerciales))
+                    placeholders_estados = sql.SQL(", ").join(
+                        sql.Placeholder(f"estado_comercial_{i}") for i in range(len(estados_comerciales))
                     )
-                    condiciones.append(sql.SQL(f"base.codigo_estado IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.codigo_estado IN ({})").format(placeholders_estados))
                     for i, codigo in enumerate(estados_comerciales):
                         params[f"estado_comercial_{i}"] = codigo
 
@@ -246,10 +247,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 )
 
                 if estado_semaforo:
-                    placeholders_semaforo = ", ".join(
-                        f"%(sem_{i})s" for i in range(len(estado_semaforo))
+                    placeholders_semaforo = sql.SQL(", ").join(
+                        sql.Placeholder(f"sem_{i}") for i in range(len(estado_semaforo))
                     )
-                    where_semaforo = sql.SQL(f"WHERE con_semaforo.estado_semaforo IN ({placeholders_semaforo})")
+                    where_semaforo = sql.SQL("WHERE con_semaforo.estado_semaforo IN ({})").format(placeholders_semaforo)
                     for i, sem in enumerate(estado_semaforo):
                         params[f"sem_{i}"] = sem
                 else:
