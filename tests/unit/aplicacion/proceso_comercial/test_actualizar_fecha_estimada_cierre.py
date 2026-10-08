@@ -4,11 +4,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_FECHA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from tests.factories.notificacion_factory import crear_notificacion_mock
 from tests.factories.proceso_comercial_factory import crear_proceso_comercial_mock
@@ -31,9 +32,9 @@ def authorization_service_mock():
 
 
 @pytest.fixture
-def repositorio_notificaciones_mock():
-    mock = MagicMock(spec=RepositorioNotificaciones)
-    mock.buscar_notificaciones_proceso_comercial.return_value = []
+def servicio_alertas_mock():
+    mock = MagicMock(spec=ServicioAlertasProceso)
+    mock.marcar_leidas.return_value = []
     return mock
 
 
@@ -48,13 +49,13 @@ def generar_alerta_cierre_mock():
 def use_case(
     repositorio_mock,
     authorization_service_mock,
-    repositorio_notificaciones_mock,
+    servicio_alertas_mock,
     generar_alerta_cierre_mock,
 ):
     return ActualizarFechaEstimadaCierreUseCase(
         authorization_service=authorization_service_mock,
         repositorio_procesos_comerciales=repositorio_mock,
-        repositorio_notificaciones=repositorio_notificaciones_mock,
+        servicio_alertas=servicio_alertas_mock,
         generar_alerta_cierre=generar_alerta_cierre_mock,
     )
 
@@ -128,36 +129,21 @@ class TestActualizarFechaEstimadaCierreValidaciones:
 @patch(f'{MODULO}.hub')
 class TestActualizarFechaEstimadaCierreFlujoAlertas:
 
-    def test_marca_leidas_las_alertas_de_fecha_no_leidas(
+    def test_marca_leidas_las_alertas_de_fecha_via_servicio(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA_ANTERIOR)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
-        alerta_fecha = crear_notificacion_mock(
-            id=1, rut_usuario='11111111-1', codigo_tipo='FECHA_CIERRE_VENCIDA', leida=False
-        )
-        alerta_sla = crear_notificacion_mock(
-            id=2, rut_usuario='22222222-2', codigo_tipo='SLA_VENCIDO', leida=False
-        )
-        alerta_fecha_leida = crear_notificacion_mock(
-            id=3, rut_usuario='33333333-3', codigo_tipo='CIERRE_ESTIMADO_PROXIMO', leida=True
-        )
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.return_value = [
-            alerta_fecha, alerta_sla, alerta_fecha_leida,
-        ]
-        generar_alerta_cierre_mock.ejecutar.return_value = None
+        servicio_alertas_mock.marcar_leidas.return_value = ['11111111-1']
 
         use_case.ejecutar(id=1, fecha_estimada_cierre=FECHA, usuario=crear_usuario_mock())
 
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.assert_called_once_with(1)
-        repositorio_notificaciones_mock.actualizar.assert_called_once()
-        notificacion_actualizada = repositorio_notificaciones_mock.actualizar.call_args.args[0]
-        assert notificacion_actualizada.id == 1
-        assert notificacion_actualizada.leida is True
-        assert isinstance(notificacion_actualizada.fecha_leida, datetime)
-        assert alerta_sla.leida is False
-        assert alerta_fecha_leida.fecha_leida is None
+        servicio_alertas_mock.marcar_leidas.assert_called_once()
+        args = servicio_alertas_mock.marcar_leidas.call_args.args
+        assert args[0] == 1
+        assert args[1] == TIPOS_ALERTA_FECHA
+        assert isinstance(args[2], datetime)
 
         mock_hub.publicar_desde_hilo.assert_called_once()
         destinos = mock_hub.publicar_desde_hilo.call_args.args[0]
@@ -165,11 +151,10 @@ class TestActualizarFechaEstimadaCierreFlujoAlertas:
 
     def test_reevalua_y_agrega_la_alerta_creada_a_destinatarios(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA_ANTERIOR)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.return_value = []
         creada = crear_notificacion_mock(id=None, rut_usuario='22222222-2', codigo_tipo='FECHA_CIERRE_VENCIDA')
         generar_alerta_cierre_mock.ejecutar.return_value = creada
 
@@ -188,13 +173,11 @@ class TestActualizarFechaEstimadaCierreFlujoAlertas:
 
     def test_acumula_marcadas_y_creada(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA_ANTERIOR)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.return_value = [
-            crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='FECHA_CIERRE_VENCIDA', leida=False),
-        ]
+        servicio_alertas_mock.marcar_leidas.return_value = ['11111111-1']
         generar_alerta_cierre_mock.ejecutar.return_value = crear_notificacion_mock(
             id=None, rut_usuario='11111111-1', codigo_tipo='FECHA_CIERRE_VENCIDA'
         )
@@ -206,7 +189,7 @@ class TestActualizarFechaEstimadaCierreFlujoAlertas:
 
     def test_no_reevalua_ni_marca_si_la_fecha_no_cambia(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
@@ -214,18 +197,16 @@ class TestActualizarFechaEstimadaCierreFlujoAlertas:
         use_case.ejecutar(id=1, fecha_estimada_cierre=FECHA, usuario=crear_usuario_mock())
 
         repositorio_mock.actualizar_fecha_estimada_cierre.assert_called_once()
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.assert_not_called()
+        servicio_alertas_mock.marcar_leidas.assert_not_called()
         generar_alerta_cierre_mock.ejecutar.assert_not_called()
         mock_hub.publicar_desde_hilo.assert_not_called()
 
     def test_sin_destinatarios_no_publica(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA_ANTERIOR)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.return_value = []
-        generar_alerta_cierre_mock.ejecutar.return_value = None
 
         use_case.ejecutar(id=1, fecha_estimada_cierre=FECHA, usuario=crear_usuario_mock())
 
@@ -234,16 +215,13 @@ class TestActualizarFechaEstimadaCierreFlujoAlertas:
 
     def test_ruts_nulos_no_se_publican(
         self, mock_hub, use_case, repositorio_mock, authorization_service_mock,
-        repositorio_notificaciones_mock, generar_alerta_cierre_mock,
+        servicio_alertas_mock, generar_alerta_cierre_mock,
     ):
         proceso = crear_proceso_comercial_mock(cerrado=False, fecha_estimada_cierre=FECHA_ANTERIOR)
         _habilitar(repositorio_mock, authorization_service_mock, proceso)
-        repositorio_notificaciones_mock.buscar_notificaciones_proceso_comercial.return_value = [
-            crear_notificacion_mock(id=1, rut_usuario=None, codigo_tipo='FECHA_CIERRE_VENCIDA', leida=False),
-        ]
-        generar_alerta_cierre_mock.ejecutar.return_value = None
+        servicio_alertas_mock.marcar_leidas.return_value = []
 
         use_case.ejecutar(id=1, fecha_estimada_cierre=FECHA, usuario=crear_usuario_mock())
 
-        repositorio_notificaciones_mock.actualizar.assert_called_once()
+        servicio_alertas_mock.marcar_leidas.assert_called_once()
         mock_hub.publicar_desde_hilo.assert_not_called()

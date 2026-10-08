@@ -6,7 +6,7 @@ class Notificacion:
     def __init__(
         self,
         id: int | None,
-        rut_usuario: str,
+        rut_usuario: str | None,
         codigo_tipo: str,
         nivel: str,
         titulo: str,

@@ -1,11 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.poliza.estado_poliza.estado_poliza import EstadoPoliza
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
@@ -20,12 +24,16 @@ class RegistrarPolizaAProcesoComercialUseCase:
         repositorio_polizas: RepositorioPolizas,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_companies: RepositorioCompanySeguros,
-        authorization_service: AuthorizationService
+        authorization_service: AuthorizationService,
+        repositorio_notificaciones: RepositorioNotificaciones,
+        servicio_alertas: ServicioAlertasProceso
     ) -> None:
         self.repositorio_polizas = repositorio_polizas
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_companies = repositorio_companies
         self.authorization_service = authorization_service
+        self.repositorio_notificaciones = repositorio_notificaciones
+        self.servicio_alertas = servicio_alertas
 
     def ejecutar(
         self,
@@ -74,3 +82,16 @@ class RegistrarPolizaAProcesoComercialUseCase:
         )
 
         self.repositorio_polizas.registrar_a_proceso_comercial(poliza, id_proceso_comercial, usuario.rut)
+
+        # El registro de la póliza cambia el estado del proceso: la alerta de
+        # permanencia en el estado anterior deja de ser relevante.
+        ahora = datetime.now(tz=timezone.utc)
+        destinatarios = self.servicio_alertas.marcar_leidas(
+            id_proceso_comercial, TIPOS_ALERTA_SLA, ahora
+        )
+
+        if destinatarios:
+            hub.publicar_desde_hilo(
+                destinatarios,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )

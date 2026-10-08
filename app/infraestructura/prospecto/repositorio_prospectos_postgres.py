@@ -1,4 +1,3 @@
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.configuracion_condominio.servicio_calculo_depreciacion import ServicioCalculoDepreciacion
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.prospecto import Prospecto
@@ -7,12 +6,6 @@ from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.configuracion_condominio.repositorio_configuracion_condominio_postgres import RepositorioConfiguracionCondominioPostgres
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import (
-    ROL_EJECUTIVO_COMERCIAL,
-    ROL_EJECUTIVO_EVALUACION_PROYECTOS,
-    reasignar_destinatario_alertas,
-)
-from app.infraestructura.notificacion.notificaciones_asignacion import registrar_notificacion_asignacion, registrar_notificacion_desasignacion
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
 from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio
@@ -754,14 +747,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                # Obtener el RUT actualmente asignado antes de la actualización
-                cur.execute(
-                    'SELECT rut_ej_comercial_asignado FROM Prospecto WHERE id = %(id)s',
-                    {'id': prospecto.id}
-                )
-                row = cur.fetchone()
-                rut_anterior = row['rut_ej_comercial_asignado'] if row else None
-
                 query = '''
                     update Prospecto
                     set rut_ej_comercial_asignado = %(rut_ej_comercial)s
@@ -787,40 +772,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
-                # Solo cambia el destinatario de las alertas cuyo estado actual
-                # tenga al EJECUTIVO_COMERCIAL como rol responsable.
-                previos, nuevos = reasignar_destinatario_alertas(
-                    cur, prospecto.id, ROL_EJECUTIVO_COMERCIAL, rut
-                )
-
-                if rut:
-                    registrar_notificacion_asignacion(
-                        cur,
-                        rut_asignado=rut,
-                        detalle_asignacion='gestión comercial',
-                        entidad_tipo='PROSPECTO',
-                        entidad_id=prospecto.id,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        id_prospecto=prospecto.id,
-                    )
-
-                if rut_anterior and rut_anterior != rut:
-                    registrar_notificacion_desasignacion(
-                        cur,
-                        rut_desasignado=rut_anterior,
-                        detalle_asignacion='gestión comercial',
-                        entidad_tipo='PROSPECTO',
-                        entidad_id=prospecto.id,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        id_prospecto=prospecto.id,
-                    )
-
-        if previos or nuevos:
-            hub.publicar_desde_hilo(
-                previos | nuevos,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'destinatarios_reasignados'},
-            )
-
 
     def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id:
@@ -830,14 +781,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
         
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                # Obtener el RUT actualmente asignado antes de la actualización
-                cur.execute(
-                    'SELECT rut_ej_evaluacion_asignado FROM Prospecto WHERE id = %(id)s',
-                    {'id': prospecto.id}
-                )
-                row = cur.fetchone()
-                rut_anterior = row['rut_ej_evaluacion_asignado'] if row else None
 
                 query = '''
                     update Prospecto
@@ -864,40 +807,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
-                # Solo cambia el destinatario de las alertas cuyo estado actual
-                # tenga al EJECUTIVO_EVALUACION_PROYECTOS como rol responsable.
-                previos, nuevos = reasignar_destinatario_alertas(
-                    cur, prospecto.id, ROL_EJECUTIVO_EVALUACION_PROYECTOS, rut
-                )
-
-                if rut:
-                    registrar_notificacion_asignacion(
-                        cur,
-                        rut_asignado=rut,
-                        detalle_asignacion='evaluación técnica',
-                        entidad_tipo='PROSPECTO',
-                        entidad_id=prospecto.id,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        id_prospecto=prospecto.id,
-                    )
-
-                if rut_anterior and rut_anterior != rut:
-                    registrar_notificacion_desasignacion(
-                        cur,
-                        rut_desasignado=rut_anterior,
-                        detalle_asignacion='evaluación técnica',
-                        entidad_tipo='PROSPECTO',
-                        entidad_id=prospecto.id,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id}',
-                        id_prospecto=prospecto.id,
-                    )
-
-        if previos or nuevos:
-            hub.publicar_desde_hilo(
-                previos | nuevos,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'destinatarios_reasignados'},
-            )
-
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -923,14 +832,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                # Obtener el RUT actualmente asignado antes de la actualización
-                cur.execute(
-                    'SELECT rut_ej_cobranza_asignado FROM Cliente WHERE id = %(id)s',
-                    {'id': prospecto.id_cliente}
-                )
-                row = cur.fetchone()
-                rut_anterior = row['rut_ej_cobranza_asignado'] if row else None
-
                 query = '''
                     update Cliente
                     set rut_ej_cobranza_asignado = %(rut_ej_cobranza)s
@@ -943,28 +844,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
-                if rut:
-                    registrar_notificacion_asignacion(
-                        cur,
-                        rut_asignado=rut,
-                        detalle_asignacion='cobranza',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )
-
-                if rut_anterior and rut_anterior != rut:
-                    registrar_notificacion_desasignacion(
-                        cur,
-                        rut_desasignado=rut_anterior,
-                        detalle_asignacion='cobranza',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )
-
     def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id_cliente:
             return
@@ -973,14 +852,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                # Obtener el RUT actualmente asignado antes de la actualización
-                cur.execute(
-                    'SELECT rut_ej_renovacion_asignado FROM Cliente WHERE id = %(id)s',
-                    {'id': prospecto.id_cliente}
-                )
-                row = cur.fetchone()
-                rut_anterior = row['rut_ej_renovacion_asignado'] if row else None
 
                 query = '''
                     update Cliente
@@ -1007,28 +878,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
-                if rut:
-                    registrar_notificacion_asignacion(
-                        cur,
-                        rut_asignado=rut,
-                        detalle_asignacion='renovación',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )
-
-                if rut_anterior and rut_anterior != rut:
-                    registrar_notificacion_desasignacion(
-                        cur,
-                        rut_desasignado=rut_anterior,
-                        detalle_asignacion='renovación',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )
-
     def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id_cliente:
             return
@@ -1037,14 +886,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                # Obtener el RUT actualmente asignado antes de la actualización
-                cur.execute(
-                    'SELECT rut_as_renovacion_asignado FROM Cliente WHERE id = %(id)s',
-                    {'id': prospecto.id_cliente}
-                )
-                row = cur.fetchone()
-                rut_anterior = row['rut_as_renovacion_asignado'] if row else None
 
                 query = '''
                     update Cliente
@@ -1057,25 +898,3 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 }
 
                 cur.execute(query, params)
-
-                if rut:
-                    registrar_notificacion_asignacion(
-                        cur,
-                        rut_asignado=rut,
-                        detalle_asignacion='asistencia de renovación',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )
-
-                if rut_anterior and rut_anterior != rut:
-                    registrar_notificacion_desasignacion(
-                        cur,
-                        rut_desasignado=rut_anterior,
-                        detalle_asignacion='asistencia de renovación',
-                        entidad_tipo='CLIENTE',
-                        entidad_id=prospecto.id_cliente,
-                        nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
-                        id_prospecto=prospecto.id,
-                    )

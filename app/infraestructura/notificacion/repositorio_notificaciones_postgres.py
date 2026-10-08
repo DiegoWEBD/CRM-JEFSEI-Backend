@@ -204,6 +204,47 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
 
+    def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                # Join con la transición principal + estado destino para resolver
+                # el rol responsable del SIGUIENTE estado (no el actual).
+                query = '''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    inner join ProcesoComercial PC
+                    on PC.id = N.entidad_id
+                    inner join TransicionEstadoProcesoComercial T
+                    on T.codigo_estado_origen = PC.codigo_estado_actual
+                    and T.es_principal = true
+                    inner join EstadoInformativoProcesoComercial EI_SIGUIENTE
+                    on EI_SIGUIENTE.codigo = T.codigo_estado_destino
+                    where N.entidad_tipo = 'PROCESO_COMERCIAL'
+                    and N.leida = false
+                    and PC.id_prospecto = %(id_prospecto)s
+                    and PC.cerrado = false
+                    and EI_SIGUIENTE.rol_responsable = %(rol)s
+                    and N.codigo_tipo in ('SLA_POR_VENCER', 'SLA_VENCIDO')
+                    order by N.created_at desc
+                '''
+                cur.execute(query, {'id_prospecto': id_prospecto, 'rol': rol})
+                rows = cur.fetchall()
+
+                return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
+
     def actualizar(self, notificacion: Notificacion) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

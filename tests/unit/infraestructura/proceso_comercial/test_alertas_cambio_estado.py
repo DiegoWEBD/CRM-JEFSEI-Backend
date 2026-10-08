@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres as modulo_repo
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import (
     RepositorioProcesosComercialesPostgres,
 )
@@ -19,109 +20,144 @@ def _conexion_mock():
     return conexion, cursor
 
 
-def _registrar_commit(conexion) -> dict:
-    """Simula el commit de psycopg al salir del with y deja el estado visible."""
-    estado = {'commiteado': False}
+def _consultas(cursor) -> list[str]:
+    return [str(call.args[0]) for call in cursor.execute.call_args_list]
 
-    def _al_salir(*args):
-        estado['commiteado'] = True
-        return False
 
-    conexion.__exit__.side_effect = _al_salir
-    return estado
+def _sin_alertas(cursor):
+    """Los métodos de cambio de estado son puros: no tocan Notificacion."""
+    for query in _consultas(cursor):
+        assert 'Notificacion' not in query, f'el repo tocó alertas: {query}'
 
 
 @pytest.mark.unit
-@patch(f'{MODULO}.hub')
-@patch(f'{MODULO}.marcar_alertas_sla_leidas')
 @patch(f'{MODULO}.obtener_conexion')
-class TestCerrarPublicaAlertasLeidas:
+class TestCerrarProcesoComercialPuro:
 
-    def test_publica_recien_despues_del_commit(self, mock_conexion, mock_marcar, mock_hub):
+    def test_ganado_actualiza_el_proceso_y_registra_historial(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        estado = _registrar_commit(conexion)
-        mock_marcar.return_value = ['11111111-1']
-
-        def _publicar(*args, **kwargs):
-            assert estado['commiteado'], 'publicó antes del commit'
-
-        mock_hub.publicar_desde_hilo.side_effect = _publicar
 
         repo = RepositorioProcesosComercialesPostgres()
-        resultado = repo.cerrar(id=1, ganado=True, observacion=None, rut_usuario='99999999-9')
+        resultado = repo.cerrar(id=1, ganado=True, observacion='obs', rut_usuario='99999999-9')
 
         assert resultado is None
-        mock_marcar.assert_called_once()
-        id_proceso, fecha = mock_marcar.call_args.args[1], mock_marcar.call_args.args[2]
-        assert id_proceso == 1
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            ['11111111-1'],
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_leidas_cambio_estado'},
-        )
+        updates = [
+            call for call in cursor.execute.call_args_list
+            if 'update ProcesoComercial' in str(call.args[0])
+        ]
+        assert len(updates) == 1
+        params_update = updates[0].args[1]
+        assert params_update['cerrado'] is True
+        assert params_update['codigo_estado'] == 'GANADO'
+        assert params_update['id'] == 1
 
-    def test_sin_alertas_afectadas_no_publica(self, mock_conexion, mock_marcar, mock_hub):
-        conexion, _ = _conexion_mock()
-        mock_conexion.return_value = conexion
-        mock_marcar.return_value = []
-
-        repo = RepositorioProcesosComercialesPostgres()
-        repo.cerrar(id=1, ganado=False, observacion=None, rut_usuario='99999999-9')
-
-        mock_hub.publicar_desde_hilo.assert_not_called()
-
-    def test_si_falla_la_transaccion_no_publica(self, mock_conexion, mock_marcar, mock_hub):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        cursor.execute.side_effect = RuntimeError('boom')
-
-        repo = RepositorioProcesosComercialesPostgres()
-
-        with pytest.raises(RuntimeError):
-            repo.cerrar(id=1, ganado=True, observacion=None, rut_usuario='99999999-9')
-
-        mock_hub.publicar_desde_hilo.assert_not_called()
-
-    def test_usa_la_misma_fecha_para_historial_y_alertas(self, mock_conexion, mock_marcar, mock_hub):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        mock_marcar.return_value = []
-
-        repo = RepositorioProcesosComercialesPostgres()
-        repo.cerrar(id=1, ganado=True, observacion='obs', rut_usuario='99999999-9')
-
-        fecha_alerta = mock_marcar.call_args.args[2]
         historial = [
             call.args[1] for call in cursor.execute.call_args_list
             if 'insert into HistorialEstadoInformativoProcesoComercial' in str(call.args[0])
         ]
-        assert historial, 'no se registró el historial'
-        assert historial[0]['fecha_registro'] == fecha_alerta
+        assert len(historial) == 1
+        assert historial[0]['codigo_estado'] == 'GANADO'
+        assert historial[0]['observacion'] == 'obs'
+        assert historial[0]['rut_registrado_por'] == '99999999-9'
+        assert historial[0]['fecha_registro'] == params_update['fecha_cierre']
+
+    def test_perdido_usa_estado_PERDIDO(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+
+        repo = RepositorioProcesosComercialesPostgres()
+        repo.cerrar(id=1, ganado=False, observacion=None, rut_usuario='99999999-9')
+
+        update = next(
+            call.args[1] for call in cursor.execute.call_args_list
+            if 'update ProcesoComercial' in str(call.args[0])
+        )
+        assert update['codigo_estado'] == 'PERDIDO'
+
+    def test_no_toca_notificaciones(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+
+        repo = RepositorioProcesosComercialesPostgres()
+        repo.cerrar(id=1, ganado=False, observacion=None, rut_usuario='99999999-9')
+
+        _sin_alertas(cursor)
 
 
 @pytest.mark.unit
-@patch(f'{MODULO}.hub')
-@patch(f'{MODULO}.marcar_alertas_sla_leidas')
 @patch(f'{MODULO}.obtener_conexion')
-class TestRegistrarAceptacionClientePublicaAlertasLeidas:
+class TestRegistrarAceptacionClientePuro:
 
-    def test_publica_con_motivo_cambio_estado(self, mock_conexion, mock_marcar, mock_hub):
-        conexion, _ = _conexion_mock()
+    def test_actualiza_estado_y_registra_historial_sin_update_duplicado(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        estado = _registrar_commit(conexion)
-        mock_marcar.return_value = ['22222222-2']
 
-        def _publicar(*args, **kwargs):
-            assert estado['commiteado'], 'publicó antes del commit'
+        repo = RepositorioProcesosComercialesPostgres()
+        resultado = repo.registrar_aceptacion_cliente(id=4, rut_usuario='99999999-9')
 
-        mock_hub.publicar_desde_hilo.side_effect = _publicar
+        assert resultado is None
+        updates = [
+            call for call in cursor.execute.call_args_list
+            if 'update ProcesoComercial' in str(call.args[0])
+        ]
+        assert len(updates) == 1, 'el update de estado debe ser único'
+        assert updates[0].args[1]['codigo_estado'] == 'PROPUESTA_ACEPTADA'
+        assert updates[0].args[1]['id'] == 4
+
+        historial = [
+            call.args[1] for call in cursor.execute.call_args_list
+            if 'insert into HistorialEstadoInformativoProcesoComercial' in str(call.args[0])
+        ]
+        assert len(historial) == 1
+        assert historial[0]['codigo_estado'] == 'PROPUESTA_ACEPTADA'
+        assert historial[0]['rut_registrado_por'] == '99999999-9'
+
+    def test_no_toca_notificaciones(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
 
         repo = RepositorioProcesosComercialesPostgres()
         repo.registrar_aceptacion_cliente(id=4, rut_usuario='99999999-9')
 
-        mock_marcar.assert_called_once()
-        assert mock_marcar.call_args.args[1] == 4
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            ['22222222-2'],
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_leidas_cambio_estado'},
+        _sin_alertas(cursor)
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.obtener_conexion')
+class TestNuevoProcesoComercialPuro:
+
+    def test_crea_proceso_e_historial_sin_tocar_alertas(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = {'id': 1}
+
+        repo = RepositorioProcesosComercialesPostgres()
+        id_proceso = repo.nuevo(tipo='PROD-1', id_prospecto=7, rut_usuario='99999999-9')
+
+        assert id_proceso == 1
+        insert_proceso = next(
+            call.args[1] for call in cursor.execute.call_args_list
+            if 'insert into ProcesoComercial' in str(call.args[0])
         )
+        assert insert_proceso['id_prospecto'] == 7
+        assert insert_proceso['codigo_estado_actual'] == 'OPORTUNIDAD_CREADA'
+
+        _sin_alertas(cursor)
+
+    def test_producto_inexistente_lanza_excepcion(self, mock_conexion):
+        from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = None
+
+        repo = RepositorioProcesosComercialesPostgres()
+
+        with pytest.raises(RecursoNoEncontradoException):
+            repo.nuevo(tipo='NOEXISTE', id_prospecto=7, rut_usuario='99999999-9')
+
+    def test_el_modulo_no_expone_hub_ni_funciones_de_alertas(self, mock_conexion):
+        assert not hasattr(modulo_repo, 'hub')
+        assert not hasattr(modulo_repo, 'marcar_alertas_sla_leidas')
+        assert not hasattr(modulo_repo, 'marcar_alertas_fecha_leidas')

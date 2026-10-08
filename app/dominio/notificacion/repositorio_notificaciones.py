@@ -31,6 +31,12 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
+        """Alertas SLA no leídas de procesos abiertos del prospecto cuyo estado
+        siguiente tenga `rol` como responsable."""
+        pass
+
+    @abstractmethod
     def actualizar(self, notificacion: Notificacion) -> None:
         """Actualiza todos los campos editables de la notificación por id.
 

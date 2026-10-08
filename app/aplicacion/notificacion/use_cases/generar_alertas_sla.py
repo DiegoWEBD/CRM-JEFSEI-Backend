@@ -4,6 +4,10 @@ from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.notificacion.tipos_alerta import (
+    ROL_EJECUTIVO_COMERCIAL,
+    ROL_EJECUTIVO_EVALUACION_PROYECTOS,
+)
 
 
 # Umbral de aviso: al consumir el 70% del plazo la oportunidad queda "próximo a vencer".
@@ -12,8 +16,8 @@ UMBRAL_POR_VENCER = 0.7
 # Mapa rol_responsable -> campo del proceso que contiene al destinatario asignado.
 # Roles fuera de este mapa se resuelven vía fan-out (todos los usuarios activos con ese rol).
 CAMPO_POR_ROL: dict[str, str] = {
-    'EJECUTIVO_COMERCIAL': 'rut_ej_comercial',
-    'EJECUTIVO_EVALUACION_PROYECTOS': 'rut_ej_evaluacion',
+    ROL_EJECUTIVO_COMERCIAL: 'rut_ej_comercial',
+    ROL_EJECUTIVO_EVALUACION_PROYECTOS: 'rut_ej_evaluacion',
 }
 
 

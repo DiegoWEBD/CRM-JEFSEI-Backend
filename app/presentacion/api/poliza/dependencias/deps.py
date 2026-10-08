@@ -6,9 +6,11 @@ from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
@@ -55,7 +57,9 @@ def get_registrar_poliza_a_proceso_comercial_use_case():
         repositorio_polizas=repositorio_polizas,
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
-        authorization_service=authorization_service
+        authorization_service=authorization_service,
+        repositorio_notificaciones=RepositorioNotificacionesPostgres(),
+        servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres())
     )
 
 

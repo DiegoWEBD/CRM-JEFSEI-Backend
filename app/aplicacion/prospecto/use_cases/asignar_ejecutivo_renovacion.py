@@ -1,5 +1,10 @@
+from datetime import datetime, timezone
+
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.notificacion.notificacion import Notificacion
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.notificacion.tipos_alerta import TIPO_ASIGNACION, TIPO_DESASIGNACION
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -9,10 +14,12 @@ class AsignarEjecutivoRenovacionUseCase:
     def __init__(
         self, 
         repositorio_prospectos: RepositorioProspectos,
-        repositorio_usuarios: RepositorioUsuarios
+        repositorio_usuarios: RepositorioUsuarios,
+        repositorio_notificaciones: RepositorioNotificaciones
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
+        self.repositorio_notificaciones = repositorio_notificaciones
 
     def ejecutar(self, id_cliente: int, rut_ej_renovacion: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
@@ -32,7 +39,37 @@ class AsignarEjecutivoRenovacionUseCase:
         else:
             prospecto.ejecutivo_renovacion_asignado = None
 
+        # Sin cliente asociado no hay asignación que guardar ni notificar.
+        if not prospecto.id_cliente:
+            return
+
         self.repositorio_prospectos.asignar_ejecutivo_renovacion(prospecto, asignado_por)
+
+        # Notificaciones de asignación/desasignación: en cada invocación con RUT
+        # destino (asignación) y solo al cambiar de RUT (desasignación).
+        if rut_ej_renovacion is not None:
+            self.repositorio_notificaciones.registrar(
+                self._notificacion_asignacion(
+                    rut_asignado=rut_ej_renovacion,
+                    detalle_asignacion='renovación',
+                    entidad_tipo='CLIENTE',
+                    entidad_id=prospecto.id_cliente,
+                    nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
+                    id_prospecto=prospecto.id,
+                )
+            )
+
+        if rut_anterior and rut_anterior != rut_ej_renovacion:
+            self.repositorio_notificaciones.registrar(
+                self._notificacion_desasignacion(
+                    rut_desasignado=rut_anterior,
+                    detalle_asignacion='renovación',
+                    entidad_tipo='CLIENTE',
+                    entidad_id=prospecto.id_cliente,
+                    nombre_entidad=prospecto.nombre_riesgo or f'#{prospecto.id_cliente}',
+                    id_prospecto=prospecto.id,
+                )
+            )
 
         if rut_ej_renovacion is not None:
             hub.publicar_desde_hilo(
@@ -45,3 +82,61 @@ class AsignarEjecutivoRenovacionUseCase:
                 [rut_anterior],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
             )
+
+    @staticmethod
+    def _notificacion_asignacion(
+        *,
+        rut_asignado: str,
+        detalle_asignacion: str,
+        entidad_tipo: str,
+        entidad_id: int,
+        nombre_entidad: str,
+        id_prospecto: int | None,
+    ) -> Notificacion:
+        ahora = datetime.now(tz=timezone.utc)
+
+        return Notificacion(
+            id=None,
+            rut_usuario=rut_asignado,
+            codigo_tipo=TIPO_ASIGNACION,
+            nivel='INFO',
+            titulo=f'Asignación de {detalle_asignacion}',
+            mensaje=f'Se le ha asignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.',
+            entidad_tipo=entidad_tipo,
+            entidad_id=entidad_id,
+            id_prospecto=id_prospecto,
+            dedupe_key=f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
+            leida=False,
+            fecha_leida=None,
+            created_at=ahora,
+            leible=True,
+        )
+
+    @staticmethod
+    def _notificacion_desasignacion(
+        *,
+        rut_desasignado: str,
+        detalle_asignacion: str,
+        entidad_tipo: str,
+        entidad_id: int,
+        nombre_entidad: str,
+        id_prospecto: int | None,
+    ) -> Notificacion:
+        ahora = datetime.now(tz=timezone.utc)
+
+        return Notificacion(
+            id=None,
+            rut_usuario=rut_desasignado,
+            codigo_tipo=TIPO_DESASIGNACION,
+            nivel='INFO',
+            titulo=f'Desasignación de {detalle_asignacion}',
+            mensaje=f'Se le ha desasignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.',
+            entidad_tipo=entidad_tipo,
+            entidad_id=entidad_id,
+            id_prospecto=id_prospecto,
+            dedupe_key=f'{TIPO_DESASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
+            leida=False,
+            fecha_leida=None,
+            created_at=ahora,
+            leible=True,
+        )

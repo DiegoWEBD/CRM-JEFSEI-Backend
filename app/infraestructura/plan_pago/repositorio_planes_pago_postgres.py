@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.cuota.cuota import Cuota
 from app.dominio.plan_pago.plan_pago import PlanPago
 from app.dominio.plan_pago.repositorio_planes_pago import RepositorioPlanesPago
 from app.dominio.poliza.poliza import Poliza
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 from app.infraestructura.plan_pago.adaptadores.dictrows_plan_pago_adapter import DictRowsPlanPagoAdapter
 
 
@@ -215,16 +213,6 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                 }
 
                 cur.execute(query, params)
-
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(
-                    cur, poliza.id_proceso_comercial, fecha
-                )
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
 
     def actualizar_cuota(self, id_cuota: int, pagado: bool, fecha_pago: datetime | None) -> None:
         with obtener_conexion() as conn:

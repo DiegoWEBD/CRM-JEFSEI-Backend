@@ -1,12 +1,10 @@
 from datetime import datetime, timezone
 
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.infraestructura.cotizacion.adaptadores.dictrow_cotizacion_adapter import DictRowCotizacionAdapter
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 
 
 class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
@@ -83,9 +81,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     )
                 return DictRowCotizacionAdapter(row).to_cotizacion()
 
-    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str):
+    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str) -> int | None:
         ESTADO_COTIZACION_CARGADA = 'COTIZACION_DISPONIBLE'
-        fecha = datetime.now(tz=timezone.utc)
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -170,7 +167,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 row = cur.fetchone()
 
                 if row is None:
-                    return
+                    return None
 
                 id_proceso_comercial: int = row['id_proceso_comercial']
 
@@ -217,14 +214,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
+                return id_proceso_comercial
 
     def registrar_renovacion_cotizada(self, numero_poliza_renovacion: str):
         with obtener_conexion() as conn:

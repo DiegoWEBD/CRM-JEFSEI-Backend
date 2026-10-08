@@ -1,4 +1,5 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.proceso_comercial.use_cases.registrar_aceptacion_cliente import RegistrarAceptacionClienteUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
@@ -7,6 +8,7 @@ from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacio
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
+from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
@@ -42,11 +44,14 @@ def get_solicitar_cotizacion_use_case():
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
     authorization_repository = AuthorizationRepositoryPostgres()
     authorization_service = AuthorizationService(authorization_repository)
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
 
     return SolicitarCotizacionUseCase(
         repositorio_solicitudes_cotizacion=repositorio,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
-        authorization_service=authorization_service
+        authorization_service=authorization_service,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 
 def get_solicitar_recotizacion_use_case():
@@ -54,11 +59,14 @@ def get_solicitar_recotizacion_use_case():
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
     authorization_repository = AuthorizationRepositoryPostgres()
     authorization_service = AuthorizationService(authorization_repository)
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
 
     return SolicitarRecotizacionUseCase(
         repositorio_solicitudes_cotizacion=repositorio,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
-        authorization_service=authorization_service
+        authorization_service=authorization_service,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 
 def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
@@ -73,4 +81,10 @@ def get_obtener_detalle_solicitud_use_case():
 
 def get_registrar_aceptacion_cliente_use_case():
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
-    return RegistrarAceptacionClienteUseCase(repositorio_procesos_comerciales)
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return RegistrarAceptacionClienteUseCase(
+        repositorio_procesos_comerciales=repositorio_procesos_comerciales,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+    )

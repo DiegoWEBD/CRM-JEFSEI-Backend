@@ -1,8 +1,8 @@
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+import app.infraestructura.prospecto.repositorio_prospectos_postgres as modulo_repo
 from app.dominio.prospecto.prospecto import Prospecto
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import (
     RepositorioProspectosPostgres,
@@ -21,19 +21,8 @@ def _conexion_mock():
     return conexion, cursor
 
 
-def _registrar_commit(conexion) -> dict:
-    estado = {'commiteado': False}
-
-    def _al_salir(*args):
-        estado['commiteado'] = True
-        return False
-
-    conexion.__exit__.side_effect = _al_salir
-    return estado
-
-
-def _prospecto(id: int | None = 1, ejecutivo=None) -> Prospecto:
-    return Prospecto(
+def _prospecto(id: int | None = 1, id_cliente: int | None = 5, ejecutivo=None) -> Prospecto:
+    prospecto = Prospecto(
         rut_riesgo='12345678-9',
         nombre_riesgo='Riesgo de prueba',
         telefono_contacto=None,
@@ -48,120 +37,168 @@ def _prospecto(id: int | None = 1, ejecutivo=None) -> Prospecto:
         informacion_completa=False,
         id=id,
     )
+    prospecto.id_cliente = id_cliente
+    return prospecto
+
+
+def _sin_alertas(cursor):
+    """Los métodos de asignación son puros: solo persistencia."""
+    for call in cursor.execute.call_args_list:
+        assert 'Notificacion' not in str(call.args[0]), f'el repo tocó alertas: {call.args[0]}'
+
+
+def _consultas_de(cursor, palabra: str) -> list[dict]:
+    return [
+        call.args[1] for call in cursor.execute.call_args_list
+        if palabra in str(call.args[0])
+    ]
 
 
 @pytest.mark.unit
-@patch(f'{MODULO}.hub')
-@patch(f'{MODULO}.reasignar_destinatario_alertas')
 @patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoComercial:
+class TestAsignarEjecutivoComercialPuro:
 
-    def test_cambia_destinatario_solo_segun_rol_responsable(
-        self, mock_conexion, mock_reasignar, mock_hub
-    ):
-        conexion, _ = _conexion_mock()
+    def test_actualiza_prospecto_y_procesos_abiertos(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        _registrar_commit(conexion)
-        mock_reasignar.return_value = ({'11111111-1'}, {'22222222-2'})
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
+        prospecto = _prospecto()
+        prospecto.ejecutivo_comercial_asignado = MagicMock(rut='22222222-2')
 
         repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
+        repo.asignar_ejecutivo_comercial(prospecto, MagicMock())
 
-        args = mock_reasignar.call_args.args
-        assert args[1] == 1
-        assert args[2] == 'EJECUTIVO_COMERCIAL'
-        assert args[3] == '22222222-2'
+        params_prospecto = _consultas_de(cursor, 'update Prospecto')
+        assert len(params_prospecto) == 1
+        assert params_prospecto[0]['rut_ej_comercial'] == '22222222-2'
+        assert params_prospecto[0]['id_prospecto'] == 1
 
-    def test_publica_recien_despues_del_commit(self, mock_conexion, mock_reasignar, mock_hub):
-        conexion, _ = _conexion_mock()
-        mock_conexion.return_value = conexion
-        estado = _registrar_commit(conexion)
-        mock_reasignar.return_value = ({'11111111-1'}, {'22222222-2'})
-
-        def _publicar(*args, **kwargs):
-            assert estado['commiteado'], 'publicó antes del commit'
-
-        mock_hub.publicar_desde_hilo.side_effect = _publicar
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            {'11111111-1', '22222222-2'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
+        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
+        assert len(params_procesos) == 1
+        assert params_procesos[0]['rut_ej_comercial'] == '22222222-2'
+        assert any(
+            'cerrado = false' in str(call.args[0])
+            for call in cursor.execute.call_args_list
+            if 'update ProcesoComercial' in str(call.args[0])
         )
 
-    def test_desasignacion_pone_alertas_en_null_y_notifica_solo_a_previos(
-        self, mock_conexion, mock_reasignar, mock_hub
-    ):
-        conexion, _ = _conexion_mock()
+        _sin_alertas(cursor)
+
+    def test_sin_id_no_hace_nada(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        _registrar_commit(conexion)
-        mock_reasignar.return_value = ({'11111111-1'}, set())
-        prospecto = _prospecto(ejecutivo=None)
 
         repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
+        repo.asignar_ejecutivo_comercial(_prospecto(id=None), MagicMock())
 
-        assert mock_reasignar.call_args.args[3] is None
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            {'11111111-1'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
-        )
-
-    def test_sin_alertas_afectadas_no_publica(
-        self, mock_conexion, mock_reasignar, mock_hub
-    ):
-        conexion, _ = _conexion_mock()
-        mock_conexion.return_value = conexion
-        mock_reasignar.return_value = (set(), set())
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        mock_hub.publicar_desde_hilo.assert_not_called()
-
-    def test_sin_prospecto_no_hace_nada(self, mock_conexion, mock_reasignar, mock_hub):
-        prospecto = _prospecto(id=None, ejecutivo=SimpleNamespace(rut='22222222-2'))
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, asignado_por=SimpleNamespace(rut='99999999-9'))
-
-        mock_conexion.assert_not_called()
-        mock_reasignar.assert_not_called()
-        mock_hub.publicar_desde_hilo.assert_not_called()
+        cursor.execute.assert_not_called()
 
 
 @pytest.mark.unit
-@patch(f'{MODULO}.hub')
-@patch(f'{MODULO}.reasignar_destinatario_alertas')
 @patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoEvaluacion:
+class TestAsignarEjecutivoEvaluacionPuro:
 
-    def test_usa_el_rol_de_evaluacion_y_no_el_comercial(
-        self, mock_conexion, mock_reasignar, mock_hub
-    ):
-        conexion, _ = _conexion_mock()
+    def test_actualiza_prospecto_y_procesos_abiertos(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        _registrar_commit(conexion)
-        mock_reasignar.return_value = ({'33333333-3'}, {'44444444-4'})
-
-        prospecto = _prospecto(ejecutivo=SimpleNamespace(rut='22222222-2'))
-        prospecto.ejecutivo_evaluacion_asignado = SimpleNamespace(rut='44444444-4')
+        prospecto = _prospecto()
+        prospecto.ejecutivo_evaluacion_asignado = MagicMock(rut='22222222-2')
 
         repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_evaluacion_proyectos(
-            prospecto, asignado_por=SimpleNamespace(rut='99999999-9')
-        )
+        repo.asignar_ejecutivo_evaluacion_proyectos(prospecto, MagicMock())
 
-        args = mock_reasignar.call_args.args
-        assert args[1] == 1
-        assert args[2] == 'EJECUTIVO_EVALUACION_PROYECTOS'
-        assert args[3] == '44444444-4'
-        mock_hub.publicar_desde_hilo.assert_called_once_with(
-            {'33333333-3', '44444444-4'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
-        )
+        params_prospecto = _consultas_de(cursor, 'update Prospecto')
+        assert len(params_prospecto) == 1
+        assert params_prospecto[0]['rut_ej_evaluacion'] == '22222222-2'
+
+        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
+        assert len(params_procesos) == 1
+        assert params_procesos[0]['rut_ej_evaluacion'] == '22222222-2'
+
+        _sin_alertas(cursor)
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.obtener_conexion')
+class TestAsignarEjecutivoCobranzaPuro:
+
+    def test_actualiza_cliente(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        prospecto = _prospecto()
+        prospecto.ejecutivo_cobranza_asignado = MagicMock(rut='22222222-2')
+
+        repo = RepositorioProspectosPostgres()
+        repo.asignar_ejecutivo_cobranza(prospecto, MagicMock())
+
+        params_cliente = _consultas_de(cursor, 'update Cliente')
+        assert len(params_cliente) == 1
+        assert params_cliente[0]['rut_ej_cobranza'] == '22222222-2'
+        assert params_cliente[0]['id_cliente'] == 5
+
+        _sin_alertas(cursor)
+
+    def test_sin_cliente_asociado_no_hace_nada(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+
+        repo = RepositorioProspectosPostgres()
+        prospecto = _prospecto()
+        prospecto.id_cliente = None
+        repo.asignar_ejecutivo_cobranza(prospecto, MagicMock())
+
+        cursor.execute.assert_not_called()
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.obtener_conexion')
+class TestAsignarEjecutivoRenovacionPuro:
+
+    def test_actualiza_cliente_y_procesos_abiertos(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        prospecto = _prospecto()
+        prospecto.ejecutivo_renovacion_asignado = MagicMock(rut='22222222-2')
+
+        repo = RepositorioProspectosPostgres()
+        repo.asignar_ejecutivo_renovacion(prospecto, MagicMock())
+
+        params_cliente = _consultas_de(cursor, 'update Cliente')
+        assert len(params_cliente) == 1
+        assert params_cliente[0]['rut_ej_renovacion'] == '22222222-2'
+
+        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
+        assert len(params_procesos) == 1
+        assert params_procesos[0]['rut_ej_renovacion'] == '22222222-2'
+
+        _sin_alertas(cursor)
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.obtener_conexion')
+class TestAsignarAsistenteRenovacionPuro:
+
+    def test_actualiza_cliente(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        prospecto = _prospecto()
+        prospecto.asistente_renovacion_asignado = MagicMock(rut='22222222-2')
+
+        repo = RepositorioProspectosPostgres()
+        repo.asignar_asistente_renovacion(prospecto, MagicMock())
+
+        params_cliente = _consultas_de(cursor, 'update Cliente')
+        assert len(params_cliente) == 1
+        assert params_cliente[0]['rut_as_renovacion'] == '22222222-2'
+
+        _sin_alertas(cursor)
+
+
+@pytest.mark.unit
+class TestModuloLimpio:
+
+    def test_el_modulo_no_expone_hub_ni_funciones_de_alertas(self):
+        assert not hasattr(modulo_repo, 'hub')
+        assert not hasattr(modulo_repo, 'EVENTO_NOTIFICACIONES_ACTUALIZADAS')
+        assert not hasattr(modulo_repo, 'reasignar_destinatario_alertas')
+        assert not hasattr(modulo_repo, 'registrar_notificacion_asignacion')
+        assert not hasattr(modulo_repo, 'registrar_notificacion_desasignacion')

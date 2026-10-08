@@ -2,12 +2,10 @@ from datetime import datetime, timezone
 
 from psycopg import sql
 
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_fecha_leidas, marcar_alertas_sla_leidas
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_proceso_comercial_adapter import DictRowProcesoComercialAdapter
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_reporte_proceso_comercial_adapter import DictRowReporteProcesoComercialAdapter
 
@@ -576,14 +574,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
 
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
         ESTADO_OPORTUNIDAD_CREADA = 'OPORTUNIDAD_CREADA'
@@ -668,21 +658,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
-                ruts_alertas_fecha = marcar_alertas_fecha_leidas(cur, id_proceso_comercial, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
-        if ruts_alertas_fecha:
-            hub.publicar_desde_hilo(
-                ruts_alertas_fecha,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cierre'},
-            )
-
         return id_proceso_comercial
             
     def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
@@ -692,7 +667,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                     
-                # Registro de historial
+                # Cambio de estado de proceso comercial
 
                 query = '''
                     update ProcesoComercial
@@ -707,6 +682,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
+                # Registro de historial
+
                 query = '''
                     insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
                     values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
@@ -720,29 +697,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 }
 
                 cur.execute(query, params)
-
-                # Cambio de estado de proceso comercial
-                                                                 
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id,
-                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
-                }
-
-                cur.execute(query, params)
-
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
 
 
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
