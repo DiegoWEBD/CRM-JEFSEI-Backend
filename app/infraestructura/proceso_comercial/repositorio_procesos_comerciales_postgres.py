@@ -70,6 +70,66 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
+    def buscar_por_solicitud_cotizacion(self, id_solicitud: int) -> ProcesoComercial | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PC.id,
+                    PC.id_prospecto,
+                    PR.nombre_riesgo as nombre_cliente,
+                    EI.codigo as codigo_estado,
+                    EI.nombre as nombre_estado,
+                    HI.fecha_registro as fecha_registro_estado,
+                    EPC.codigo as codigo_etapa,
+                    EPC.nombre as nombre_etapa,
+                    EPC.dias_limite as dias_limite_etapa,
+                    PC.cerrado,
+                    PC.rut_ej_comercial,
+                    EJ_COM.nombre as nombre_ej_comercial,
+                    PC.rut_ej_evaluacion,
+                    EJ_EV.nombre as nombre_ej_evaluacion,
+                    PC.id_producto,
+                    P.nombre as nombre_producto,
+                    P.codigo as codigo_producto,
+                    PC.fecha_estimada_cierre,
+                    PC.probabilidad_cierre_ejecutivo,
+                    EI.probabilidad_cierre
+                    from ProcesoComercial PC
+                    inner join SolicitudCotizacion SC
+                    on SC.id_proceso_comercial = PC.id
+                    and SC.id = %(id_solicitud)s
+                    inner join Prospecto PR
+                    on PC.id_prospecto = PR.id
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    and P.eliminado = false
+                    inner join HistorialEstadoInformativoProcesoComercial HI
+                    on PC.id = HI.id_proceso_comercial
+                    and HI.fecha_registro = (
+                        select max(HI2.fecha_registro)
+                        from HistorialEstadoInformativoProcesoComercial HI2
+                        where HI2.id_proceso_comercial = PC.id
+                    )
+                    inner join EstadoInformativoProcesoComercial EI
+                    on HI.codigo_estado = EI.codigo
+                    inner join EtapaProcesoComercial EPC
+                    on EI.codigo_etapa = EPC.codigo
+                    left join Usuario EJ_COM
+                    on PC.rut_ej_comercial = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on PC.rut_ej_evaluacion = EJ_EV.rut
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
+
     def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

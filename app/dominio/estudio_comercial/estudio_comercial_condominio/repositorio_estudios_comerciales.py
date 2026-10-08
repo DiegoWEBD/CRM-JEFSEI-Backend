@@ -11,11 +11,10 @@ class RepositorioEstudiosComerciales(ABC):
         id_solicitud: int,
         nombre_archivo: str,
         rut_usuario: str,
-    ) -> tuple[int, int]:
+    ) -> int:
         """Registra el estudio comercial y actualiza el estado del proceso.
 
-        Devuelve (id_estudio, id_proceso_comercial) para que el caso de uso
-        marque las alertas del proceso.
+        Devuelve el id del estudio registrado.
         """
         pass
 

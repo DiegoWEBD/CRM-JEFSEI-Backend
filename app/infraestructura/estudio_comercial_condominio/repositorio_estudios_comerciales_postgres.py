@@ -12,7 +12,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
         id_solicitud: int,
         nombre_archivo: str,
         rut_usuario: str
-    ) -> tuple[int, int]:
+    ) -> int:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
@@ -99,7 +99,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
 
                 cur.execute(query, params)
 
-        return id_estudio, id_proceso_comercial
+        return id_estudio
 
     def listar_por_id_solicitud(
         self,

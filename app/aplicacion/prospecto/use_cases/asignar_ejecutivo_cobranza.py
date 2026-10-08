@@ -1,10 +1,7 @@
-from datetime import datetime, timezone
-
+from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
-from app.dominio.notificacion.tipos_alerta import TIPO_ASIGNACION, TIPO_DESASIGNACION
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -24,7 +21,7 @@ class AsignarEjecutivoCobranzaUseCase:
     def ejecutar(self, id_cliente: int, rut_ej_cobranza: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
 
-        if not prospecto:
+        if not prospecto or not prospecto.id:
             raise RecursoNoEncontradoException('Cliente no encontrado')
 
         rut_anterior = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
@@ -49,7 +46,7 @@ class AsignarEjecutivoCobranzaUseCase:
         # destino (asignación) y solo al cambiar de RUT (desasignación).
         if rut_ej_cobranza is not None:
             self.repositorio_notificaciones.registrar(
-                self._notificacion_asignacion(
+                NotificacionFactory.crear_notificacion_asignacion(
                     rut_asignado=rut_ej_cobranza,
                     detalle_asignacion='cobranza',
                     entidad_tipo='CLIENTE',
@@ -61,7 +58,7 @@ class AsignarEjecutivoCobranzaUseCase:
 
         if rut_anterior and rut_anterior != rut_ej_cobranza:
             self.repositorio_notificaciones.registrar(
-                self._notificacion_desasignacion(
+                NotificacionFactory.crear_notificacion_desasignacion(
                     rut_desasignado=rut_anterior,
                     detalle_asignacion='cobranza',
                     entidad_tipo='CLIENTE',
@@ -82,61 +79,3 @@ class AsignarEjecutivoCobranzaUseCase:
                 [rut_anterior],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
             )
-
-    @staticmethod
-    def _notificacion_asignacion(
-        *,
-        rut_asignado: str,
-        detalle_asignacion: str,
-        entidad_tipo: str,
-        entidad_id: int,
-        nombre_entidad: str,
-        id_prospecto: int | None,
-    ) -> Notificacion:
-        ahora = datetime.now(tz=timezone.utc)
-
-        return Notificacion(
-            id=None,
-            rut_usuario=rut_asignado,
-            codigo_tipo=TIPO_ASIGNACION,
-            nivel='INFO',
-            titulo=f'Asignación de {detalle_asignacion}',
-            mensaje=f'Se le ha asignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.',
-            entidad_tipo=entidad_tipo,
-            entidad_id=entidad_id,
-            id_prospecto=id_prospecto,
-            dedupe_key=f'{TIPO_ASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
-            leida=False,
-            fecha_leida=None,
-            created_at=ahora,
-            leible=True,
-        )
-
-    @staticmethod
-    def _notificacion_desasignacion(
-        *,
-        rut_desasignado: str,
-        detalle_asignacion: str,
-        entidad_tipo: str,
-        entidad_id: int,
-        nombre_entidad: str,
-        id_prospecto: int | None,
-    ) -> Notificacion:
-        ahora = datetime.now(tz=timezone.utc)
-
-        return Notificacion(
-            id=None,
-            rut_usuario=rut_desasignado,
-            codigo_tipo=TIPO_DESASIGNACION,
-            nivel='INFO',
-            titulo=f'Desasignación de {detalle_asignacion}',
-            mensaje=f'Se le ha desasignado la {detalle_asignacion} del {entidad_tipo.lower()} {nombre_entidad}.',
-            entidad_tipo=entidad_tipo,
-            entidad_id=entidad_id,
-            id_prospecto=id_prospecto,
-            dedupe_key=f'{TIPO_DESASIGNACION}:{entidad_tipo}:{entidad_id}:{detalle_asignacion}:{ahora.isoformat()}',
-            leida=False,
-            fecha_leida=None,
-            created_at=ahora,
-            leible=True,
-        )

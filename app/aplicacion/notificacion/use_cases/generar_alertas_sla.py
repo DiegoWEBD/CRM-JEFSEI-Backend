@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
@@ -41,10 +42,14 @@ class GenerarAlertasSlaUseCase:
                     creadas.append(notificacion)
 
         if creadas:
-            hub.publicar_desde_hilo(
-                (alerta.rut_usuario for alerta in creadas),
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},
-            )
+            for alerta in creadas:
+                if not alerta.rut_usuario:
+                    continue
+
+                hub.publicar_desde_hilo(
+                    [alerta.rut_usuario],
+                    {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},
+                )
 
         return creadas
 
@@ -101,21 +106,16 @@ class GenerarAlertasSlaUseCase:
             )
 
         return [
-            Notificacion(
-                id=None,
+            NotificacionFactory.crear_alerta_sla(
                 rut_usuario=rut,
                 codigo_tipo=codigo_tipo,
                 nivel=nivel,
                 titulo=titulo,
                 mensaje=mensaje,
-                entidad_tipo='PROCESO_COMERCIAL',
-                entidad_id=proceso.id_proceso_comercial,
+                id_proceso_comercial=proceso.id_proceso_comercial,
                 id_prospecto=proceso.id_prospecto,
-                dedupe_key=f'{codigo_tipo}:{proceso.id_proceso_comercial}:{proceso.codigo_estado}:{rut}',
-                leida=False,
-                fecha_leida=None,
-                created_at=ahora,
-                leible=False,
+                codigo_estado=proceso.codigo_estado,
+                ahora=ahora,
             )
             for rut in destinatarios
         ]

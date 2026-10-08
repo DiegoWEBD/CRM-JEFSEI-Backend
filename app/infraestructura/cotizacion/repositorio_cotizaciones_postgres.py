@@ -81,7 +81,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                     )
                 return DictRowCotizacionAdapter(row).to_cotizacion()
 
-    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str) -> int | None:
+    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str) -> None:
         ESTADO_COTIZACION_CARGADA = 'COTIZACION_DISPONIBLE'
 
         with obtener_conexion() as conn:
@@ -167,7 +167,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 row = cur.fetchone()
 
                 if row is None:
-                    return None
+                    return
 
                 id_proceso_comercial: int = row['id_proceso_comercial']
 
@@ -213,8 +213,6 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 }
 
                 cur.execute(query, params)
-
-                return id_proceso_comercial
 
     def registrar_renovacion_cotizada(self, numero_poliza_renovacion: str):
         with obtener_conexion() as conn:

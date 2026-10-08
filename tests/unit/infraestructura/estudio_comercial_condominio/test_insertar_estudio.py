@@ -27,7 +27,7 @@ def _conexion_mock():
 @patch(f'{MODULO}.obtener_conexion')
 class TestInsertarEstudioPuro:
 
-    def test_devuelve_tupla_estudio_y_proceso(self, mock_conexion):
+    def test_devuelve_el_id_del_estudio(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
         cursor.fetchone.side_effect = [
@@ -40,7 +40,7 @@ class TestInsertarEstudioPuro:
             id_solicitud=3, nombre_archivo='estudio.pdf', rut_usuario='99999999-9'
         )
 
-        assert resultado == (5, 9)
+        assert resultado == 5
 
     def test_no_toca_notificaciones_ni_publica(self, mock_conexion):
         conexion, cursor = _conexion_mock()

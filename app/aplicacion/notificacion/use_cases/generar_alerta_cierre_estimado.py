@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
@@ -78,21 +79,15 @@ class GenerarAlertaCierreEstimadoUseCase:
                 f'({atraso} días de atraso).'
             )
 
-        return Notificacion(
-            id=None,
+        return NotificacionFactory.crear_alerta_cierre(
             rut_usuario=rut_destinatario,
             codigo_tipo=codigo_tipo,
             nivel=nivel,
             titulo=titulo,
             mensaje=mensaje,
-            entidad_tipo='PROCESO_COMERCIAL',
-            entidad_id=proceso.id,
+            id_proceso_comercial=proceso.id,
             id_prospecto=proceso.id_prospecto,
-            dedupe_key=f'{codigo_tipo}:{proceso.id}:{rut_destinatario}:{ahora.isoformat()}',
-            leida=False,
-            fecha_leida=None,
-            created_at=ahora,
-            leible=False,
+            ahora=ahora,
         )
 
     def ejecutar(self, id_proceso_comercial: int, ahora: datetime | None = None) -> Notificacion | None:
