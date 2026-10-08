@@ -67,18 +67,7 @@ def refresh(
     use_case: RefrescarTokenUseCase = Depends(get_refrescar_token_use_case),
 ):
     """Rota el refresh token y emite un nuevo access token."""
-    try:
-        response = use_case.execute(body.refresh_token)
-    except RefreshTokenInvalidoError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token inválido o expirado",
-        )
-    except RefreshTokenReusadoError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Sesión comprometida: se detectó reutilización del token",
-        )
+    response = use_case.execute(body.refresh_token)
 
     return RefreshResponse(
         access_token=response.access_token,
