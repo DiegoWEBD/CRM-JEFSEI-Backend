@@ -66,15 +66,8 @@ def refresh(
     body: RefreshRequest,
     use_case: RefrescarTokenUseCase = Depends(get_refrescar_token_use_case),
 ):
-    """Rota el refresh token y emite un nuevo access token.
-
-    El BFF (Next.js) lee la cookie ``refresh_token`` del navegador, la envía
-    aquí en el body, y setea las nuevas cookies en la respuesta al cliente.
-    El access token se arma con los claims del usuario actualizado en la
-    base de datos (mismos claims que el login).
-    """
+    """Rota el refresh token y emite un nuevo access token."""
     try:
-        print('[auth] /auth/refresh: recibida petición de rotación', flush=True)
         response = use_case.execute(body.refresh_token)
     except RefreshTokenInvalidoError:
         raise HTTPException(
