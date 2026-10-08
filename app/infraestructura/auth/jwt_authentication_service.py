@@ -147,7 +147,6 @@ class JwtAuthenticationService(AuthenticationService):
         sesiones = self._requiere_sesiones()
         ahora = datetime.now(timezone.utc)
         token_hash = self._hash_token(refresh_token_plano)
-        print('[auth] Rotando refresh token (hash: {}...)'.format(token_hash[:8]), flush=True)
 
         registro = sesiones.obtener_sesion_por_refresh_hash(token_hash)
         if registro is None:
@@ -167,7 +166,6 @@ class JwtAuthenticationService(AuthenticationService):
                 raise RefreshTokenReusadoError()
             # Dentro de la gracia: refresco concurrente (dos pestañas).
             # Rotar de todos modos de forma idempotente.
-            print('[auth] Refresh concurrente dentro de ventana de gracia, rotando de todos modos', flush=True)
             en_ventana_de_gracia = True
 
         if not en_ventana_de_gracia:
@@ -197,7 +195,6 @@ class JwtAuthenticationService(AuthenticationService):
         sesiones.marcar_refresh_usado(registro['token_id'], nuevo_token_id)
         sesiones.actualizar_ultimo_acceso(sesion_id)
 
-        print('[auth] Refresh token rotado exitosamente', flush=True)
         return sesion, nuevo_refresh
 
     def revocar_sesion(self, sesion_id: UUID, motivo: str) -> None:

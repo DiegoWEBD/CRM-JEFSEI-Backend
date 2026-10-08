@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
-from app.aplicacion.notificacion.use_cases.obtener_contador_no_leidas import ObtenerContadorNoLeidasUseCase
+from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_oportunidades_en_riesgo import ObtenerOportunidadesEnRiesgoUseCase
 from app.dominio.usuario.usuario import Usuario
@@ -16,7 +16,7 @@ from app.presentacion.api.exceptions.bad_request_exception import BadRequestExce
 from app.presentacion.api.notificacion.dependencias.deps import (
     get_marcar_notificacion_leida_use_case,
     get_marcar_notificaciones_leidas_use_case,
-    get_obtener_contador_no_leidas_use_case,
+    get_obtener_contador_notificaciones_use_case,
     get_obtener_notificaciones_use_case,
     get_obtener_oportunidades_en_riesgo_use_case,
 )
@@ -63,13 +63,17 @@ def obtener_notificaciones(
 
 
 @router.get('/contador', status_code=status.HTTP_200_OK)
-def obtener_contador_no_leidas(
+def obtener_contador_notificaciones(
     usuario: Usuario = Depends(permisos_requeridos('VER_ALERTAS')),
-    use_case: ObtenerContadorNoLeidasUseCase = Depends(get_obtener_contador_no_leidas_use_case)
+    use_case: ObtenerContadorNotificacionesUseCase = Depends(get_obtener_contador_notificaciones_use_case)
 ):
-    contador = use_case.ejecutar(rut_usuario=usuario.rut)
+    no_leidas = use_case.ejecutar(rut_usuario=usuario.rut, leidas=False, leibles=True)
+    no_leibles = use_case.ejecutar(rut_usuario=usuario.rut, leidas=False, leibles=False)
 
-    return {'contador': contador}
+    return {
+        'no_leibles': no_leibles,
+        'no_leidas': no_leidas,
+    }
 
 
 @router.get('/oportunidades/en-riesgo', status_code=status.HTTP_200_OK)

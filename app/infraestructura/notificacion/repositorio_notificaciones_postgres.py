@@ -153,6 +153,135 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return False
 
+    def existe_alerta_proceso(self, codigo_tipo: str, id_proceso: int, rut_usuario: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select exists(
+                        select 1 from Notificacion
+                        where codigo_tipo = %(codigo_tipo)s
+                        and entidad_tipo = 'PROCESO_COMERCIAL'
+                        and entidad_id = %(id_proceso)s
+                        and rut_usuario = %(rut_usuario)s
+                    ) as existe
+                '''
+                params = {
+                    'codigo_tipo': codigo_tipo,
+                    'id_proceso': id_proceso,
+                    'rut_usuario': rut_usuario,
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return bool(row['existe']) if row else False
+
+    def buscar_notificaciones_proceso_comercial(self, id_proceso_comercial: int) -> list[Notificacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    where N.entidad_tipo = 'PROCESO_COMERCIAL'
+                    and N.entidad_id = %(id_proceso_comercial)s
+                    order by N.created_at desc
+                '''
+                cur.execute(query, {'id_proceso_comercial': id_proceso_comercial})
+                rows = cur.fetchall()
+
+                return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
+
+    def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                # Join con la transición principal + estado destino para resolver
+                # el rol responsable del SIGUIENTE estado (no el actual).
+                query = '''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    inner join ProcesoComercial PC
+                    on PC.id = N.entidad_id
+                    inner join TransicionEstadoProcesoComercial T
+                    on T.codigo_estado_origen = PC.codigo_estado_actual
+                    and T.es_principal = true
+                    inner join EstadoInformativoProcesoComercial EI_SIGUIENTE
+                    on EI_SIGUIENTE.codigo = T.codigo_estado_destino
+                    where N.entidad_tipo = 'PROCESO_COMERCIAL'
+                    and N.leida = false
+                    and PC.id_prospecto = %(id_prospecto)s
+                    and PC.cerrado = false
+                    and EI_SIGUIENTE.rol_responsable = %(rol)s
+                    and N.codigo_tipo in ('SLA_POR_VENCER', 'SLA_VENCIDO')
+                    order by N.created_at desc
+                '''
+                cur.execute(query, {'id_prospecto': id_prospecto, 'rol': rol})
+                rows = cur.fetchall()
+
+                return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
+
+    def actualizar(self, notificacion: Notificacion) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Notificacion
+                    set rut_usuario = %(rut_usuario)s,
+                    codigo_tipo = %(codigo_tipo)s,
+                    nivel = %(nivel)s,
+                    titulo = %(titulo)s,
+                    mensaje = %(mensaje)s,
+                    entidad_tipo = %(entidad_tipo)s,
+                    entidad_id = %(entidad_id)s,
+                    id_prospecto = %(id_prospecto)s,
+                    dedupe_key = %(dedupe_key)s,
+                    leida = %(leida)s,
+                    fecha_leida = %(fecha_leida)s,
+                    leible = %(leible)s
+                    where id = %(id)s
+                '''
+                params = {
+                    'id': notificacion.id,
+                    'rut_usuario': notificacion.rut_usuario,
+                    'codigo_tipo': notificacion.codigo_tipo,
+                    'nivel': notificacion.nivel,
+                    'titulo': notificacion.titulo,
+                    'mensaje': notificacion.mensaje,
+                    'entidad_tipo': notificacion.entidad_tipo,
+                    'entidad_id': notificacion.entidad_id,
+                    'id_prospecto': notificacion.id_prospecto,
+                    'dedupe_key': notificacion.dedupe_key,
+                    'leida': notificacion.leida,
+                    'fecha_leida': notificacion.fecha_leida,
+                    'leible': notificacion.leible,
+                }
+
+                cur.execute(query, params)
+
     def _construir_where(
         self,
         rut_usuario: str,
@@ -230,19 +359,18 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows], total
 
-    def obtener_contador_no_leidas(self, rut_usuario: str) -> int:
+    def contar(self, rut_usuario: str, leidas: bool, leibles: bool) -> int:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
                     select count(*) as total
                     from Notificacion
                     where rut_usuario = %(rut_usuario)s
-                    and leible = true
-                    and leida = false
+                    and leida = %(leidas)s
+                    and leible = %(leibles)s
                 '''
-                cur.execute(query, {'rut_usuario': rut_usuario})
-
-                return cur.fetchone()['total'] # type: ignore
+                cur.execute(query, {'rut_usuario': rut_usuario, 'leidas': leidas, 'leibles': leibles})
+                return cur.fetchone()['total'] # type: ignore   
 
     def buscar(self, id_notificacion: int) -> Notificacion | None:
         with obtener_conexion() as conn:

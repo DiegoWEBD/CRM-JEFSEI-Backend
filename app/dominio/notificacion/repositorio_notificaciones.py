@@ -16,6 +16,36 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def existe_alerta_proceso(self, codigo_tipo: str, id_proceso: int, rut_usuario: str) -> bool:
+        """Indica si ya existe una alerta de ese tipo para el proceso y el RUT.
+
+        Guarda anti-duplicado: la dedupe_key de las alertas de cierre incluye
+        timestamp, por lo que el UNIQUE ya no evita duplicados entre corridas
+        del scheduler.
+        """
+        pass
+
+    @abstractmethod
+    def buscar_notificaciones_proceso_comercial(self, id_proceso_comercial: int) -> list[Notificacion]:
+        """Todas las notificaciones ligadas al proceso comercial (leídas o no)."""
+        pass
+
+    @abstractmethod
+    def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
+        """Alertas SLA no leídas de procesos abiertos del prospecto cuyo estado
+        siguiente tenga `rol` como responsable."""
+        pass
+
+    @abstractmethod
+    def actualizar(self, notificacion: Notificacion) -> None:
+        """Actualiza todos los campos editables de la notificación por id.
+
+        Es idempotente: si la notificación no cambió, no tiene ningún efecto
+        observable. No toca `id` ni `created_at` (inmutables).
+        """
+        pass
+
+    @abstractmethod
     def obtener_paginado(
         self,
         rut_usuario: str,
@@ -38,7 +68,7 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
-    def obtener_contador_no_leidas(self, rut_usuario: str) -> int:
+    def contar(self, rut_usuario: str, leidas: bool, leibles: bool) -> int:
         pass
 
     @abstractmethod

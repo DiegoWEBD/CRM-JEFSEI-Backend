@@ -12,6 +12,10 @@ class RepositorioEstudiosComerciales(ABC):
         nombre_archivo: str,
         rut_usuario: str,
     ) -> int:
+        """Registra el estudio comercial y actualiza el estado del proceso.
+
+        Devuelve el id del estudio registrado.
+        """
         pass
 
     @abstractmethod

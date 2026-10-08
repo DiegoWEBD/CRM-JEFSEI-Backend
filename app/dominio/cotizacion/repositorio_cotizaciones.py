@@ -14,7 +14,8 @@ class RepositorioCotizaciones(ABC):
         pass
 
     @abstractmethod
-    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str):
+    def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str) -> None:
+        """Inserta la cotización y actualiza el estado del proceso comercial."""
         pass
 
     @abstractmethod

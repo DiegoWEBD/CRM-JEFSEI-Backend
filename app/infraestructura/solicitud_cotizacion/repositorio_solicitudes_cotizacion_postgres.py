@@ -1,4 +1,3 @@
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
@@ -9,7 +8,6 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.solicitud_co
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitud_cotizacion_vida_guardia import SolicitudCotizacionVidaGuardia
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_sla_leidas
 
 
 class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion):
@@ -583,16 +581,6 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(
-                    cur, id_proceso_comercial, solicitud.fecha
-                )
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
          
 
     def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
@@ -737,16 +725,6 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 }
 
                 cur.execute(query, params)
-
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(
-                    cur, id_proceso_comercial, solicitud.fecha
-                )
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
 
                 
     def existe_solicitud(self, id) -> bool:

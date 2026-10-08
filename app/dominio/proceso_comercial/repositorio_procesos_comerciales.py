@@ -15,6 +15,14 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_solicitud_cotizacion(self, id_solicitud: int) -> ProcesoComercial | None:
+        """Proceso comercial asociado a la solicitud de cotización.
+
+        None si la solicitud no existe o no tiene proceso asociado.
+        """
+        pass
+
+    @abstractmethod
     def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
         pass
 

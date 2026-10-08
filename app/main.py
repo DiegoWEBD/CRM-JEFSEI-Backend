@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.hub_notificaciones import hub
 from app.core.scheduler import detener_scheduler, iniciar_scheduler
+from app.dominio.auth.exceptions import RefreshTokenInvalidoError, RefreshTokenReusadoError
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
@@ -73,6 +74,28 @@ app.add_middleware(
 # Auditoría de acciones de negocio: se registra todo cambio de estado con la
 # identidad resuelta por get_current_user y la IP real del cliente.
 app.add_middleware(MiddlewareAuditoria)
+
+@app.exception_handler(RefreshTokenInvalidoError)
+async def refresh_token_invalido_handler(
+    _: Request,
+    exc: RefreshTokenInvalidoError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={'detail': 'Refresh token inválido o expirado'},
+    )
+
+
+@app.exception_handler(RefreshTokenReusadoError)
+async def refresh_token_reusado_handler(
+    _: Request,
+    exc: RefreshTokenReusadoError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={'detail': 'Sesión comprometida: se detectó reutilización del token'},
+    )
+
 
 @app.exception_handler(RecursoNoEncontradoException)
 async def recurso_no_encontrado_handler(

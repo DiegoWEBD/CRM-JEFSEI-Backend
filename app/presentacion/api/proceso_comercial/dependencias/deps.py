@@ -1,12 +1,15 @@
 from fastapi import Query
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
+from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
@@ -46,11 +49,14 @@ def get_cerrar_proceso_comercial_use_case():
     repositorio = RepositorioProcesosComercialesPostgres()
     repositorio_polizas = RepositorioPolizasPostgres()
     repositorio_planes_pago = RepositorioPlanesPagoPostgres()
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
 
     return CerrarProcesoComercialUseCase(
         repositorio_procesos_comerciales=repositorio,
         repositorio_planes_pago=repositorio_planes_pago,
-        repositorio_polizas=repositorio_polizas
+        repositorio_polizas=repositorio_polizas,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 
 def get_crear_proceso_comercial_use_case():
@@ -69,10 +75,16 @@ def get_actualizar_fecha_estimada_cierre_use_case():
     authorization_repository = AuthorizationRepositoryPostgres()
     authorization_service = AuthorizationService(authorization_repository)
     repositorio_procesos = RepositorioProcesosComercialesPostgres()
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
 
     return ActualizarFechaEstimadaCierreUseCase(
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        generar_alerta_cierre=GenerarAlertaCierreEstimadoUseCase(
+            RepositorioProcesosComercialesPostgres(),
+            repositorio_notificaciones,
+        ),
     )
 
 def get_actualizar_probabilidad_cierre_ejecutivo_use_case():

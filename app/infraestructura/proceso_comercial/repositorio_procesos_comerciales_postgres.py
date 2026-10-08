@@ -2,12 +2,10 @@ from datetime import datetime, timezone
 
 from psycopg import sql
 
-from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
-from app.infraestructura.notificacion.alertas_por_proceso import marcar_alertas_fecha_leidas, marcar_alertas_sla_leidas
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_proceso_comercial_adapter import DictRowProcesoComercialAdapter
 from app.infraestructura.proceso_comercial.adaptadores.dictrow_reporte_proceso_comercial_adapter import DictRowReporteProcesoComercialAdapter
 
@@ -65,6 +63,66 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 params = {
                     'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
+
+    def buscar_por_solicitud_cotizacion(self, id_solicitud: int) -> ProcesoComercial | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PC.id,
+                    PC.id_prospecto,
+                    PR.nombre_riesgo as nombre_cliente,
+                    EI.codigo as codigo_estado,
+                    EI.nombre as nombre_estado,
+                    HI.fecha_registro as fecha_registro_estado,
+                    EPC.codigo as codigo_etapa,
+                    EPC.nombre as nombre_etapa,
+                    EPC.dias_limite as dias_limite_etapa,
+                    PC.cerrado,
+                    PC.rut_ej_comercial,
+                    EJ_COM.nombre as nombre_ej_comercial,
+                    PC.rut_ej_evaluacion,
+                    EJ_EV.nombre as nombre_ej_evaluacion,
+                    PC.id_producto,
+                    P.nombre as nombre_producto,
+                    P.codigo as codigo_producto,
+                    PC.fecha_estimada_cierre,
+                    PC.probabilidad_cierre_ejecutivo,
+                    EI.probabilidad_cierre
+                    from ProcesoComercial PC
+                    inner join SolicitudCotizacion SC
+                    on SC.id_proceso_comercial = PC.id
+                    and SC.id = %(id_solicitud)s
+                    inner join Prospecto PR
+                    on PC.id_prospecto = PR.id
+                    inner join Producto P
+                    on PC.id_producto = P.id
+                    and P.eliminado = false
+                    inner join HistorialEstadoInformativoProcesoComercial HI
+                    on PC.id = HI.id_proceso_comercial
+                    and HI.fecha_registro = (
+                        select max(HI2.fecha_registro)
+                        from HistorialEstadoInformativoProcesoComercial HI2
+                        where HI2.id_proceso_comercial = PC.id
+                    )
+                    inner join EstadoInformativoProcesoComercial EI
+                    on HI.codigo_estado = EI.codigo
+                    inner join EtapaProcesoComercial EPC
+                    on EI.codigo_etapa = EPC.codigo
+                    left join Usuario EJ_COM
+                    on PC.rut_ej_comercial = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on PC.rut_ej_evaluacion = EJ_EV.rut
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
                 }
 
                 cur.execute(query, params)
@@ -178,26 +236,27 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     params["texto_busqueda"] = f"%{texto_busqueda}%"
 
                 if ejecutivos:
-                    placeholders = ", ".join(
-                        f"%(ejecutivo_{i})s" for i in range(len(ejecutivos))
+                    placeholders_ejecutivos = sql.SQL(", ").join(
+                        sql.Placeholder(f"ejecutivo_{i}") for i in range(len(ejecutivos))
                     )
-                    condiciones.append(sql.SQL(f"base.rut_ej_comercial IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.rut_ej_comercial IN ({})").format(placeholders_ejecutivos))
+                    
                     for i, rut in enumerate(ejecutivos):
                         params[f"ejecutivo_{i}"] = rut
 
                 if etapas:
-                    placeholders = ", ".join(
-                        f"%(etapa_{i})s" for i in range(len(etapas))
+                    placeholders_etapas = sql.SQL(", ").join(
+                        sql.Placeholder(f"etapa_{i}") for i in range(len(etapas))
                     )
-                    condiciones.append(sql.SQL(f"base.codigo_etapa IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.codigo_etapa IN ({})").format(placeholders_etapas))
                     for i, codigo in enumerate(etapas):
                         params[f"etapa_{i}"] = codigo
 
                 if estados_comerciales:
-                    placeholders = ", ".join(
-                        f"%(estado_comercial_{i})s" for i in range(len(estados_comerciales))
+                    placeholders_estados = sql.SQL(", ").join(
+                        sql.Placeholder(f"estado_comercial_{i}") for i in range(len(estados_comerciales))
                     )
-                    condiciones.append(sql.SQL(f"base.codigo_estado IN ({placeholders})"))
+                    condiciones.append(sql.SQL("base.codigo_estado IN ({})").format(placeholders_estados))
                     for i, codigo in enumerate(estados_comerciales):
                         params[f"estado_comercial_{i}"] = codigo
 
@@ -246,10 +305,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 )
 
                 if estado_semaforo:
-                    placeholders_semaforo = ", ".join(
-                        f"%(sem_{i})s" for i in range(len(estado_semaforo))
+                    placeholders_semaforo = sql.SQL(", ").join(
+                        sql.Placeholder(f"sem_{i}") for i in range(len(estado_semaforo))
                     )
-                    where_semaforo = sql.SQL(f"WHERE con_semaforo.estado_semaforo IN ({placeholders_semaforo})")
+                    where_semaforo = sql.SQL("WHERE con_semaforo.estado_semaforo IN ({})").format(placeholders_semaforo)
                     for i, sem in enumerate(estado_semaforo):
                         params[f"sem_{i}"] = sem
                 else:
@@ -575,14 +634,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
 
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
         ESTADO_OPORTUNIDAD_CREADA = 'OPORTUNIDAD_CREADA'
@@ -667,21 +718,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id_proceso_comercial, fecha)
-                ruts_alertas_fecha = marcar_alertas_fecha_leidas(cur, id_proceso_comercial, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
-
-        if ruts_alertas_fecha:
-            hub.publicar_desde_hilo(
-                ruts_alertas_fecha,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cierre'},
-            )
-
         return id_proceso_comercial
             
     def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
@@ -691,7 +727,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                     
-                # Registro de historial
+                # Cambio de estado de proceso comercial
 
                 query = '''
                     update ProcesoComercial
@@ -706,6 +742,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
+                # Registro de historial
+
                 query = '''
                     insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
                     values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
@@ -719,29 +757,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 }
 
                 cur.execute(query, params)
-
-                # Cambio de estado de proceso comercial
-                                                                 
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id,
-                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
-                }
-
-                cur.execute(query, params)
-
-                ruts_alertas_leidas = marcar_alertas_sla_leidas(cur, id, fecha)
-
-        if ruts_alertas_leidas:
-            hub.publicar_desde_hilo(
-                ruts_alertas_leidas,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-            )
 
 
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):

@@ -2,6 +2,8 @@ from fastapi import Query
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
@@ -15,6 +17,7 @@ from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales imp
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.linea_negocio.repositorio_lineas_negocio_postgres import RepositorioLineasNegocioPostgres
+from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.prospecto.servicios.consulta_prospectos_postgres_service import ConsultaProspectosPostgresService
@@ -77,12 +80,28 @@ def get_registrar_prospecto_use_case():
 def get_asignar_ejecutivo_comercial_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
-    return AsignarEjecutivoComercialUseCase(repositorio_prospectos, repositorio_usuarios)
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return AsignarEjecutivoComercialUseCase(
+        repositorio_prospectos,
+        repositorio_usuarios,
+        RepositorioProcesosComercialesPostgres(),
+        repositorio_notificaciones,
+        GenerarAlertaCierreEstimadoUseCase(
+            RepositorioProcesosComercialesPostgres(),
+            repositorio_notificaciones,
+        ),
+        ServicioAlertasProceso(repositorio_notificaciones),
+    )
 
 def get_asignar_ejecutivo_evaluacion_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
-    return AsignarEjecutivoEvaluacionUseCase(repositorio_prospectos, repositorio_usuarios)
+    return AsignarEjecutivoEvaluacionUseCase(
+        repositorio_prospectos,
+        repositorio_usuarios,
+        RepositorioNotificacionesPostgres(),
+    )
 
 def get_obtener_linea_negocio_prospecto_use_case():
     repositorio = RepositorioLineasNegocioPostgres()

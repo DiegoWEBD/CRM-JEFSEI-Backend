@@ -1,24 +1,33 @@
 from datetime import datetime, timezone
 
+from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import (
+    GenerarAlertaCierreEstimadoUseCase,
+)
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
-from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 
 
-UMBRAL_DIAS_PROXIMO = 5
-
-
 class GenerarAlertasCierreEstimadoUseCase:
+    """Barrido periódico (scheduler) de alertas de cierre estimado.
+
+    Evalúa TODOS los procesos comerciales abiertos vía
+    GenerarAlertaCierreEstimadoUseCase (dueño de la lógica de evaluación) y
+    registra las alertas que falten. La guarda `existe_alerta_proceso` evita
+    duplicados entre corridas: como la dedupe_key incluye timestamp, sin ella
+    cada corrida crearía una alerta nueva.
+    """
 
     def __init__(
         self,
         repositorio_procesos: RepositorioProcesosComerciales,
         repositorio_notificaciones: RepositorioNotificaciones,
+        generar_alerta_cierre: GenerarAlertaCierreEstimadoUseCase,
     ) -> None:
         self.repositorio_procesos = repositorio_procesos
         self.repositorio_notificaciones = repositorio_notificaciones
+        self.generar_alerta_cierre = generar_alerta_cierre
 
     def ejecutar(self, ahora: datetime | None = None) -> list[Notificacion]:
         if ahora is None:
@@ -30,9 +39,16 @@ class GenerarAlertasCierreEstimadoUseCase:
             id_prospecto=None,
             abiertos=True,
         ):
-            notificacion = self._evaluar(proceso, ahora)
+            notificacion = self.generar_alerta_cierre.evaluar(proceso, ahora)
 
             if notificacion is None:
+                continue
+
+            if self.repositorio_notificaciones.existe_alerta_proceso(
+                notificacion.codigo_tipo,
+                proceso.id,
+                notificacion.rut_usuario,
+            ):
                 continue
 
             if self.repositorio_notificaciones.registrar(notificacion):
@@ -45,70 +61,3 @@ class GenerarAlertasCierreEstimadoUseCase:
             )
 
         return creadas
-
-    def _evaluar(self, proceso: ProcesoComercial, ahora: datetime) -> Notificacion | None:
-        if proceso.cerrado:
-            return None
-
-        if proceso.fecha_estimada_cierre is None:
-            return None
-
-        rut_destinatario = self._resolver_destinatario(proceso)
-        if rut_destinatario is None:
-            return None
-
-        dias_restantes = (proceso.fecha_estimada_cierre - ahora).days
-
-        if dias_restantes > UMBRAL_DIAS_PROXIMO:
-            return None
-
-        desc_proceso = self._descripcion_proceso(proceso)
-
-        if dias_restantes >= 0:
-            codigo_tipo = 'CIERRE_ESTIMADO_PROXIMO'
-            nivel = 'AVISO'
-            titulo = 'Cierre estimado próximo'
-            mensaje = (
-                f'{desc_proceso} tiene fecha de cierre estimada '
-                f'el {proceso.fecha_estimada_cierre.strftime("%d/%m/%Y")} '
-                f'(faltan {dias_restantes} días).'
-            )
-        else:
-            codigo_tipo = 'FECHA_CIERRE_VENCIDA'
-            nivel = 'CRITICO'
-            atraso = abs(dias_restantes)
-            titulo = 'Fecha de cierre vencida'
-            mensaje = (
-                f'{desc_proceso} tiene fecha de cierre estimada '
-                f'el {proceso.fecha_estimada_cierre.strftime("%d/%m/%Y")} '
-                f'({atraso} días de atraso).'
-            )
-
-        codigo_estado = proceso.estado_actual.codigo if proceso.estado_actual else ''
-
-        return Notificacion(
-            id=None,
-            rut_usuario=rut_destinatario,
-            codigo_tipo=codigo_tipo,
-            nivel=nivel,
-            titulo=titulo,
-            mensaje=mensaje,
-            entidad_tipo='PROCESO_COMERCIAL',
-            entidad_id=proceso.id,
-            id_prospecto=proceso.id_prospecto,
-            dedupe_key=f'{codigo_tipo}:{proceso.id}:{codigo_estado}',
-            leida=False,
-            fecha_leida=None,
-            created_at=ahora,
-            leible=False,
-        )
-
-    def _resolver_destinatario(self, proceso) -> str | None:
-        if proceso.ejecutivo_comercial is None:
-            return None
-        return proceso.ejecutivo_comercial.rut
-
-    @staticmethod
-    def _descripcion_proceso(proceso: ProcesoComercial) -> str:
-        return f"La oportunidad '{proceso.producto.nombre}' de {proceso.nombre_cliente}"
-
