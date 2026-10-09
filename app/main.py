@@ -27,6 +27,7 @@ from app.presentacion.api.configuracion_condominio import configuracion_condomin
 from app.presentacion.api.contacto import contacto_router
 from app.presentacion.api.cuota import cuota_router
 from app.presentacion.api.etapa_proceso_comercial import etapa_proceso_comercial_router
+from app.presentacion.api.estado import estado_router
 from app.presentacion.api.estudio_comercial import estudio_comercial_router
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.gestion_comercial import gestion_comercial_router
@@ -265,6 +266,13 @@ app.include_router(
 
 app.include_router(
     router=proceso_comercial_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=estado_router.router,
     dependencies=[
         Depends(get_current_user)
     ]
