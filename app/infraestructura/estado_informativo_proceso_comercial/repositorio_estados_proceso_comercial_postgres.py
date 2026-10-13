@@ -18,7 +18,7 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 codigo=row['codigo_etapa'],
                 nombre=row['nombre_etapa'],
                 sigiuente_etapa=None,
-                dias_limite=None,
+                dias_limite=row['dias_limite_etapa'],
             ),
             probabilidad_cierre=row['probabilidad_cierre'],
             dias_limite=row['dias_limite'],
@@ -76,6 +76,7 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     E.nombre,
                     E.codigo_etapa,
                     ET.nombre as nombre_etapa,
+                    ET.dias_limite as dias_limite_etapa,
                     E.probabilidad_cierre,
                     E.dias_limite,
                     E.rol_responsable,
@@ -91,7 +92,10 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     left join Rol R
                     on E.rol_responsable = R.codigo
                     {where_clause}
-                    order by ET.nombre, E.nombre
+                    order by ET.orden nulls last,
+                    E.codigo_etapa,
+                    E.probabilidad_cierre asc,
+                    E.nombre
                 ''').format(where_clause=where_clause)
 
                 cur.execute(query, params)
@@ -108,6 +112,7 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     E.nombre,
                     E.codigo_etapa,
                     ET.nombre as nombre_etapa,
+                    ET.dias_limite as dias_limite_etapa,
                     E.probabilidad_cierre,
                     E.dias_limite,
                     E.rol_responsable,
@@ -238,6 +243,9 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 cur.execute(query, params)
                 row = cur.fetchone()
 
+                if row is None:
+                    return 0
+
                 return row['total']
 
     def existe_transicion(self, codigo_estado_origen: str, codigo_estado_destino: str) -> bool:
@@ -259,6 +267,9 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
 
                 cur.execute(query, params)
                 row = cur.fetchone()
+
+                if row is None:
+                    return False
 
                 return row['existe']
 

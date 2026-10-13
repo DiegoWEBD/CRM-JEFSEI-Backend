@@ -21,7 +21,7 @@ from app.presentacion.api.estado.dependencias.deps import (
 from app.presentacion.api.estado.dto.actualizar_estado_configuracion_request import ActualizarEstadoConfiguracionRequest
 from app.presentacion.api.estado.dto.actualizar_transicion_request import ActualizarTransicionRequest
 from app.presentacion.api.estado.dto.crear_transicion_request import CrearTransicionRequest
-from app.presentacion.api.estado.mappers.estado_configuracion_mapper import EstadoConfiguracionMapper
+from app.presentacion.api.estado.mappers.etapa_configuracion_mapper import EtapaConfiguracionMapper
 from app.presentacion.api.estado.mappers.transicion_admin_mapper import TransicionAdminMapper
 from app.presentacion.api.estado.mappers.transicion_manual_mapper import TransicionManualMapper
 
@@ -33,7 +33,7 @@ ADMINISTRAR_ESTADOS = 'ADMINISTRAR_ESTADOS_PROCESO_COMERCIAL'
 @router.get('/{codigo_estado}/transiciones-manuales', status_code=status.HTTP_200_OK)
 def obtener_transiciones_manuales(
     codigo_estado: str,
-    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
+    _: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
     use_case: ObtenerTransicionesManualesUseCase = Depends(get_obtener_transiciones_manuales_use_case)
 ):
     transiciones = use_case.ejecutar(codigo_estado)
@@ -51,7 +51,7 @@ def obtener_estados_configuracion(
     estados = use_case.ejecutar()
 
     return {
-        'data': EstadoConfiguracionMapper(estados).map()
+        'data': EtapaConfiguracionMapper(estados).map()
     }
 
 
