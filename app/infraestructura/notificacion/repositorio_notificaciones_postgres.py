@@ -372,6 +372,66 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                 cur.execute(query, {'rut_usuario': rut_usuario, 'leidas': leidas, 'leibles': leibles})
                 return cur.fetchone()['total'] # type: ignore   
 
+    def obtener_todas(
+        self,
+        codigo_estado: str | None,
+        leidas: bool | None,
+    ) -> list[Notificacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                condiciones: list[sql.Composable] = []
+                params: dict = {}
+
+                if codigo_estado:
+                    # Segmento exacto de la dedupe_key. Se usa position() y no
+                    # LIKE porque los códigos de estado contienen '_' y LIKE lo
+                    # trataría como comodín (matchearía de más).
+                    condiciones.append(sql.SQL(
+                        "position(':' || %(codigo_estado)s || ':' in N.dedupe_key) > 0"
+                    ))
+                    params['codigo_estado'] = codigo_estado
+
+                if leidas is not None:
+                    condiciones.append(sql.SQL('N.leida = %(leidas)s'))
+                    params['leidas'] = leidas
+
+                where_clause = (
+                    sql.SQL(' WHERE ') + sql.SQL(' AND ').join(condiciones)
+                    if condiciones else sql.SQL('')
+                )
+
+                query = sql.SQL('''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    {where_clause}
+                    order by N.created_at desc
+                ''').format(where_clause=where_clause)
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
+
+    def eliminar(self, notificacion: Notificacion) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    'delete from Notificacion where id = %(id)s',
+                    {'id': notificacion.id},
+                )
+
     def buscar(self, id_notificacion: int) -> Notificacion | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

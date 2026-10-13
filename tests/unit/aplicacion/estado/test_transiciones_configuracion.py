@@ -1,19 +1,34 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.aplicacion.estado.use_cases.actualizar_estado_configuracion import ActualizarEstadoConfiguracionUseCase
 from app.aplicacion.estado.use_cases.actualizar_transicion import ActualizarTransicionUseCase
 from app.aplicacion.estado.use_cases.crear_transicion import CrearTransicionUseCase
+from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from tests.factories.notificacion_factory import crear_notificacion_mock
 from tests.factories.transicion_factory import crear_transicion_mock
+
+MODULO_ACTUALIZAR_TRANSICION = 'app.aplicacion.estado.use_cases.actualizar_transicion.hub'
 
 
 @pytest.fixture
 def repositorio_mock():
     return MagicMock(spec=RepositorioEstadosProcesoComercial)
+
+
+@pytest.fixture
+def repositorio_notificaciones_mock():
+    return MagicMock(spec=RepositorioNotificaciones)
+
+
+@pytest.fixture
+def generar_alertas_sla_mock():
+    return MagicMock(spec=GenerarAlertasSlaUseCase)
 
 
 def _estado_mock(**kwargs):
@@ -99,8 +114,17 @@ class TestCrearTransicionUseCase:
 class TestActualizarTransicionUseCase:
 
     @pytest.fixture
-    def use_case(self, repositorio_mock):
-        return ActualizarTransicionUseCase(repositorio_estados=repositorio_mock)
+    def use_case(
+        self,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        return ActualizarTransicionUseCase(
+            repositorio_estados=repositorio_mock,
+            repositorio_notificaciones=repositorio_notificaciones_mock,
+            generar_alertas_sla=generar_alertas_sla_mock,
+        )
 
     def test_actualizar_secundaria_actualiza_es_manual_y_accion(
         self, use_case, repositorio_mock
@@ -202,6 +226,210 @@ class TestActualizarTransicionUseCase:
                 es_manual=True,
                 accion_requerida=None,
             )
+
+    def test_actualizar_principal_con_cambio_elimina_sla_no_leidas_y_reevalua(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        """Un cambio de días límite borra las alertas SLA no leídas del estado
+        y las re-evalúa de inmediato con el nuevo límite."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+
+        alerta_vencida = crear_notificacion_mock(
+            id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO'
+        )
+        alerta_por_vencer = crear_notificacion_mock(
+            id=2, rut_usuario='22222222-2', codigo_tipo='SLA_POR_VENCER'
+        )
+        repositorio_notificaciones_mock.obtener_todas.return_value = [
+            alerta_vencida,
+            alerta_por_vencer,
+        ]
+
+        with patch(MODULO_ACTUALIZAR_TRANSICION) as hub_mock:
+            resultado = use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                dias_limite=5,
+            )
+
+        assert resultado is True
+        repositorio_notificaciones_mock.obtener_todas.assert_called_once_with(
+            codigo_estado='ESTADO_ORIGEN', leidas=False
+        )
+        assert repositorio_notificaciones_mock.eliminar.call_count == 2
+        eliminadas = [
+            llamada.args[0]
+            for llamada in repositorio_notificaciones_mock.eliminar.call_args_list
+        ]
+        assert alerta_vencida in eliminadas
+        assert alerta_por_vencer in eliminadas
+
+        generar_alertas_sla_mock.ejecutar.assert_called_once_with()
+
+        hub_mock.publicar_desde_hilo.assert_called_once()
+        ruts, payload = hub_mock.publicar_desde_hilo.call_args.args
+        assert set(ruts) == {'11111111-1', '22222222-2'}
+        assert payload['motivo'] == 'sla_reevaluado'
+
+    def test_reevaluar_solo_elimina_alertas_de_tipo_sla(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+
+        alerta_sla = crear_notificacion_mock(
+            id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO'
+        )
+        notificacion_asignacion = crear_notificacion_mock(
+            id=2,
+            rut_usuario='11111111-1',
+            codigo_tipo='ASIGNACION_EJECUTIVO',
+            nivel='INFO',
+            leible=True,
+        )
+        repositorio_notificaciones_mock.obtener_todas.return_value = [
+            alerta_sla,
+            notificacion_asignacion,
+        ]
+
+        with patch(MODULO_ACTUALIZAR_TRANSICION) as hub_mock:
+            use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                dias_limite=3,
+            )
+
+        repositorio_notificaciones_mock.eliminar.assert_called_once_with(alerta_sla)
+        generar_alertas_sla_mock.ejecutar.assert_called_once_with()
+        ruts, _ = hub_mock.publicar_desde_hilo.call_args.args
+        assert set(ruts) == {'11111111-1'}
+
+    def test_actualizar_principal_sin_cambio_no_toca_alertas(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        """Guardar el mismo días límite no debe borrar alertas ni re-notificar."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+
+        resultado = use_case.ejecutar(
+            codigo_estado_origen='ESTADO_ORIGEN',
+            codigo_estado_destino='ESTADO_DESTINO',
+            es_manual=True,
+            accion_requerida=None,
+            dias_limite=10,
+        )
+
+        assert resultado is True
+        repositorio_notificaciones_mock.obtener_todas.assert_not_called()
+        repositorio_notificaciones_mock.eliminar.assert_not_called()
+        generar_alertas_sla_mock.ejecutar.assert_not_called()
+
+    def test_actualizar_secundaria_no_toca_alertas(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        """La transición secundaria no define SLA: su guardado no re-evalúa."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=False,
+            dias_limite=None,
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+
+        use_case.ejecutar(
+            codigo_estado_origen='ESTADO_ORIGEN',
+            codigo_estado_destino='ESTADO_DESTINO',
+            es_manual=True,
+            accion_requerida='cargar cotizaciones',
+        )
+
+        repositorio_notificaciones_mock.obtener_todas.assert_not_called()
+        generar_alertas_sla_mock.ejecutar.assert_not_called()
+
+    def test_actualizacion_fallida_no_reevalua(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_mock.actualizar_transicion.return_value = False
+
+        resultado = use_case.ejecutar(
+            codigo_estado_origen='ESTADO_ORIGEN',
+            codigo_estado_destino='ESTADO_DESTINO',
+            es_manual=True,
+            accion_requerida=None,
+            dias_limite=5,
+        )
+
+        assert resultado is False
+        repositorio_notificaciones_mock.obtener_todas.assert_not_called()
+        generar_alertas_sla_mock.ejecutar.assert_not_called()
+
+    def test_reevaluar_sin_destinatarios_no_publica_en_hub(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+    ):
+        """El borrado y la re-evaluación ocurren igual; solo se omite el aviso
+        al hub (no hay a quién notificar la eliminación)."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+
+        repositorio_notificaciones_mock.obtener_todas.return_value = [
+            crear_notificacion_mock(id=1, rut_usuario=None, codigo_tipo='SLA_VENCIDO')
+        ]
+
+        with patch(MODULO_ACTUALIZAR_TRANSICION) as hub_mock:
+            use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                dias_limite=2,
+            )
+
+        repositorio_notificaciones_mock.eliminar.assert_called_once()
+        generar_alertas_sla_mock.ejecutar.assert_called_once_with()
+        hub_mock.publicar_desde_hilo.assert_not_called()
 
 
 @pytest.mark.unit

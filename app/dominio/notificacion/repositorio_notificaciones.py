@@ -72,6 +72,25 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def obtener_todas(
+        self,
+        codigo_estado: str | None,
+        leidas: bool | None,
+    ) -> list[Notificacion]:
+        """Todas las notificaciones (leídas o no, de cualquier tipo).
+
+        `codigo_estado` filtra por el segmento de estado de la dedupe_key
+        (las alertas SLA embeben ahí el estado en el que estaba el proceso).
+        `leidas` filtra por el estado de lectura. None = sin ese filtro.
+        """
+        pass
+
+    @abstractmethod
+    def eliminar(self, notificacion: Notificacion) -> None:
+        """Elimina la notificación por id. Idempotente si no existe."""
+        pass
+
+    @abstractmethod
     def buscar(self, id_notificacion: int) -> Notificacion | None:
         """Busca una notificación por id. Retorna None si no existe."""
         pass
