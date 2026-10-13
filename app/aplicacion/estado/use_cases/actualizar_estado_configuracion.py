@@ -14,7 +14,6 @@ class ActualizarEstadoConfiguracionUseCase:
     def ejecutar(
         self,
         codigo: str,
-        dias_limite: int | None,
         probabilidad_cierre: float,
     ) -> bool:
         estado = self.repositorio_estados.obtener_por_codigo(codigo)
@@ -24,11 +23,9 @@ class ActualizarEstadoConfiguracionUseCase:
         if probabilidad_cierre is None or not (0 <= probabilidad_cierre <= 1):
             raise ConflictoEnAccionException('La probabilidad de cierre debe estar entre 0 y 1')
 
-        if dias_limite is not None and dias_limite < 0:
-            raise ConflictoEnAccionException('Los días límite no pueden ser negativos')
-
+        # Los días límite no se configuran acá: viven en la transición
+        # principal del estado (se editan desde la UI de transiciones).
         return self.repositorio_estados.actualizar_configuracion(
             codigo=codigo,
-            dias_limite=dias_limite,
             probabilidad_cierre=probabilidad_cierre,
         )

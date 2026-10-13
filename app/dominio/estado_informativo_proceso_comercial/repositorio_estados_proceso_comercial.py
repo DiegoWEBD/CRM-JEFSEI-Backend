@@ -22,7 +22,7 @@ class RepositorioEstadosProcesoComercial(ABC):
 
     @abstractmethod
     def actualizar_configuracion(
-        self, codigo: str, dias_limite: int | None, probabilidad_cierre: float
+        self, codigo: str, probabilidad_cierre: float
     ) -> bool:
         pass
 

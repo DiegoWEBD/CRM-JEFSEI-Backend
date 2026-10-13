@@ -2,5 +2,5 @@ from pydantic import BaseModel
 
 
 class ActualizarEstadoConfiguracionRequest(BaseModel):
-    dias_limite: int | None
+    # 0..1
     probabilidad_cierre: float

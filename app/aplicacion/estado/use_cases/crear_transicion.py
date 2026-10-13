@@ -21,6 +21,15 @@ class CrearTransicionUseCase:
         es_principal: bool = False,
         accion_requerida: str | None = None,
     ) -> bool:
+        # La transición principal define el flujo feliz, el destinatario de las
+        # alertas SLA y su días límite: es una restricción del negocio y solo
+        # se siembra por migración de base de datos.
+        if es_principal:
+            raise ConflictoEnAccionException(
+                'Las transiciones principales no se pueden crear desde la aplicación; '
+                'definen el flujo feliz y el SLA del estado y se siembran por migración'
+            )
+
         origen = self.repositorio_estados.obtener_por_codigo(codigo_estado_origen)
         if origen is None:
             raise RecursoNoEncontradoException('El estado de origen no existe')

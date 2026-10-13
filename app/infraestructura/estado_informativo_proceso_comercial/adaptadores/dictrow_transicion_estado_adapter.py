@@ -17,4 +17,7 @@ class DictRowTransicionEstadoAdapter:
             es_manual=self.row['es_manual'],
             es_principal=self.row['es_principal'],
             accion_requerida=self.row['accion_requerida'],
+            # Solo lo traen las queries de administración; la lista de
+            # transiciones manuales no lo incluye.
+            dias_limite=self.row.get('dias_limite'),
         )

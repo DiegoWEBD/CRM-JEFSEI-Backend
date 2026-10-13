@@ -21,7 +21,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 dias_limite=row['dias_limite_etapa'],
             ),
             probabilidad_cierre=row['probabilidad_cierre'],
-            dias_limite=row['dias_limite'],
             rol_responsable=row['rol_responsable'],
             nombre_rol_responsable=row['nombre_rol_responsable'],
             cantidad_transiciones=row['cantidad_transiciones'],
@@ -78,7 +77,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     ET.nombre as nombre_etapa,
                     ET.dias_limite as dias_limite_etapa,
                     E.probabilidad_cierre,
-                    E.dias_limite,
                     E.rol_responsable,
                     R.nombre as nombre_rol_responsable,
                     (
@@ -114,7 +112,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     ET.nombre as nombre_etapa,
                     ET.dias_limite as dias_limite_etapa,
                     E.probabilidad_cierre,
-                    E.dias_limite,
                     E.rol_responsable,
                     R.nombre as nombre_rol_responsable,
                     (
@@ -141,21 +138,21 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 return self._a_estado(row)
 
     def actualizar_configuracion(
-        self, codigo: str, dias_limite: int | None, probabilidad_cierre: float
+        self, codigo: str, probabilidad_cierre: float
     ) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
+                # Los días límite no se tocan acá: viven en la transición
+                # principal del estado.
                 query = '''
                     update EstadoInformativoProcesoComercial
-                    set dias_limite = %(dias_limite)s,
-                        probabilidad_cierre = %(probabilidad_cierre)s
+                    set probabilidad_cierre = %(probabilidad_cierre)s
                     where codigo = %(codigo)s
                 '''
 
                 params = {
                     'codigo': codigo,
-                    'dias_limite': dias_limite,
                     'probabilidad_cierre': probabilidad_cierre,
                 }
 
@@ -175,7 +172,8 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     ED.nombre as nombre_estado_destino,
                     T.es_manual,
                     T.es_principal,
-                    T.accion_requerida
+                    T.accion_requerida,
+                    T.dias_limite
                     from TransicionEstadoProcesoComercial T
                     inner join EstadoInformativoProcesoComercial EO
                     on T.codigo_estado_origen = EO.codigo
@@ -205,7 +203,8 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     ED.nombre as nombre_estado_destino,
                     T.es_manual,
                     T.es_principal,
-                    T.accion_requerida
+                    T.accion_requerida,
+                    T.dias_limite
                     from TransicionEstadoProcesoComercial T
                     inner join EstadoInformativoProcesoComercial EO
                     on T.codigo_estado_origen = EO.codigo
@@ -277,21 +276,15 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                # Único destino principal por origen: al definir una nueva principal,
-                # la anterior deja de serlo.
-                if transicion.es_principal:
-                    cur.execute('''
-                        update TransicionEstadoProcesoComercial
-                        set es_principal = false
-                        where codigo_estado_origen = %(codigo_estado_origen)s
-                        and es_principal = true
-                    ''', {'codigo_estado_origen': transicion.codigo_estado_origen})
-
+                # NOTA: las transiciones principales no se crean desde la
+                # aplicación (el caso de uso las rechaza); se siembran por
+                # migración. El índice único uq_transicion_principal es el
+                # respaldo en base de datos.
                 query = '''
                     insert into TransicionEstadoProcesoComercial
-                    (codigo_estado_origen, codigo_estado_destino, es_principal, es_manual, accion_requerida)
+                    (codigo_estado_origen, codigo_estado_destino, es_principal, es_manual, accion_requerida, dias_limite)
                     values (%(codigo_estado_origen)s, %(codigo_estado_destino)s,
-                            %(es_principal)s, %(es_manual)s, %(accion_requerida)s)
+                            %(es_principal)s, %(es_manual)s, %(accion_requerida)s, %(dias_limite)s)
                 '''
 
                 params = {
@@ -300,6 +293,7 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     'es_principal': transicion.es_principal,
                     'es_manual': transicion.es_manual,
                     'accion_requerida': transicion.accion_requerida,
+                    'dias_limite': transicion.dias_limite,
                 }
 
                 cur.execute(query, params)
@@ -311,10 +305,13 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
+                # En la principal, es_manual/accion_requerida quedan intactas y
+                # solo cambia el días límite (SLA); en las secundarias al revés.
                 query = '''
                     update TransicionEstadoProcesoComercial
                     set es_manual = %(es_manual)s,
-                        accion_requerida = %(accion_requerida)s
+                        accion_requerida = %(accion_requerida)s,
+                        dias_limite = %(dias_limite)s
                     where codigo_estado_origen = %(codigo_estado_origen)s
                     and codigo_estado_destino = %(codigo_estado_destino)s
                 '''
@@ -324,6 +321,7 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     'codigo_estado_destino': transicion.codigo_estado_destino,
                     'es_manual': transicion.es_manual,
                     'accion_requerida': transicion.accion_requerida,
+                    'dias_limite': transicion.dias_limite,
                 }
 
                 cur.execute(query, params)

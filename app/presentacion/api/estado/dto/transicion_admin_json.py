@@ -9,3 +9,5 @@ class TransicionAdminJson(BaseModel):
     es_manual: bool
     es_principal: bool
     accion_requerida: str | None
+    # SLA de permanencia: solo en la transición principal (NULL en secundarias).
+    dias_limite: int | None

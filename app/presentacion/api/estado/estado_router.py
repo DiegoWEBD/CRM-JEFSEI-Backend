@@ -64,7 +64,6 @@ def actualizar_estado_configuracion(
 ):
     actualizado = use_case.ejecutar(
         codigo=codigo_estado,
-        dias_limite=request.dias_limite,
         probabilidad_cierre=request.probabilidad_cierre,
     )
 
@@ -125,6 +124,7 @@ def actualizar_transicion(
         codigo_estado_destino=codigo_estado_destino,
         es_manual=request.es_manual,
         accion_requerida=request.accion_requerida,
+        dias_limite=request.dias_limite,
     )
 
     if not actualizado:

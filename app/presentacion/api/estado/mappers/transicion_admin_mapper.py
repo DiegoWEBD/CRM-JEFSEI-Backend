@@ -20,4 +20,5 @@ class TransicionAdminMapper:
             es_manual=t.es_manual,
             es_principal=t.es_principal,
             accion_requerida=t.accion_requerida,
+            dias_limite=t.dias_limite,
         )
