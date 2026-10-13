@@ -13,6 +13,7 @@ class DictRowTransicionEstadoAdapter:
             codigo_estado_origen=self.row['codigo_estado_origen'],
             codigo_estado_destino=self.row['codigo_estado_destino'],
             nombre_estado_destino=self.row['nombre_estado_destino'],
+            nombre_estado_origen=self.row.get('nombre_estado_origen'),
             es_manual=self.row['es_manual'],
             es_principal=self.row['es_principal'],
             accion_requerida=self.row['accion_requerida'],
