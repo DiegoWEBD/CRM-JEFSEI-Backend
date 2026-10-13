@@ -6,6 +6,7 @@ from app.aplicacion.historial_estado.use_cases.obtener_historial_estados_proceso
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
+from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
@@ -21,10 +22,11 @@ from app.presentacion.api.exceptions.bad_request_exception import BadRequestExce
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
 from app.presentacion.api.historial_estado.mappers.resumen_historial_estado_mapper import ResumenHistorialEstadoMapper
 from app.presentacion.api.poliza.dependencias.deps import get_registrar_poliza_a_proceso_comercial_use_case
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_obtener_todos_procesos_comerciales_use_case
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_fecha_estimada_cierre_request import ActualizarFechaEstimadaCierreRequest
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_probabilidad_cierre_ejecutivo_request import ActualizarProbabilidadCierreEjecutivoRequest
+from app.presentacion.api.proceso_comercial.dto.requests.cambiar_estado_manual_request import CambiarEstadoManualRequest
 from app.presentacion.api.proceso_comercial.dto.requests.cerrar_proceso_comercial_request import CerrarProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.crear_proceso_comercial_request import CrearProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.registrar_poliza_a_proceso_comercial_request import RegistrarPolizaAProcesoComercialRequest
@@ -99,6 +101,25 @@ def actualizar_probabilidad_cierre_ejecutivo(
 
     return {
         'message': 'Probabilidad de cierre del ejecutivo actualizada'
+    }
+
+
+@router.post('/{id}/cambiar-estado', status_code=status.HTTP_200_OK)
+def cambiar_estado_manual(
+    id: int,
+    request: CambiarEstadoManualRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
+    use_case: CambiarEstadoManualUseCase = Depends(get_cambiar_estado_manual_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        codigo_estado_destino=request.codigo_estado_destino,
+        observacion=request.observacion,
+        usuario=usuario
+    )
+
+    return {
+        'message': 'Estado de la oportunidad actualizado'
     }
 
 

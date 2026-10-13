@@ -5,6 +5,7 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
+from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
@@ -95,4 +96,14 @@ def get_actualizar_probabilidad_cierre_ejecutivo_use_case():
     return ActualizarProbabilidadCierreEjecutivoUseCase(
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
+    )
+
+def get_cambiar_estado_manual_use_case():
+    repositorio_procesos = RepositorioProcesosComercialesPostgres()
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return CambiarEstadoManualUseCase(
+        repositorio_procesos_comerciales=repositorio_procesos,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
     )

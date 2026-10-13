@@ -25,7 +25,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     EPC.nombre as nombre_etapa,
                     PR.nombre_riesgo as nombre_prospecto,
                     HI.fecha_registro as fecha_ingreso_estado,
-                    EI.dias_limite,
+                    T.dias_limite,
                     EPC.dias_limite as dias_limite_etapa,
                     EI.rol_responsable,
                     PC.rut_ej_comercial,

@@ -57,7 +57,8 @@ class GenerarAlertasSlaUseCase:
         if proceso.cerrado:
             return []
 
-        # El límite vive en el ESTADO (nullable): sin límite no hay alerta.
+        # El límite vive en la TRANSICIÓN PRINCIPAL del estado (nullable):
+        # sin límite no hay alerta.
         if proceso.dias_limite is None or proceso.dias_limite <= 0:
             return []
 

@@ -794,3 +794,79 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 }
 
                 cur.execute(query, params)
+
+    def cambiar_estado_manual(
+        self,
+        id: int,
+        codigo_estado_destino: str,
+        observacion: str | None,
+        rut_usuario: str,
+    ):
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                fecha = datetime.now(tz=timezone.utc)
+
+                # Validar que la transición exista y sea manual
+                query = '''
+                    select 1
+                    from ProcesoComercial PC
+                    inner join HistorialEstadoInformativoProcesoComercial HI
+                    on PC.id = HI.id_proceso_comercial
+                    and PC.id = %(id)s
+                    and PC.cerrado = false
+                    and HI.fecha_registro = (
+                        select max(HI2.fecha_registro)
+                        from HistorialEstadoInformativoProcesoComercial HI2
+                        where HI2.id_proceso_comercial = PC.id
+                    )
+                    inner join TransicionEstadoProcesoComercial T
+                    on HI.codigo_estado = T.codigo_estado_origen
+                    and T.codigo_estado_destino = %(destino)s
+                    and T.es_manual = true
+                '''
+
+                params = {
+                    'id': id,
+                    'destino': codigo_estado_destino
+                }
+
+                cur.execute(query, params)
+
+                if cur.fetchone() is None:
+                    from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
+                    raise ConflictoEnAccionException(
+                        f'La transición hacia {codigo_estado_destino} no es válida desde el estado actual'
+                    )
+
+                # Cambio de estado del proceso comercial
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id)s
+                    and cerrado = false
+                '''
+
+                params = {
+                    'id': id,
+                    'codigo_estado': codigo_estado_destino
+                }
+
+                cur.execute(query, params)
+
+                # Registro de historial
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial
+                    (id_proceso_comercial, codigo_estado, fecha_registro, observacion, rut_registrado_por)
+                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(observacion)s, %(rut_registrado_por)s)
+                '''
+
+                params = {
+                    'id_proceso_comercial': id,
+                    'codigo_estado': codigo_estado_destino,
+                    'fecha_registro': fecha,
+                    'observacion': observacion,
+                    'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)

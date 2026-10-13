@@ -10,11 +10,17 @@ class EstadoInformativoProcesoComercial:
         codigo: str, 
         etapa: EtapaProcesoComercial, 
         nombre: str,
-        fecha_registro: datetime,
-        probabilidad_cierre: float | None = None
+        fecha_registro: datetime | None = None,
+        probabilidad_cierre: float | None = None,
+        rol_responsable: str | None = None,
+        nombre_rol_responsable: str | None = None,
+        cantidad_transiciones: int = 0,
     ):
         self.codigo = codigo
         self.etapa = etapa
         self.nombre = nombre
         self.fecha_registro = fecha_registro
         self.probabilidad_cierre = probabilidad_cierre
+        self.rol_responsable = rol_responsable
+        self.nombre_rol_responsable = nombre_rol_responsable
+        self.cantidad_transiciones = cantidad_transiciones
