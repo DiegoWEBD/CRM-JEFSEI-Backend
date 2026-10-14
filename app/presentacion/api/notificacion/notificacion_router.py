@@ -7,7 +7,6 @@ from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import Marc
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
 from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
-from app.aplicacion.notificacion.use_cases.obtener_oportunidades_en_riesgo import ObtenerOportunidadesEnRiesgoUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.dto.deps import get_paginacion_params
@@ -18,7 +17,6 @@ from app.presentacion.api.notificacion.dependencias.deps import (
     get_marcar_notificaciones_leidas_use_case,
     get_obtener_contador_notificaciones_use_case,
     get_obtener_notificaciones_use_case,
-    get_obtener_oportunidades_en_riesgo_use_case,
 )
 
 
@@ -73,28 +71,6 @@ def obtener_contador_notificaciones(
     return {
         'no_leibles': no_leibles,
         'no_leidas': no_leidas,
-    }
-
-
-@router.get('/oportunidades/en-riesgo', status_code=status.HTTP_200_OK)
-def obtener_oportunidades_en_riesgo(
-    paginacion: PaginacionParams = Depends(get_paginacion_params),
-    usuario: Usuario = Depends(permisos_requeridos('VER_ALERTAS')),
-    use_case: ObtenerOportunidadesEnRiesgoUseCase = Depends(get_obtener_oportunidades_en_riesgo_use_case)
-):
-    datos, total = use_case.ejecutar_paginado(
-        rut_usuario=usuario.rut,
-        pagina=paginacion.pagina,
-        tamano_pagina=paginacion.tamano_pagina,
-    )
-    total_paginas = math.ceil(total / paginacion.tamano_pagina) if total > 0 else 1
-
-    return {
-        'data': datos,
-        'total': total,
-        'pagina': paginacion.pagina,
-        'tamano_pagina': paginacion.tamano_pagina,
-        'total_paginas': total_paginas,
     }
 
 

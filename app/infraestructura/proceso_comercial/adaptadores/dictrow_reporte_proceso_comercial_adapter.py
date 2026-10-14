@@ -45,14 +45,20 @@ class DictRowReporteProcesoComercialAdapter:
         proceso_json = self._to_proceso_comercial_json()
 
         if not self.row['cerrado']:
+            fecha_ingreso = self.row['fecha_ingreso_estado']
+            porcentaje = self.row['porcentaje_sla_consumido']
+
             return ReportesProcesoComercialDTO(
                 proceso=proceso_json,
-                fecha_ingreso_etapa=(
-                    self.row['fecha_ingreso_etapa'].isoformat()
+                fecha_ingreso_estado=(
+                    fecha_ingreso.isoformat() if fecha_ingreso else None
                 ),
                 dias_transcurridos=self.row['dias_transcurridos'],
-                porentaje_sla_consumido=float(self.row['porcentaje_sla_consumido']),
+                porentaje_sla_consumido=(
+                    float(porcentaje) if porcentaje is not None else None
+                ),
                 estado_semaforo=EstadoSemaforo(self.row['estado_semaforo']),
+                dias_limite=self.row['dias_limite_transicion'],
                 dias_restantes=self.row['dias_restantes'],
                 dias_atraso=self.row['dias_atraso'],
                 mensaje_semaforo=self.row['mensaje_semaforo'],
