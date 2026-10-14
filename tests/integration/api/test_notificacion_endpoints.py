@@ -9,13 +9,11 @@ from app.presentacion.api.notificacion.dependencias.deps import (
     get_obtener_contador_notificaciones_use_case,
     get_marcar_notificacion_leida_use_case,
     get_marcar_notificaciones_leidas_use_case,
-    get_obtener_oportunidades_en_riesgo_use_case,
 )
 from app.aplicacion.notificacion.use_cases.obtener_notificaciones import ObtenerNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.obtener_contador_notificaciones import ObtenerContadorNotificacionesUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
-from app.aplicacion.notificacion.use_cases.obtener_oportunidades_en_riesgo import ObtenerOportunidadesEnRiesgoUseCase
 from tests.factories.usuario_factory import crear_usuario_admin_mock, crear_usuario_mock, crear_rol_mock, crear_permiso_mock
 from tests.factories.auth_factory import crear_token_mock, headers_auth
 from tests.factories.notificacion_factory import crear_notificacion_mock
@@ -62,17 +60,11 @@ def client(usuario_autenticado):
         uc.ejecutar.return_value = 3
         return uc
 
-    def override_en_riesgo():
-        uc = MagicMock(spec=ObtenerOportunidadesEnRiesgoUseCase)
-        uc.ejecutar_paginado.return_value = (["reporte-1"], 1)
-        return uc
-
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_obtener_notificaciones_use_case] = override_obtener_notificaciones
     app.dependency_overrides[get_obtener_contador_notificaciones_use_case] = override_contador
     app.dependency_overrides[get_marcar_notificacion_leida_use_case] = override_marcar_leida
     app.dependency_overrides[get_marcar_notificaciones_leidas_use_case] = override_marcar_todas
-    app.dependency_overrides[get_obtener_oportunidades_en_riesgo_use_case] = override_en_riesgo
 
     from starlette.testclient import TestClient
 
@@ -194,26 +186,11 @@ class TestNotificacionesEndpoints:
         assert response.status_code == 200
         assert response.json() == {"message": "Notificaciones marcadas como leídas", "total": 3}
 
-    def test_oportunidades_en_riesgo_estructura_paginada(self, client, headers_auth_validos):
-        response = client.get(
-            "/notificaciones/oportunidades/en-riesgo", headers=headers_auth_validos
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        assert "total" in data
-        assert "pagina" in data
-        assert "tamano_pagina" in data
-        assert "total_paginas" in data
-        assert data["total"] == 1
-
     @pytest.mark.parametrize("metodo,ruta", [
         ("get", "/notificaciones/"),
         ("get", "/notificaciones/contador"),
         ("patch", "/notificaciones/1/leer"),
         ("post", "/notificaciones/leer-todas"),
-        ("get", "/notificaciones/oportunidades/en-riesgo"),
     ])
     def test_sin_permiso_ver_alertas_retorna_403(self, headers_auth_validos, metodo, ruta):
         rol_sin_permiso = crear_rol_mock(
