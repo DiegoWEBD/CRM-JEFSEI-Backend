@@ -48,10 +48,6 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
-    def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
-        pass
-
-    @abstractmethod
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         pass
 

@@ -87,44 +87,6 @@ class TestCerrarProcesoComercialPuro:
 
 @pytest.mark.unit
 @patch(f'{MODULO}.obtener_conexion')
-class TestRegistrarAceptacionClientePuro:
-
-    def test_actualiza_estado_y_registra_historial_sin_update_duplicado(self, mock_conexion):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-
-        repo = RepositorioProcesosComercialesPostgres()
-        resultado = repo.registrar_aceptacion_cliente(id=4, rut_usuario='99999999-9')
-
-        assert resultado is None
-        updates = [
-            call for call in cursor.execute.call_args_list
-            if 'update ProcesoComercial' in str(call.args[0])
-        ]
-        assert len(updates) == 1, 'el update de estado debe ser único'
-        assert updates[0].args[1]['codigo_estado'] == 'PROPUESTA_ACEPTADA'
-        assert updates[0].args[1]['id'] == 4
-
-        historial = [
-            call.args[1] for call in cursor.execute.call_args_list
-            if 'insert into HistorialEstadoInformativoProcesoComercial' in str(call.args[0])
-        ]
-        assert len(historial) == 1
-        assert historial[0]['codigo_estado'] == 'PROPUESTA_ACEPTADA'
-        assert historial[0]['rut_registrado_por'] == '99999999-9'
-
-    def test_no_toca_notificaciones(self, mock_conexion):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-
-        repo = RepositorioProcesosComercialesPostgres()
-        repo.registrar_aceptacion_cliente(id=4, rut_usuario='99999999-9')
-
-        _sin_alertas(cursor)
-
-
-@pytest.mark.unit
-@patch(f'{MODULO}.obtener_conexion')
 class TestNuevoProcesoComercialPuro:
 
     def test_crea_proceso_e_historial_sin_tocar_alertas(self, mock_conexion):

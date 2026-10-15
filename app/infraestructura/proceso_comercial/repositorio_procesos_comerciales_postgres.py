@@ -629,44 +629,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
         return id_proceso_comercial
             
-    def registrar_aceptacion_cliente(self, id: int, rut_usuario: str):
-        ESTADO_ACEPTACION_CLIENTE = 'PROPUESTA_ACEPTADA'
-        fecha = datetime.now(tz=timezone.utc)
-        
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-                    
-                # Cambio de estado de proceso comercial
-
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id)s
-                '''
-                
-                params = {
-                    'id': id,
-                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE
-                }
-
-                cur.execute(query, params)
-
-                # Registro de historial
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
-                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
-                '''
-                
-                params = {
-                    'id_proceso_comercial': id,
-                    'codigo_estado': ESTADO_ACEPTACION_CLIENTE,
-                    'fecha_registro': fecha,
-                    'rut_registrado_por': rut_usuario
-                }
-
-                cur.execute(query, params)
-
 
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         with obtener_conexion() as conn:

@@ -16,7 +16,7 @@ class ProcesoComercialJsonAdapter:
             ejecutivo_comercial=UsuarioJsonResumenAdapter(self.proceso.ejecutivo_comercial).to_usuario_json_resumen() if self.proceso.ejecutivo_comercial else None,
             ejecutivo_evaluacion=UsuarioJsonResumenAdapter(self.proceso.ejecutivo_evaluacion).to_usuario_json_resumen() if self.proceso.ejecutivo_evaluacion else None,
             id_prospecto=self.proceso.id_prospecto,
-            tipo_producto=self.proceso.producto.codigo,
+            tipo_producto=self.proceso.producto.codigo if self.proceso.producto.codigo else '',
             producto=self.proceso.producto.nombre,
             estado_actual=EstadoInformativoJsonAdapter(self.proceso.estado_actual).to_json(),
             etapa_actual=EtapaProcesoComercialJsonAdapter(self.proceso.estado_actual.etapa).to_json(),
@@ -24,5 +24,8 @@ class ProcesoComercialJsonAdapter:
             cerrado=self.proceso.cerrado,
             fecha_estimada_cierre=self.proceso.fecha_estimada_cierre,
             probabilidad_cierre_sistema=self.proceso.estado_actual.probabilidad_cierre or 0.0,
-            probabilidad_cierre_ejecutivo=self.proceso.probabilidad_cierre_ejecutivo
+            probabilidad_cierre_ejecutivo=self.proceso.probabilidad_cierre_ejecutivo,
+            prima_cotizada=self.proceso.prima_cotizada,
+            prima_potencial_estimada=self.proceso.prima_potencial_estimada,
+            prima_esperada=self.proceso.prima_esperada
         )

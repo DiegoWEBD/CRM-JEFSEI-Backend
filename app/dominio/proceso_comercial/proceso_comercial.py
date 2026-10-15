@@ -19,6 +19,9 @@ class ProcesoComercial:
         asistente_renovacion: Usuario | None = None,
         fecha_estimada_cierre: datetime | None = None,
         probabilidad_cierre_ejecutivo: float | None = None,
+        prima_cotizada: float | None = None,
+        prima_potencial_estimada: float | None = None,
+        prima_esperada: float | None = None
     ):
         self.id = id
         self.ejecutivo_comercial = ejecutivo_comercial
@@ -32,3 +35,6 @@ class ProcesoComercial:
         self.id_prospecto = id_prospecto
         self.fecha_estimada_cierre = fecha_estimada_cierre
         self.probabilidad_cierre_ejecutivo = probabilidad_cierre_ejecutivo
+        self.prima_cotizada = prima_cotizada
+        self.prima_potencial_estimada = prima_potencial_estimada
+        self.prima_esperada = prima_esperada
