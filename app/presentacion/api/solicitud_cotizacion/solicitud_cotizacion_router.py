@@ -1,10 +1,8 @@
 import os
-from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from app.aplicacion.cotizacion.cotizacion_factory import CotizacionFactory
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
@@ -117,13 +115,15 @@ def registrar_cotizacion_a_solicitud(
 
         nombre_archivo = nombre_unico
 
-    cotizacion = CotizacionFactory.crear(
+    use_case.ejecutar(
+        rut_usuario=usuario.rut,
+        id_solicitud=id,
         monto_total_asegurado=monto_total_asegurado,
         asistencia_afecta=asistencia_afecta,
         asistencia_excenta=asistencia_excenta,
         id_company=id_company,
-        fecha_emision=datetime.fromisoformat(fecha_emision),
-        fecha_vencimiento=datetime.fromisoformat(fecha_vencimiento),
+        fecha_emision=fecha_emision,
+        fecha_vencimiento=fecha_vencimiento,
         tipo=tipo,
         tasa_afecta=tasa_afecta,
         tasa_excenta=tasa_excenta,
@@ -131,12 +131,6 @@ def registrar_cotizacion_a_solicitud(
         prima_afecta=prima_afecta,
         prima_excenta=prima_excenta,
         nombre_archivo=nombre_archivo,
-    )
-
-    use_case.ejecutar(
-        rut_usuario=usuario.rut,
-        id_solicitud=id,
-        cotizacion=cotizacion,
     )
 
     return {

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.cotizacion.cotizacion_factory import CotizacionFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.cotizacion.cotizacion import Cotizacion
@@ -38,13 +39,41 @@ class RegistrarCotizacionASolicitudUseCase:
         self, 
         rut_usuario: str,
         id_solicitud: int, 
-        cotizacion: Cotizacion,
+        monto_total_asegurado: float,
+        asistencia_afecta: float,
+        asistencia_excenta: float,
+        id_company: int,
+        fecha_emision: str,
+        fecha_vencimiento: str,
+        tipo: str,
+        tasa_afecta: float | None = None,
+        tasa_excenta: float | None = None,
+        tasa_politica: float | None = None,
+        prima_afecta: float | None = None,
+        prima_excenta: float | None = None,
+        nombre_archivo: str | None = None
     ):
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
         
         if not self.authorization_service.usuario_puede_ver_solicitud_cotizacion(rut_usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
+
+        cotizacion = CotizacionFactory.crear(
+            monto_total_asegurado=monto_total_asegurado,
+            asistencia_afecta=asistencia_afecta,
+            asistencia_excenta=asistencia_excenta,
+            id_company=id_company,
+            fecha_emision=datetime.fromisoformat(fecha_emision),
+            fecha_vencimiento=datetime.fromisoformat(fecha_vencimiento),
+            tipo=tipo,
+            tasa_afecta=tasa_afecta,
+            tasa_excenta=tasa_excenta,
+            tasa_politica=tasa_politica,
+            prima_afecta=prima_afecta,
+            prima_excenta=prima_excenta,
+            nombre_archivo=nombre_archivo,
+        )
         
         if self.repositorio_companies.buscar(cotizacion.company.id) is None:
             raise RecursoNoEncontradoException('Compañía no encontrada')
