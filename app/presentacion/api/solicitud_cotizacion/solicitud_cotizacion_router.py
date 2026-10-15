@@ -3,6 +3,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import ActualizarCotizacionUseCase
+from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCotizacionUseCase
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
@@ -12,7 +14,13 @@ from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.cotizacion.adaptadores.cotizacion_json_adapter import CotizacionJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.cotizacion.dependencias.deps import get_obtener_cotizaciones_por_solicitud_use_case, get_registrar_cotizacion_a_solicitud_use_case, get_subir_estudio_comercial_use_case
+from app.presentacion.api.cotizacion.dependencias.deps import (
+    get_actualizar_cotizacion_use_case,
+    get_eliminar_cotizacion_use_case,
+    get_obtener_cotizaciones_por_solicitud_use_case,
+    get_registrar_cotizacion_a_solicitud_use_case,
+    get_subir_estudio_comercial_use_case,
+)
 from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
@@ -135,6 +143,100 @@ def registrar_cotizacion_a_solicitud(
 
     return {
         'message': 'Cotización registrada'
+    }
+
+
+@router.put('/{id_solicitud}/cotizaciones/{id_cotizacion}', status_code=status.HTTP_200_OK)
+def actualizar_cotizacion(
+    id_solicitud: int,
+    id_cotizacion: int,
+    tipo: str = Form(...),
+    monto_total_asegurado: float = Form(...),
+    tasa_afecta: float | None = Form(None),
+    tasa_excenta: float | None = Form(None),
+    tasa_politica: float | None = Form(None),
+    prima_afecta: float | None = Form(None),
+    prima_excenta: float | None = Form(None),
+    asistencia_afecta: float = Form(...),
+    asistencia_excenta: float = Form(...),
+    id_company: int = Form(...),
+    fecha_emision: str = Form(...),
+    fecha_vencimiento: str = Form(...),
+    archivo: UploadFile | None = File(None),
+    usuario: Usuario = Depends(permisos_requeridos('ACTUALIZAR_COTIZACION')),
+    use_case: ActualizarCotizacionUseCase = Depends(get_actualizar_cotizacion_use_case)
+):
+    if tipo not in ('tasa', 'prima'):
+        raise HTTPException(status_code=400, detail='Tipo debe ser "tasa" o "prima"')
+
+    if tipo == 'tasa':
+        if tasa_afecta is None or tasa_excenta is None or tasa_politica is None:
+            raise HTTPException(status_code=400, detail='Cuando tipo es "tasa", se requieren tasa_afecta, tasa_excenta y tasa_politica')
+    else:
+        if prima_afecta is None or prima_excenta is None:
+            raise HTTPException(status_code=400, detail='Cuando tipo es "prima", se requieren prima_afecta y prima_excenta')
+
+    nombre_archivo = None
+
+    if archivo is not None:
+        if archivo.content_type != 'application/pdf':
+            raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
+
+        contenido = archivo.file.read()
+
+        if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
+            raise HTTPException(status_code=400, detail='El archivo excede el tamaño máximo de 25 MB')
+
+        extension = 'pdf'
+        nombre_unico = f'cotizacion_{id_solicitud}_{uuid4().hex}.{extension}'
+        ruta = f'documentos/cotizaciones/{nombre_unico}'
+
+        os.makedirs('documentos/cotizaciones', exist_ok=True)
+
+        with open(ruta, 'wb') as f:
+            f.write(contenido)
+
+        nombre_archivo = nombre_unico
+
+    use_case.ejecutar(
+        id_cotizacion=id_cotizacion,
+        id_solicitud=id_solicitud,
+        rut_usuario=usuario.rut,
+        monto_total_asegurado=monto_total_asegurado,
+        asistencia_afecta=asistencia_afecta,
+        asistencia_excenta=asistencia_excenta,
+        id_company=id_company,
+        fecha_emision=fecha_emision,
+        fecha_vencimiento=fecha_vencimiento,
+        tipo=tipo,
+        tasa_afecta=tasa_afecta,
+        tasa_excenta=tasa_excenta,
+        tasa_politica=tasa_politica,
+        prima_afecta=prima_afecta,
+        prima_excenta=prima_excenta,
+        nombre_archivo=nombre_archivo,
+    )
+
+    return {
+        'message': 'Cotización actualizada'
+    }
+
+
+@router.delete('/{id_solicitud}/cotizaciones/{id_cotizacion}', status_code=status.HTTP_200_OK)
+def eliminar_cotizacion(
+    id_solicitud: int,
+    id_cotizacion: int,
+    usuario: Usuario = Depends(permisos_requeridos('ELIMINAR_COTIZACION')),
+    use_case: EliminarCotizacionUseCase = Depends(get_eliminar_cotizacion_use_case)
+):
+    use_case.ejecutar(
+        id_cotizacion=id_cotizacion,
+        id_solicitud=id_solicitud,
+        rut_usuario=usuario.rut,
+    )
+
+    return {
+        'message': 'Cotización eliminada'
     }
 
 

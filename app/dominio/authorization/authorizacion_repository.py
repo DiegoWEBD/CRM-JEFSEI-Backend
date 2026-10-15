@@ -54,3 +54,11 @@ class AuthorizationRepository(ABC):
     @abstractmethod
     def usuario_puede_actualizar_probabilidad_cierre(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
         pass
+
+    @abstractmethod
+    def usuario_puede_eliminar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass
+
+    @abstractmethod
+    def usuario_puede_actualizar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass

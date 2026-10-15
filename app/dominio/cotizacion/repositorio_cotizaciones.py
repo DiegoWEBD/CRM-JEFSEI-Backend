@@ -10,7 +10,7 @@ class RepositorioCotizaciones(ABC):
         pass
 
     @abstractmethod
-    def obtener_por_id(self, id_cotizacion: int) -> Cotizacion:
+    def obtener_por_id(self, id_cotizacion: int) -> Cotizacion | None:
         pass
 
     @abstractmethod
@@ -20,4 +20,14 @@ class RepositorioCotizaciones(ABC):
 
     @abstractmethod
     def registrar_renovacion_cotizada(self, numero_poliza_renovacion: str):
+        pass
+
+    @abstractmethod
+    def eliminar(self, cotizacion: Cotizacion) -> None:
+        """Elimina la cotización. Solo persistencia."""
+        pass
+
+    @abstractmethod
+    def actualizar(self, id_cotizacion: int, cotizacion: Cotizacion) -> None:
+        """Actualiza los datos de la cotización. Solo persistencia."""
         pass

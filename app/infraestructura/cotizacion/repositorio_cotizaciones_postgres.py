@@ -46,7 +46,7 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
 
                 return [DictRowCotizacionAdapter(row).to_cotizacion() for row in rows]
             
-    def obtener_por_id(self, id_cotizacion: int) -> Cotizacion:
+    def obtener_por_id(self, id_cotizacion: int) -> Cotizacion | None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
@@ -75,11 +75,8 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 params = {'id_cotizacion': id_cotizacion}
                 cur.execute(query, params)
                 row = cur.fetchone()
-                if row is None:
-                    raise RecursoNoEncontradoException(
-                        f'Cotización con id {id_cotizacion} no encontrada'
-                    )
-                return DictRowCotizacionAdapter(row).to_cotizacion()
+
+                return DictRowCotizacionAdapter(row).to_cotizacion() if row is not None else None
 
     def registrar_cotizacion_a_solicitud(self, id_solicitud: int, cotizacion: Cotizacion, rut_usuario: str) -> None:
         ESTADO_COTIZACION_CARGADA = 'COTIZACION_DISPONIBLE'
@@ -228,6 +225,64 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
 
                 params = {
                     'numero_poliza': numero_poliza_renovacion
+                }
+
+                cur.execute(query, params)
+
+    def eliminar(self, cotizacion: Cotizacion) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    delete from Cotizacion
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': cotizacion.id
+                }
+
+                cur.execute(query, params)
+
+    def actualizar(self, id_cotizacion: int, cotizacion: Cotizacion) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Cotizacion set
+                        id_company = %(id_company)s,
+                        fecha_emision = %(fecha_emision)s,
+                        fecha_vencimiento = %(fecha_vencimiento)s,
+                        monto_total_asegurado = %(monto_total_asegurado)s,
+                        asistencia_afecta = %(asistencia_afecta)s,
+                        asistencia_excenta = %(asistencia_excenta)s,
+                        tasa_afecta = %(tasa_afecta)s,
+                        tasa_excenta = %(tasa_excenta)s,
+                        tasa_politica = %(tasa_politica)s,
+                        prima_afecta = %(prima_afecta)s,
+                        prima_excenta = %(prima_excenta)s,
+                        prima_neta = %(prima_neta)s,
+                        prima_iva = %(prima_iva)s,
+                        prima_bruta = %(prima_bruta)s,
+                        nombre_archivo = %(nombre_archivo)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': id_cotizacion,
+                    'id_company': cotizacion.company.id,
+                    'fecha_emision': cotizacion.fecha_emision,
+                    'fecha_vencimiento': cotizacion.fecha_vencimiento,
+                    'monto_total_asegurado': cotizacion.monto_total_asegurado,
+                    'asistencia_afecta': cotizacion.asistencia_afecta,
+                    'asistencia_excenta': cotizacion.asistencia_excenta,
+                    'tasa_afecta': cotizacion.tasa_afecta,
+                    'tasa_excenta': cotizacion.tasa_excenta,
+                    'tasa_politica': cotizacion.tasa_politica,
+                    'prima_afecta': cotizacion.prima_afecta,
+                    'prima_excenta': cotizacion.prima_excenta,
+                    'prima_neta': cotizacion.prima_neta,
+                    'prima_iva': cotizacion.prima_iva,
+                    'prima_bruta': cotizacion.prima_bruta,
+                    'nombre_archivo': cotizacion.nombre_archivo,
                 }
 
                 cur.execute(query, params)
