@@ -5,6 +5,7 @@ from app.presentacion.api.cotizacion.dto.estado_cotizacion import EstadoCotizaci
 
 class CotizacionJson(BaseModel):
     id: int
+    id_company: int
     monto_total_asegurado: float 
     tasa_afecta: float 
     tasa_excenta: float 
