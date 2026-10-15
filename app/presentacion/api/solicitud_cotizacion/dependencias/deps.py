@@ -1,7 +1,6 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
-from app.aplicacion.proceso_comercial.use_cases.registrar_aceptacion_cliente import RegistrarAceptacionClienteUseCase
 from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
@@ -87,12 +86,3 @@ def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
     return ObtenerDetalleSolicitudUseCase(repositorio)
 
-def get_registrar_aceptacion_cliente_use_case():
-    repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
-    repositorio_notificaciones = RepositorioNotificacionesPostgres()
-
-    return RegistrarAceptacionClienteUseCase(
-        repositorio_procesos_comerciales=repositorio_procesos_comerciales,
-        repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
-    )

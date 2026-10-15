@@ -10,7 +10,6 @@ from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import Cam
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
-from app.aplicacion.proceso_comercial.use_cases.registrar_aceptacion_cliente import RegistrarAceptacionClienteUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
@@ -30,7 +29,7 @@ from app.presentacion.api.proceso_comercial.dto.requests.cambiar_estado_manual_r
 from app.presentacion.api.proceso_comercial.dto.requests.cerrar_proceso_comercial_request import CerrarProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.crear_proceso_comercial_request import CrearProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.registrar_poliza_a_proceso_comercial_request import RegistrarPolizaAProcesoComercialRequest
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_solicitudes_cotizacion_use_case, get_registrar_aceptacion_cliente_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_solicitudes_cotizacion_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
 
 router = APIRouter(prefix='/procesos-comerciales', tags=['ProcesosComerciales'])
 
@@ -187,19 +186,6 @@ def obtener_solicitudes(
 
     return {
         'solicitudes': solicitudes
-    }
-
-
-@router.post('/{id}/aceptacion', status_code=status.HTTP_201_CREATED)
-def registrar_aceptacion(
-    id: int,
-    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES')),
-    use_case: RegistrarAceptacionClienteUseCase = Depends(get_registrar_aceptacion_cliente_use_case)
-):
-    use_case.ejecutar(id, usuario)
-
-    return {
-        'message': 'Propuesta aceptada'
     }
 
 

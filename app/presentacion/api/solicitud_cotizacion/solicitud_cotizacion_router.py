@@ -10,6 +10,7 @@ from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
+from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.cotizacion.adaptadores.cotizacion_json_adapter import CotizacionJsonAdapter
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
@@ -100,6 +101,11 @@ def registrar_cotizacion_a_solicitud(
         if archivo.content_type != 'application/pdf':
             raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
 
+        contenido = archivo.file.read()
+
+        if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
+            raise HTTPException(status_code=400, detail='El archivo excede el tamaño máximo de 25 MB')
+
         extension = 'pdf'
         nombre_unico = f'cotizacion_{id}_{uuid4().hex}.{extension}'
         ruta = f'documentos/cotizaciones/{nombre_unico}'
@@ -107,7 +113,7 @@ def registrar_cotizacion_a_solicitud(
         os.makedirs('documentos/cotizaciones', exist_ok=True)
 
         with open(ruta, 'wb') as f:
-            f.write(archivo.file.read())
+            f.write(contenido)
 
         nombre_archivo = nombre_unico
 
@@ -147,6 +153,15 @@ def subir_estudio_comercial(
 ):
     if archivo.content_type != 'application/pdf':
         raise BadRequestException('Solo se permiten archivos PDF')
+
+    contenido = archivo.file.read()
+
+    if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
+        raise BadRequestException('El archivo excede el tamaño máximo de 25 MB')
+
+    # La validación leyó el stream completo; hay que rebobinarlo para que el
+    # use case pueda escribirlo sin recibir un archivo vacío.
+    archivo.file.seek(0)
 
     id_estudio, nombre_unico = use_case.ejecutar(archivo=archivo, id_solicitud=id, usuario=usuario)
 

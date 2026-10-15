@@ -8,6 +8,7 @@ from app.aplicacion.archivo.use_cases.eliminar_archivo import EliminarArchivoUse
 from app.aplicacion.archivo.use_cases.obtener_archivo_por_id import ObtenerArchivoPorIdUseCase
 from app.aplicacion.archivo.use_cases.obtener_archivos_prospecto import ObtenerArchivosProspectoUseCase
 from app.aplicacion.archivo.use_cases.subir_archivo import SubirArchivoUseCase
+from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.archivo.deps import (
     get_eliminar_archivo_use_case,
@@ -45,8 +46,6 @@ MIME_TO_EXTENSION = {
     'application/msword': 'doc',
 }
 
-TAMANO_MAXIMO = 20 * 1024 * 1024
-
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def subir_archivo(
@@ -63,10 +62,10 @@ def subir_archivo(
 
     contenido = archivo.file.read()
 
-    if len(contenido) > TAMANO_MAXIMO:
+    if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='El archivo excede el tamaño máximo de 20 MB'
+            detail='El archivo excede el tamaño máximo de 25 MB'
         )
 
     extension = MIME_TO_EXTENSION.get(archivo.content_type, 'bin')
