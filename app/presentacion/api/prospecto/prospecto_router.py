@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.aplicacion.contacto.use_cases.obtener_contactos_prospecto import ObtenerContactosProspectoUseCase
 from app.aplicacion.contacto.use_cases.registrar_contacto import RegistrarContactoUseCase
@@ -11,7 +11,6 @@ from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarPr
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
-from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.contacto.adaptadores.contacto_json_adapter import ContactoJsonAdapter
 from app.presentacion.api.contacto.dependencias.deps import (
