@@ -2,13 +2,16 @@ from app.aplicacion.authorization.authorization_service import AuthorizationServ
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
+from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
@@ -85,4 +88,19 @@ def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
 def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
     return ObtenerDetalleSolicitudUseCase(repositorio)
+
+
+def get_eliminar_solicitud_cotizacion_use_case():
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return EliminarSolicitudCotizacionUseCase(
+        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
+        repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
+    )
 

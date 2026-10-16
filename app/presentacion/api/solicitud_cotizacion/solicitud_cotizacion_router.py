@@ -5,6 +5,7 @@ from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCoti
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
@@ -20,7 +21,7 @@ from app.presentacion.api.cotizacion.dependencias.deps import (
 )
 from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_eliminar_solicitud_cotizacion_use_case, get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 
@@ -54,7 +55,23 @@ def obtener_detalle_solicitud(
         'solicitud': solicitud
     }
 
-      
+
+@router.delete('/{id}', status_code=status.HTTP_200_OK)
+def eliminar_solicitud_cotizacion(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('ELIMINAR_SOLICITUD_COTIZACION')),
+    use_case: EliminarSolicitudCotizacionUseCase = Depends(get_eliminar_solicitud_cotizacion_use_case)
+):
+    use_case.ejecutar(
+        id_solicitud=id,
+        rut_usuario=usuario.rut,
+    )
+
+    return {
+        'message': 'Solicitud de cotización eliminada'
+    }
+
+
 @router.get('/{id}/cotizaciones', status_code=status.HTTP_200_OK)
 def obtener_cotizaciones_por_solicitud(
     id: int,

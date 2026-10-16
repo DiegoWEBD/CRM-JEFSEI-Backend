@@ -747,3 +747,21 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 row = cur.fetchone()
 
                 return row is not None
+
+    def eliminar(self, id_solicitud: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    WITH cotizaciones_eliminadas AS (
+                        DELETE FROM Cotizacion
+                        WHERE id_solicitud = %(id_solicitud)s
+                    )
+                    DELETE FROM SolicitudCotizacion
+                    WHERE id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
