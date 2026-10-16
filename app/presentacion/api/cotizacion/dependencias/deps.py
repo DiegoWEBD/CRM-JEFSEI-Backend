@@ -1,3 +1,4 @@
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import ActualizarCotizacionUseCase
 from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCotizacionUseCase
@@ -42,7 +43,8 @@ def get_registrar_cotizacion_a_solicitud_use_case():
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )
 
 def get_subir_estudio_comercial_use_case():
@@ -53,7 +55,8 @@ def get_subir_estudio_comercial_use_case():
         repositorio_estudios=repositorio_estudios,
         repositorio_procesos=RepositorioProcesosComercialesPostgres(),
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )
 
 
@@ -67,15 +70,20 @@ def get_eliminar_cotizacion_use_case():
         repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )
 
 
 def get_actualizar_cotizacion_use_case():
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+    
     return ActualizarCotizacionUseCase(
         repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
         repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
         repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )

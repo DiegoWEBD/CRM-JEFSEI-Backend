@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.core.archivos import DIRECTORIO_COTIZACIONES
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
@@ -25,7 +27,8 @@ class EliminarCotizacionUseCase:
         repositorio_historial: RepositorioHistorialEstadoProcesosComerciales,
         authorization_service: AuthorizationService,
         repositorio_notificaciones: RepositorioNotificaciones,
-        servicio_alertas: ServicioAlertasProceso
+        servicio_alertas: ServicioAlertasProceso,
+        servicio_archivos: ServicioArchivos
     ) -> None:
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
@@ -34,6 +37,7 @@ class EliminarCotizacionUseCase:
         self.authorization_service = authorization_service
         self.repositorio_notificaciones = repositorio_notificaciones
         self.servicio_alertas = servicio_alertas
+        self.servicio_archivos = servicio_archivos
 
     def ejecutar(self, id_cotizacion: int, id_solicitud: int, rut_usuario: str):
 
@@ -65,9 +69,14 @@ class EliminarCotizacionUseCase:
             raise RecursoNoEncontradoException('Cotización no encontrada')
 
         # 5. Eliminar cotización
+
         self.repositorio_cotizaciones.eliminar(cotizacion)
 
-        # 6. Registrar historial + actualizar estado_actual
+        # 6. Eliminar archivo asociado
+
+        self.servicio_archivos.eliminar(DIRECTORIO_COTIZACIONES, cotizacion.nombre_archivo)
+
+        # 7. Registrar historial + actualizar estado_actual
         ahora = datetime.now(tz=timezone.utc)
 
         historial = HistorialEstadoProcesoComercial(
@@ -78,7 +87,7 @@ class EliminarCotizacionUseCase:
         )
         self.repositorio_historial.registrar(historial)
 
-        # 7. Marcar alertas SLA del estado anterior como leídas
+        # 8. Marcar alertas SLA del estado anterior como leídas
 
         destinatarios = self.servicio_alertas.marcar_leidas(
             proceso.id, TIPOS_ALERTA_SLA, ahora

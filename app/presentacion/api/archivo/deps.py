@@ -1,3 +1,4 @@
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.archivo.use_cases.eliminar_archivo import EliminarArchivoUseCase
 from app.aplicacion.archivo.use_cases.obtener_archivo_por_id import ObtenerArchivoPorIdUseCase
 from app.aplicacion.archivo.use_cases.obtener_archivos_prospecto import ObtenerArchivosProspectoUseCase
@@ -13,6 +14,7 @@ def get_subir_archivo_use_case():
         repositorio_archivos=RepositorioArchivosPostgres(),
         repositorio_prospectos=RepositorioProspectosPostgres(),
         authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        servicio_archivos=ServicioArchivos(),
     )
 
 
@@ -37,4 +39,5 @@ def get_eliminar_archivo_use_case():
         repositorio_archivos=RepositorioArchivosPostgres(),
         repositorio_prospectos=RepositorioProspectosPostgres(),
         authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        servicio_archivos=ServicioArchivos(),
     )

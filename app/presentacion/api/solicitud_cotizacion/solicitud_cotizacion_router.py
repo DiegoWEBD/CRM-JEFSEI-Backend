@@ -1,6 +1,3 @@
-import os
-from uuid import uuid4
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import ActualizarCotizacionUseCase
@@ -102,26 +99,16 @@ def registrar_cotizacion_a_solicitud(
             raise HTTPException(status_code=400, detail='Cuando tipo es "prima", se requieren prima_afecta y prima_excenta')
 
     nombre_archivo = None
+    contenido_archivo = None
 
     if archivo is not None:
         if archivo.content_type != 'application/pdf':
             raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
 
-        contenido = archivo.file.read()
+        contenido_archivo = archivo.file.read()
 
-        if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
+        if len(contenido_archivo) > TAMANO_MAXIMO_ARCHIVO:
             raise HTTPException(status_code=400, detail='El archivo excede el tamaño máximo de 25 MB')
-
-        extension = 'pdf'
-        nombre_unico = f'cotizacion_{id}_{uuid4().hex}.{extension}'
-        ruta = f'documentos/cotizaciones/{nombre_unico}'
-
-        os.makedirs('documentos/cotizaciones', exist_ok=True)
-
-        with open(ruta, 'wb') as f:
-            f.write(contenido)
-
-        nombre_archivo = nombre_unico
 
     use_case.ejecutar(
         rut_usuario=usuario.rut,
@@ -138,7 +125,7 @@ def registrar_cotizacion_a_solicitud(
         tasa_politica=tasa_politica,
         prima_afecta=prima_afecta,
         prima_excenta=prima_excenta,
-        nombre_archivo=nombre_archivo,
+        contenido_archivo=contenido_archivo,
     )
 
     return {
@@ -163,6 +150,7 @@ def actualizar_cotizacion(
     fecha_emision: str = Form(...),
     fecha_vencimiento: str = Form(...),
     archivo: UploadFile | None = File(None),
+    eliminar_archivo: str = Form('false'),
     usuario: Usuario = Depends(permisos_requeridos('ACTUALIZAR_COTIZACION')),
     use_case: ActualizarCotizacionUseCase = Depends(get_actualizar_cotizacion_use_case)
 ):
@@ -177,26 +165,16 @@ def actualizar_cotizacion(
             raise HTTPException(status_code=400, detail='Cuando tipo es "prima", se requieren prima_afecta y prima_excenta')
 
     nombre_archivo = None
+    contenido_archivo = None
 
     if archivo is not None:
         if archivo.content_type != 'application/pdf':
             raise HTTPException(status_code=400, detail='Solo se permiten archivos PDF')
 
-        contenido = archivo.file.read()
+        contenido_archivo = archivo.file.read()
 
-        if len(contenido) > TAMANO_MAXIMO_ARCHIVO:
+        if len(contenido_archivo) > TAMANO_MAXIMO_ARCHIVO:
             raise HTTPException(status_code=400, detail='El archivo excede el tamaño máximo de 25 MB')
-
-        extension = 'pdf'
-        nombre_unico = f'cotizacion_{id_solicitud}_{uuid4().hex}.{extension}'
-        ruta = f'documentos/cotizaciones/{nombre_unico}'
-
-        os.makedirs('documentos/cotizaciones', exist_ok=True)
-
-        with open(ruta, 'wb') as f:
-            f.write(contenido)
-
-        nombre_archivo = nombre_unico
 
     use_case.ejecutar(
         id_cotizacion=id_cotizacion,
@@ -214,7 +192,8 @@ def actualizar_cotizacion(
         tasa_politica=tasa_politica,
         prima_afecta=prima_afecta,
         prima_excenta=prima_excenta,
-        nombre_archivo=nombre_archivo,
+        contenido_archivo=contenido_archivo,
+        eliminar_archivo=eliminar_archivo.lower() == 'true',
     )
 
     return {
@@ -258,8 +237,9 @@ def subir_estudio_comercial(
     # La validación leyó el stream completo; hay que rebobinarlo para que el
     # use case pueda escribirlo sin recibir un archivo vacío.
     archivo.file.seek(0)
+    contenido_archivo = archivo.file.read()
 
-    id_estudio, nombre_unico = use_case.ejecutar(archivo=archivo, id_solicitud=id, usuario=usuario)
+    id_estudio, nombre_unico = use_case.ejecutar(contenido_archivo=contenido_archivo, id_solicitud=id, usuario=usuario)
 
     return {
         'id': id_estudio,

@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.cotizacion.cotizacion_factory import CotizacionFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.core.archivos import DIRECTORIO_COTIZACIONES
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -24,7 +27,8 @@ class ActualizarCotizacionUseCase:
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_historial: RepositorioHistorialEstadoProcesosComerciales,
         authorization_service: AuthorizationService,
-        servicio_alertas: ServicioAlertasProceso
+        servicio_alertas: ServicioAlertasProceso,
+        servicio_archivos: ServicioArchivos
     ) -> None:
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
@@ -32,6 +36,7 @@ class ActualizarCotizacionUseCase:
         self.repositorio_historial = repositorio_historial
         self.authorization_service = authorization_service
         self.servicio_alertas = servicio_alertas
+        self.servicio_archivos = servicio_archivos
 
     def ejecutar(
         self,
@@ -50,7 +55,8 @@ class ActualizarCotizacionUseCase:
         tasa_politica: float | None = None,
         prima_afecta: float | None = None,
         prima_excenta: float | None = None,
-        nombre_archivo: str | None = None,
+        contenido_archivo: bytes | None = None,
+        eliminar_archivo: bool = False,
     ):
 
         # 1. Validar que la solicitud existe
@@ -80,7 +86,21 @@ class ActualizarCotizacionUseCase:
         if cotizacion is None:
             raise RecursoNoEncontradoException('Cotización no encontrada')
 
-        # 5. Construir el objeto Cotizacion con recálculo vía CotizacionFactory
+        # 5. Resolución de archivo: guardar nuevo, eliminar o mantener
+
+        nombre_archivo_previo = cotizacion.nombre_archivo
+
+        if contenido_archivo is not None:
+            nombre_archivo = f'cotizacion_{id_solicitud}_{uuid4().hex}.pdf'
+            self.servicio_archivos.guardar(DIRECTORIO_COTIZACIONES, nombre_archivo, contenido_archivo)
+            self.servicio_archivos.eliminar(DIRECTORIO_COTIZACIONES, nombre_archivo_previo)
+        elif eliminar_archivo:
+            self.servicio_archivos.eliminar(DIRECTORIO_COTIZACIONES, nombre_archivo_previo)
+            nombre_archivo = None
+        else:
+            nombre_archivo = nombre_archivo_previo
+
+        # 6. Construir el objeto Cotizacion con recálculo vía CotizacionFactory
 
         cotizacion = CotizacionFactory.crear(
             monto_total_asegurado=monto_total_asegurado,
@@ -98,11 +118,11 @@ class ActualizarCotizacionUseCase:
             nombre_archivo=nombre_archivo,
         )
 
-        # 6. Actualizar cotización
+        # 7. Actualizar cotización
 
         self.repositorio_cotizaciones.actualizar(id_cotizacion, cotizacion)
 
-        # 7. Registrar historial + actualizar estado_actual
+        # 8. Registrar historial + actualizar estado_actual
         ahora = datetime.now(tz=timezone.utc)
 
         historial = HistorialEstadoProcesoComercial(
@@ -113,7 +133,7 @@ class ActualizarCotizacionUseCase:
         )
         self.repositorio_historial.registrar(historial)
 
-        # 8. Marcar alertas SLA del estado anterior como leídas
+        # 9. Marcar alertas SLA del estado anterior como leídas
         
         destinatarios = self.servicio_alertas.marcar_leidas(
             proceso.id, TIPOS_ALERTA_SLA, ahora

@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.cotizacion.cotizacion_factory import CotizacionFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.core.archivos import DIRECTORIO_COTIZACIONES
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
@@ -25,7 +28,8 @@ class RegistrarCotizacionASolicitudUseCase:
         authorization_service: AuthorizationService,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_notificaciones: RepositorioNotificaciones,
-        servicio_alertas: ServicioAlertasProceso
+        servicio_alertas: ServicioAlertasProceso,
+        servicio_archivos: ServicioArchivos
     ) -> None:
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.authorization_service = authorization_service
@@ -34,6 +38,7 @@ class RegistrarCotizacionASolicitudUseCase:
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_notificaciones = repositorio_notificaciones
         self.servicio_alertas = servicio_alertas
+        self.servicio_archivos = servicio_archivos
 
     def ejecutar(
         self, 
@@ -51,13 +56,21 @@ class RegistrarCotizacionASolicitudUseCase:
         tasa_politica: float | None = None,
         prima_afecta: float | None = None,
         prima_excenta: float | None = None,
-        nombre_archivo: str | None = None
+        contenido_archivo: bytes | None = None
     ):
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
         
         if not self.authorization_service.usuario_puede_ver_solicitud_cotizacion(rut_usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
+
+        # Escritura del archivo asociado, si corresponde
+
+        nombre_archivo = None
+
+        if contenido_archivo is not None:
+            nombre_archivo = f'cotizacion_{id_solicitud}_{uuid4().hex}.pdf'
+            self.servicio_archivos.guardar(DIRECTORIO_COTIZACIONES, nombre_archivo, contenido_archivo)
 
         cotizacion = CotizacionFactory.crear(
             monto_total_asegurado=monto_total_asegurado,
