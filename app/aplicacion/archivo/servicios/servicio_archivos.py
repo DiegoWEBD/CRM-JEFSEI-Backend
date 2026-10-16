@@ -20,5 +20,8 @@ class ServicioArchivos:
 
     def eliminar(self, directorio: str, nombre_archivo: str | None) -> None:
         """Elimina el archivo si existe. Silencioso si no existe o es None."""
+        if not nombre_archivo:
+            return
+        
         if self.existe(directorio, nombre_archivo):
             os.remove(os.path.join(directorio, nombre_archivo))
