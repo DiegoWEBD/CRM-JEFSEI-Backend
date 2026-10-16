@@ -45,3 +45,9 @@ class AuthorizationService:
 
     def usuario_puede_actualizar_probabilidad_cierre(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
         return self.authorization_repository.usuario_puede_actualizar_probabilidad_cierre(rut_usuario, id_proceso_comercial)
+
+    def usuario_puede_eliminar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_eliminar_cotizacion(rut_usuario, id_solicitud)
+
+    def usuario_puede_actualizar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_actualizar_cotizacion(rut_usuario, id_solicitud)

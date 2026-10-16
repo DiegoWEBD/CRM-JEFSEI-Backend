@@ -1,4 +1,7 @@
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import ActualizarCotizacionUseCase
+from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCotizacionUseCase
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
@@ -7,6 +10,7 @@ from app.infraestructura.authorization.authorization_repository_postgres import 
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
 from app.infraestructura.estudio_comercial_condominio.repositorio_estudios_comerciales_postgres import RepositorioEstudiosComercialesPostgres
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
@@ -39,7 +43,8 @@ def get_registrar_cotizacion_a_solicitud_use_case():
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )
 
 def get_subir_estudio_comercial_use_case():
@@ -50,5 +55,35 @@ def get_subir_estudio_comercial_use_case():
         repositorio_estudios=repositorio_estudios,
         repositorio_procesos=RepositorioProcesosComercialesPostgres(),
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
+    )
+
+
+def get_eliminar_cotizacion_use_case():
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return EliminarCotizacionUseCase(
+        repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
+        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
+    )
+
+
+def get_actualizar_cotizacion_use_case():
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+    
+    return ActualizarCotizacionUseCase(
+        repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
+        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        authorization_service=AuthorizationService(AuthorizationRepositoryPostgres()),
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_archivos=ServicioArchivos()
     )

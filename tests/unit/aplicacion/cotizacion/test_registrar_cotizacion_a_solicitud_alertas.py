@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import (
     RegistrarCotizacionASolicitudUseCase,
 )
@@ -30,6 +31,7 @@ def _use_case(proceso=None):
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
     servicio_alertas = MagicMock(spec=ServicioAlertasProceso)
     servicio_alertas.marcar_leidas.return_value = ['11111111-1']
+    servicio_archivos = MagicMock(spec=ServicioArchivos)
     uc = RegistrarCotizacionASolicitudUseCase(
         repo_companies,
         repo_solicitudes,
@@ -38,14 +40,24 @@ def _use_case(proceso=None):
         repo_procesos,
         repo_notificaciones,
         servicio_alertas,
+        servicio_archivos,
     )
     return uc, repo_cotizaciones, repo_procesos, servicio_alertas
 
 
-def _cotizacion_mock():
-    cotizacion = MagicMock()
-    cotizacion.company.id = 1
-    return cotizacion
+EJECUTAR_ARGS = dict(
+    rut_usuario='99999999-9',
+    id_solicitud=3,
+    monto_total_asegurado=1000.0,
+    asistencia_afecta=0.0,
+    asistencia_excenta=0.0,
+    id_company=1,
+    fecha_emision='2026-01-01T00:00:00',
+    fecha_vencimiento='2027-01-01T00:00:00',
+    tipo='prima',
+    prima_afecta=100.0,
+    prima_excenta=50.0,
+)
 
 
 @pytest.mark.unit
@@ -57,7 +69,7 @@ class TestRegistrarCotizacionASolicitudAlertas:
             proceso=MagicMock(id=42)
         )
 
-        uc.ejecutar(rut_usuario='99999999-9', id_solicitud=3, cotizacion=_cotizacion_mock())
+        uc.ejecutar(**EJECUTAR_ARGS)
 
         repo_cotizaciones.registrar_cotizacion_a_solicitud.assert_called_once()
         repo_procesos.buscar_por_solicitud_cotizacion.assert_called_once_with(3)
@@ -73,7 +85,7 @@ class TestRegistrarCotizacionASolicitudAlertas:
     def test_sin_proceso_resuelto_no_marca_ni_publica(self, mock_hub):
         uc, _, repo_procesos, servicio_alertas = _use_case(proceso=None)
 
-        uc.ejecutar(rut_usuario='99999999-9', id_solicitud=3, cotizacion=_cotizacion_mock())
+        uc.ejecutar(**EJECUTAR_ARGS)
 
         repo_procesos.buscar_por_solicitud_cotizacion.assert_called_once_with(3)
         servicio_alertas.marcar_leidas.assert_not_called()
@@ -83,6 +95,6 @@ class TestRegistrarCotizacionASolicitudAlertas:
         uc, _, _, servicio_alertas = _use_case(proceso=MagicMock(id=42))
         servicio_alertas.marcar_leidas.return_value = []
 
-        uc.ejecutar(rut_usuario='99999999-9', id_solicitud=3, cotizacion=_cotizacion_mock())
+        uc.ejecutar(**EJECUTAR_ARGS)
 
         mock_hub.publicar_desde_hilo.assert_not_called()

@@ -1,4 +1,6 @@
+from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.core.archivos import DIRECTORIO_PROSPECTOS
 from app.dominio.archivo.archivo import Archivo
 from app.dominio.archivo.repositorio_archivos import RepositorioArchivos
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -14,10 +16,12 @@ class SubirArchivoUseCase:
         repositorio_archivos: RepositorioArchivos,
         repositorio_prospectos: RepositorioProspectos,
         authorization_service: AuthorizationService,
+        servicio_archivos: ServicioArchivos,
     ):
         self.repositorio_archivos = repositorio_archivos
         self.repositorio_prospectos = repositorio_prospectos
         self.authorization_service = authorization_service
+        self.servicio_archivos = servicio_archivos
 
     def ejecutar(
         self,
@@ -26,6 +30,7 @@ class SubirArchivoUseCase:
         nombre_original: str,
         tipo_contenido: str,
         tamano_bytes: int,
+        contenido: bytes,
         rut_usuario: str,
     ) -> Archivo:
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
@@ -38,6 +43,8 @@ class SubirArchivoUseCase:
 
         if self.repositorio_archivos.existe_nombre_original(id_prospecto, nombre_original):
             raise RecursoYaExisteException("Ya existe un archivo con ese nombre para este prospecto")
+
+        self.servicio_archivos.guardar(DIRECTORIO_PROSPECTOS, nombre_almacenado, contenido)
 
         return self.repositorio_archivos.insertar(
             id_prospecto=id_prospecto,

@@ -79,10 +79,13 @@ class ArmarEstudioComercialCondominioUseCase:
         if prospecto.porcentaje_depreciacion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
 
-        cotizaciones = [
-            self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
-            for id_cotizacion in ids_cotizacion
-        ]
+        cotizaciones = []
+
+        for id_cotizacion in ids_cotizacion:
+            cotizacion = self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
+
+            if cotizacion is not None:
+                cotizaciones.append(cotizacion)
 
         rt = RichText()
         rt.add('\f')

@@ -46,6 +46,7 @@ class CotizacionJsonAdapter:
 
         return CotizacionJson(
             id=self.cotizacion.id,
+            id_company=self.cotizacion.company.id,
             monto_total_asegurado=self.cotizacion.monto_total_asegurado,
             tasa_afecta=self.cotizacion.tasa_afecta,
             tasa_excenta=self.cotizacion.tasa_excenta,

@@ -70,12 +70,6 @@ def subir_archivo(
 
     extension = MIME_TO_EXTENSION.get(archivo.content_type, 'bin')
     nombre_almacenado = f'prospecto_{id_prospecto}_{uuid4().hex}.{extension}'
-    ruta = f'documentos/prospectos/{nombre_almacenado}'
-
-    os.makedirs('documentos/prospectos', exist_ok=True)
-
-    with open(ruta, 'wb') as f:
-        f.write(contenido)
 
     archivo_creado = use_case.ejecutar(
         id_prospecto=id_prospecto,
@@ -83,6 +77,7 @@ def subir_archivo(
         nombre_original=archivo.filename,
         tipo_contenido=archivo.content_type,
         tamano_bytes=len(contenido),
+        contenido=contenido,
         rut_usuario=usuario.rut,
     )
 
@@ -152,14 +147,10 @@ def eliminar_archivo(
     usuario: Usuario = Depends(get_current_user),
     use_case: EliminarArchivoUseCase = Depends(get_eliminar_archivo_use_case)
 ):
-    nombre_almacenado = use_case.ejecutar(
+    use_case.ejecutar(
         id_archivo=id_archivo,
         id_prospecto=id_prospecto,
         rut_usuario=usuario.rut
     )
-
-    ruta = f'documentos/prospectos/{nombre_almacenado}'
-    if os.path.exists(ruta):
-        os.remove(ruta)
 
     return {'message': 'Archivo eliminado correctamente'}
