@@ -24,3 +24,7 @@ class RepositorioSolicitudesCotizacion(ABC):
     @abstractmethod
     def existe_solicitud(self, id) -> bool:
         pass
+
+    @abstractmethod
+    def eliminar(self, id_solicitud: int) -> None:
+        pass

@@ -51,3 +51,6 @@ class AuthorizationService:
 
     def usuario_puede_actualizar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_actualizar_cotizacion(rut_usuario, id_solicitud)
+
+    def usuario_puede_eliminar_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_eliminar_solicitud_cotizacion(rut_usuario, id_solicitud)
