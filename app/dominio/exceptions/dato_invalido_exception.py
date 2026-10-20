@@ -1,0 +1,2 @@
+class DatoInvalidoException(Exception):
+    pass

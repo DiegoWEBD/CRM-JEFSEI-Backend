@@ -9,6 +9,7 @@ from app.core.hub_notificaciones import hub
 from app.core.scheduler import detener_scheduler, iniciar_scheduler
 from app.dominio.auth.exceptions import RefreshTokenInvalidoError, RefreshTokenReusadoError
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
+from app.dominio.exceptions.dato_invalido_exception import DatoInvalidoException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
@@ -42,6 +43,7 @@ from app.presentacion.api.recordatorio import recordatorio_router
 from app.presentacion.api.rol import rol_router
 from app.presentacion.api.sesiones import sesiones_router
 from app.presentacion.api.solicitud_cotizacion import solicitud_cotizacion_router
+from app.presentacion.api.importacion_alicuotas import importacion_alicuotas_router
 from app.presentacion.api.sucursal import sucursal_router
 from app.presentacion.api.usuario import usuario_router
 from fastapi.middleware.cors import CORSMiddleware
@@ -124,6 +126,17 @@ async def usuario_no_autorizado_handler(
 async def bad_request_handler(
     _: Request,
     exc: BadRequestException,
+):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={'detail': str(exc)},
+    )
+
+
+@app.exception_handler(DatoInvalidoException)
+async def dato_invalido_handler(
+    _: Request,
+    exc: DatoInvalidoException,
 ):
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -245,6 +258,13 @@ app.include_router(
 
 app.include_router(
     router=solicitud_cotizacion_router.router,
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+app.include_router(
+    router=importacion_alicuotas_router.router,
     dependencies=[
         Depends(get_current_user)
     ]

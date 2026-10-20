@@ -1,4 +1,5 @@
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
 from datetime import datetime
 
 
@@ -21,7 +22,8 @@ class SolicitudCotizacionUnidades(SolicitudCotizacion):
         motivo_recotizacion: str | None,
         monto_asegurado: float | None,
         nombre_excel: str,
-        cantidad_cotizaciones: int = 0
+        cantidad_cotizaciones: int = 0,
+        unidades: list[UnidadAlicuota] | None = None
     ):
         super().__init__(
             id=id,
@@ -41,4 +43,5 @@ class SolicitudCotizacionUnidades(SolicitudCotizacion):
         )
 
         self.nombre_excel = nombre_excel
+        self.unidades = unidades or []
         

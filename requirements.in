@@ -7,6 +7,7 @@ bcrypt==4.0.1
 PyJWT[crypto]
 pydantic-settings
 docxtpl
+openpyxl
 python-multipart
 python-dateutil
 apscheduler

@@ -509,6 +509,23 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                     cur.execute(query, params)
 
+                    # Unidades con alícuota importadas desde el Excel, en la
+                    # misma transacción que la solicitud.
+                    for unidad in solicitud.unidades:
+                        query = '''
+                            insert into SolicitudCotizacionUnidad (id_solicitud, identificador_unidad, prorrateo, fila_origen)
+                            values (%(id_solicitud)s, %(identificador_unidad)s, %(prorrateo)s, %(fila_origen)s)
+                        '''
+
+                        params = {
+                            'id_solicitud': id_solicitud,
+                            'identificador_unidad': unidad.identificador_unidad,
+                            'prorrateo': unidad.prorrateo,
+                            'fila_origen': unidad.fila_origen
+                        }
+
+                        cur.execute(query, params)
+
                 elif isinstance(solicitud, SolicitudCotizacionVidaGuardia):
                     query = '''
                         insert into SolicitudCotizacionProductoVidaGuardia (id, numero_guardias)
@@ -653,6 +670,23 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                     }
 
                     cur.execute(query, params)
+
+                    # Unidades con alícuota importadas desde el Excel, en la
+                    # misma transacción que la solicitud.
+                    for unidad in solicitud.unidades:
+                        query = '''
+                            insert into SolicitudCotizacionUnidad (id_solicitud, identificador_unidad, prorrateo, fila_origen)
+                            values (%(id_solicitud)s, %(identificador_unidad)s, %(prorrateo)s, %(fila_origen)s)
+                        '''
+
+                        params = {
+                            'id_solicitud': id_solicitud,
+                            'identificador_unidad': unidad.identificador_unidad,
+                            'prorrateo': unidad.prorrateo,
+                            'fila_origen': unidad.fila_origen
+                        }
+
+                        cur.execute(query, params)
 
                 elif isinstance(solicitud, SolicitudCotizacionVidaGuardia):
                     query = '''

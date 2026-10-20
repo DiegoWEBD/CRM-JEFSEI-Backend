@@ -5,6 +5,12 @@ from pydantic import BaseModel
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_accidentes_personales_request.actividad_accidentes_personales_request import ActividadAccidentesPersonalesRequest
 
 
+class UnidadAlicuotaRequest(BaseModel):
+    identificador_unidad: str
+    prorrateo: float
+    fila_origen: int
+
+
 class SolicitudCotizacionRequest(BaseModel):
     prioridad: str
     observaciones: str | None
@@ -14,6 +20,7 @@ class SolicitudCotizacionRequest(BaseModel):
     numero_guardias: int | None = None
     monto_asegurado: float | None = None
     nombre_excel: str | None = None
+    unidades: list[UnidadAlicuotaRequest] | None = None
     actividades: list[ActividadAccidentesPersonalesRequest] | None = None
     actividad_del_condominio: str | None = None
     limite: float | None = None

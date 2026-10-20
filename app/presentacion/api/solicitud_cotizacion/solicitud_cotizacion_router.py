@@ -8,6 +8,7 @@ from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial impor
 from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_unidades_alicuotas import ObtenerUnidadesAlicuotasUseCase
 from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.cotizacion.adaptadores.cotizacion_json_adapter import CotizacionJsonAdapter
@@ -21,7 +22,7 @@ from app.presentacion.api.cotizacion.dependencias.deps import (
 )
 from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_eliminar_solicitud_cotizacion_use_case, get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_eliminar_solicitud_cotizacion_use_case, get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case, get_obtener_unidades_alicuotas_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 
@@ -69,6 +70,30 @@ def eliminar_solicitud_cotizacion(
 
     return {
         'message': 'Solicitud de cotización eliminada'
+    }
+
+
+@router.get('/{id}/unidades', status_code=status.HTTP_200_OK)
+def obtener_unidades_alicuotas(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerUnidadesAlicuotasUseCase = Depends(get_obtener_unidades_alicuotas_use_case)
+):
+    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
+    rut_usuario = None if puede_ver_todas else usuario.rut
+
+    unidades = use_case.ejecutar(id, rut_usuario)
+
+    return {
+        'unidades': [
+            {
+                'identificador_unidad': unidad.identificador_unidad,
+                'prorrateo': unidad.prorrateo,
+                'fila_origen': unidad.fila_origen,
+            }
+            for unidad in unidades
+        ],
+        'cantidad': len(unidades)
     }
 
 

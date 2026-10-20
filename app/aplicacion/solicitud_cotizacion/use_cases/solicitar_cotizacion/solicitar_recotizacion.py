@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
+from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.unidades_desde_request import construir_unidades
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -94,7 +95,8 @@ class SolicitarRecotizacionUseCase:
                 recotizacion=True,
                 motivo_recotizacion=request.motivo_recotizacion,
                 monto_asegurado=request.monto_asegurado,
-                nombre_excel=request.nombre_excel
+                nombre_excel=request.nombre_excel,
+                unidades=construir_unidades(request)
             )
 
         elif request.tipo == 'vida_guardia':
