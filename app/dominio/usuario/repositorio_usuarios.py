@@ -43,3 +43,7 @@ class RepositorioUsuarios(ABC):
     @abstractmethod
     def eliminar(self, rut: str) -> bool:
         pass
+
+    @abstractmethod
+    def usuario_tiene_permiso(self, usuario: Usuario, codigo_permiso: str) -> bool:
+        pass

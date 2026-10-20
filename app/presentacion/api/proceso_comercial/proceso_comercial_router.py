@@ -30,6 +30,7 @@ from app.presentacion.api.proceso_comercial.dto.requests.cerrar_proceso_comercia
 from app.presentacion.api.proceso_comercial.dto.requests.crear_proceso_comercial_request import CrearProcesoComercialRequest
 from app.presentacion.api.proceso_comercial.dto.requests.registrar_poliza_a_proceso_comercial_request import RegistrarPolizaAProcesoComercialRequest
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_solicitudes_cotizacion_use_case, get_solicitar_cotizacion_use_case, get_solicitar_recotizacion_use_case
+from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 router = APIRouter(prefix='/procesos-comerciales', tags=['ProcesosComerciales'])
 

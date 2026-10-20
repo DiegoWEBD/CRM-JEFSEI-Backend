@@ -354,3 +354,27 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     usuarios.append(TupleRowsUsuarioAdapter(values).to_usuario())
 
                 return usuarios, total
+
+    def usuario_tiene_permiso(self, usuario: Usuario, codigo_permiso: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut)s
+                    and PR.codigo_permiso = %(codigo_permiso)s
+                '''
+                params = {
+                    'rut': usuario.rut,
+                    'codigo_permiso': codigo_permiso
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row is not None
