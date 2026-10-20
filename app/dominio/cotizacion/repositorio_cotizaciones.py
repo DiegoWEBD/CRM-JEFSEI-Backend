@@ -31,3 +31,7 @@ class RepositorioCotizaciones(ABC):
     def actualizar(self, id_cotizacion: int, cotizacion: Cotizacion) -> None:
         """Actualiza los datos de la cotización. Solo persistencia."""
         pass
+
+    @abstractmethod
+    def cotizacion_pertenece_a_solicitud(self, cotizacion: Cotizacion, id_solicitud: int) -> bool:
+        pass

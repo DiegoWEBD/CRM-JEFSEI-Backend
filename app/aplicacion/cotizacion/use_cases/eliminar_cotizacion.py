@@ -41,17 +41,29 @@ class EliminarCotizacionUseCase:
 
     def ejecutar(self, id_cotizacion: int, id_solicitud: int, rut_usuario: str):
 
-        # 1. Validar que la solicitud existe
+        # Validar que la solicitud existe
 
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
 
-        # 2. Validar permisos (ELIMINAR_COTIZACION + ejecutivo asignado)
+        # Validar que la cotización existe
+        
+        cotizacion = self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
+
+        if cotizacion is None:
+            raise RecursoNoEncontradoException('Cotización no encontrada')
+
+         # Validar que la cotización pertenece a la solicitud
+        
+        if not self.repositorio_cotizaciones.cotizacion_pertenece_a_solicitud(cotizacion, id_solicitud):
+            raise ConflictoEnAccionException(f'La cotización {id_cotizacion} no pertenece a la solicitud {id_solicitud}')
+
+        # Validar permisos (ELIMINAR_COTIZACION + ejecutivo asignado)
 
         if not self.authorization_service.usuario_puede_eliminar_cotizacion(rut_usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
 
-        # 3. Validar que el proceso comercial esté abierto
+        # Validar que el proceso comercial esté abierto
 
         proceso = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(id_solicitud)
         if proceso is None:
@@ -61,22 +73,15 @@ class EliminarCotizacionUseCase:
                 'No se puede eliminar una cotización de una oportunidad cerrada'
             )
 
-        # 4. Obtener la cotización (valida que existe)
-
-        cotizacion = self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
-
-        if cotizacion is None:
-            raise RecursoNoEncontradoException('Cotización no encontrada')
-
-        # 5. Eliminar cotización
+        # Eliminar cotización
 
         self.repositorio_cotizaciones.eliminar(cotizacion)
 
-        # 6. Eliminar archivo asociado
+        # Eliminar archivo asociado
 
         self.servicio_archivos.eliminar(DIRECTORIO_COTIZACIONES, cotizacion.nombre_archivo)
 
-        # 7. Registrar historial + actualizar estado_actual
+        # Registrar historial + actualizar estado_actual
         ahora = datetime.now(tz=timezone.utc)
 
         historial = HistorialEstadoProcesoComercial(
@@ -87,7 +92,7 @@ class EliminarCotizacionUseCase:
         )
         self.repositorio_historial.registrar(historial)
 
-        # 8. Marcar alertas SLA del estado anterior como leídas
+        # Marcar alertas SLA del estado anterior como leídas
 
         destinatarios = self.servicio_alertas.marcar_leidas(
             proceso.id, TIPOS_ALERTA_SLA, ahora

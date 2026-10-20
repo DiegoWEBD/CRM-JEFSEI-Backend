@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import ActualizarCotizacionUseCase
@@ -85,14 +87,7 @@ def obtener_unidades_alicuotas(
     unidades = use_case.ejecutar(id, rut_usuario)
 
     return {
-        'unidades': [
-            {
-                'identificador_unidad': unidad.identificador_unidad,
-                'prorrateo': unidad.prorrateo,
-                'fila_origen': unidad.fila_origen,
-            }
-            for unidad in unidades
-        ],
+        'unidades': unidades,
         'cantidad': len(unidades)
     }
 
@@ -206,7 +201,6 @@ def actualizar_cotizacion(
         if prima_afecta is None or prima_excenta is None:
             raise HTTPException(status_code=400, detail='Cuando tipo es "prima", se requieren prima_afecta y prima_excenta')
 
-    nombre_archivo = None
     contenido_archivo = None
 
     if archivo is not None:
