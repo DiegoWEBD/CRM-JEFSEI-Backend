@@ -64,6 +64,15 @@ class AuthorizationService:
     def usuario_puede_eliminar_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_eliminar_solicitud_cotizacion(rut_usuario, id_solicitud)
 
+    def usuario_puede_subir_estudio_comercial_a_solicitud(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_subir_estudio_comercial_a_solicitud(rut_usuario, id_solicitud)
+
+    def usuario_puede_ver_estudios_comerciales(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_ver_estudios_comerciales(rut_usuario, id_solicitud)
+
+    def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_descargar_estudio_comercial(rut_usuario, id_solicitud)
+
     def usuario_puede_ver_solicitudes_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
         if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_SOLICITUDES_COTIZACION_GLOBAL'):
             return True

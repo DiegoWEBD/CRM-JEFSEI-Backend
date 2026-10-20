@@ -17,7 +17,9 @@ def _use_case(autorizado=True):
     ]
     authorization = MagicMock()
     authorization.usuario_puede_ver_solicitud_cotizacion.return_value = autorizado
-    return ObtenerUnidadesAlicuotasUseCase(repositorio, authorization), repositorio
+    repositorio_solicitudes = MagicMock()
+    repositorio_solicitudes.buscar.return_value = MagicMock()
+    return ObtenerUnidadesAlicuotasUseCase(repositorio_solicitudes, repositorio, authorization), repositorio
 
 
 @pytest.mark.unit

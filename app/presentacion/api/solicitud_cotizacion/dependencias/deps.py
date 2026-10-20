@@ -50,6 +50,9 @@ def get_obtener_procesos_comerciales_use_case():
 def get_consulta_solicitudes_cotizacion_service():
     return ConsultaSolicitudesCotizacionPostgresService()
 
+def get_authorization_service():
+    return AuthorizationServiceFactory.crear_authorization_service()
+
 def get_solicitar_cotizacion_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
@@ -86,13 +89,17 @@ def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
 
 def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()
-    return ObtenerDetalleSolicitudUseCase(repositorio)
+    return ObtenerDetalleSolicitudUseCase(
+        repositorio,
+        AuthorizationServiceFactory.crear_authorization_service()
+    )
 
 
 def get_obtener_unidades_alicuotas_use_case():
     return ObtenerUnidadesAlicuotasUseCase(
         repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
         authorization_service=AuthorizationServiceFactory.crear_authorization_service(),
+        repositorio_solicitudes=RepositorioSolicitudesCotizacionPostgres()
     )
 
 

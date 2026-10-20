@@ -53,7 +53,8 @@ def get_subir_estudio_comercial_use_case():
         repositorio_procesos=RepositorioProcesosComercialesPostgres(),
         repositorio_notificaciones=repositorio_notificaciones,
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
-        servicio_archivos=ServicioArchivos()
+        servicio_archivos=ServicioArchivos(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
     )
 
 

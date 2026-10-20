@@ -19,7 +19,7 @@ from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
 MODULO = 'app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial'
 
 
-def _use_case(proceso=None):
+def _use_case(proceso=None, autorizado=True):
     repo_estudios = MagicMock()
     repo_estudios.insertar.return_value = 5
     repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
@@ -28,12 +28,15 @@ def _use_case(proceso=None):
     servicio_alertas = MagicMock(spec=ServicioAlertasProceso)
     servicio_alertas.marcar_leidas.return_value = ['11111111-1']
     servicio_archivos = MagicMock(spec=ServicioArchivos)
+    authorization_service = MagicMock()
+    authorization_service.usuario_puede_subir_estudio_comercial_a_solicitud.return_value = autorizado
     uc = SubirEstudioComercialUseCase(
         repo_estudios,
         repo_procesos,
         repo_notificaciones,
         servicio_alertas,
         servicio_archivos,
+        authorization_service,
     )
     return uc, repo_estudios, repo_procesos, servicio_alertas
 

@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 
 from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.core.archivos import DIRECTORIO_ESTUDIOS_FINALES
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -19,14 +21,19 @@ class SubirEstudioComercialUseCase:
         repositorio_notificaciones: RepositorioNotificaciones,
         servicio_alertas: ServicioAlertasProceso,
         servicio_archivos: ServicioArchivos,
+        authorization_service: AuthorizationService,
     ):
         self.repositorio_estudios = repositorio_estudios
         self.repositorio_procesos = repositorio_procesos
         self.repositorio_notificaciones = repositorio_notificaciones
         self.servicio_alertas = servicio_alertas
         self.servicio_archivos = servicio_archivos
+        self.authorization_service = authorization_service
 
     def ejecutar(self, contenido_archivo: bytes, id_solicitud: int, usuario: Usuario) -> tuple[int, str]:
+
+        if not self.authorization_service.usuario_puede_subir_estudio_comercial_a_solicitud(usuario.rut, id_solicitud):
+            raise UsuarioNoAutorizadoException
 
         timestamp_ms = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
         nombre_unico = f'estudio_comercial_{id_solicitud}_{timestamp_ms}.pdf'
