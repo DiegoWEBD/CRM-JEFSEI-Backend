@@ -70,11 +70,16 @@ def validar_unidades(unidades: list[UnidadAlicuota]) -> list[ProblemaAlicuota]:
         else:
             filas_por_clave[clave] = unidad.fila_origen
 
-        if unidad.prorrateo is None or not math.isfinite(unidad.prorrateo) or unidad.prorrateo < 0:
+        if (
+            unidad.prorrateo is None
+            or not math.isfinite(unidad.prorrateo)
+            or unidad.prorrateo < 0
+            or unidad.prorrateo > 1
+        ):
             problemas.append(ProblemaAlicuota(
                 unidad.fila_origen,
                 'prorrateo',
-                'El prorrateo debe ser un número mayor o igual a 0',
+                'El prorrateo debe ser una fracción decimal entre 0 y 1',
             ))
 
         if unidad.fila_origen is None or unidad.fila_origen < 1:

@@ -43,7 +43,7 @@ class TestExtraerRegistros:
         assert len(resultado.registros) == 2
         assert resultado.registros[0].fila_origen == 2
         assert resultado.registros[0].identificador_unidad == 'Depto 101'
-        assert resultado.registros[0].prorrateo == Decimal('12.5')
+        assert resultado.registros[0].prorrateo == Decimal('0.125')
         assert resultado.registros[0].estado == ESTADO_VALIDO
         assert resultado.tiene_errores_bloqueantes is False
 
@@ -96,7 +96,7 @@ class TestExtraerRegistros:
     def test_prorrateo_como_texto_numerico_se_interpreta(self):
         resultado = _extraer(_fila(2, 'Depto 1', '12,5'))
 
-        assert resultado.registros[0].prorrateo == Decimal('12.5')
+        assert resultado.registros[0].prorrateo == Decimal('0.125')
 
     def test_formula_sin_resultado_calculado_es_error(self):
         resultado = _extraer(_fila(2, 'Depto 1', None, formula_sin_resultado=True))
@@ -114,8 +114,16 @@ class TestExtraerRegistros:
         assert resultado.filas_excluidas == [3]
         assert resultado.tiene_errores_bloqueantes is True
 
+    def test_prorrateo_normalizado_mayor_que_uno_es_error(self):
+        # 150 como valor porcentual normaliza a la fracción 1,5: fuera del rango válido
+        resultado = _extraer(_fila(2, 'Depto 1', 150))
+
+        assert resultado.registros[0].estado == ESTADO_ERROR
+        assert resultado.registros[0].prorrateo is None
+
     def test_suma_usa_decimal(self):
-        resultado = _extraer(*[_fila(2 + i, f'Depto {i}', 0.1) for i in range(10)])
+        # Diez unidades de 10 % normalizan a 0,1 y suman la fracción decimal 1,0
+        resultado = _extraer(*[_fila(2 + i, f'Depto {i}', 10) for i in range(10)])
 
         assert resultado.suma_prorrateos == Decimal('1.0')
 
@@ -126,7 +134,7 @@ class TestExtraerRegistros:
             _fila(4, 'Depto 2', 2.5),
         )
 
-        assert resultado.suma_prorrateos == Decimal('7.5')
+        assert resultado.suma_prorrateos == Decimal('0.075')
 
     def test_interpretacion_pendiente_no_normaliza(self):
         resultado = extraer_registros(

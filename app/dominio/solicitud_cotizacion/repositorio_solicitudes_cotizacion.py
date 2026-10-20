@@ -26,5 +26,9 @@ class RepositorioSolicitudesCotizacion(ABC):
         pass
 
     @abstractmethod
+    def buscar_id_prospecto_de_solicitud(self, id_solicitud: int) -> int | None:
+        pass
+
+    @abstractmethod
     def eliminar(self, id_solicitud: int) -> None:
         pass

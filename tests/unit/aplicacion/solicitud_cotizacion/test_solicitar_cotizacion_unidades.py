@@ -55,8 +55,8 @@ def _use_case():
 
 def _unidades():
     return [
-        UnidadAlicuotaRequest(identificador_unidad='Depto 1', prorrateo=2.5, fila_origen=2),
-        UnidadAlicuotaRequest(identificador_unidad='Depto 2', prorrateo=1.5, fila_origen=3),
+        UnidadAlicuotaRequest(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
+        UnidadAlicuotaRequest(identificador_unidad='Depto 2', prorrateo=0.015, fila_origen=3),
     ]
 
 
@@ -72,7 +72,7 @@ class TestSolicitarCotizacionUnidades:
         assert isinstance(solicitud, SolicitudCotizacionUnidades)
         assert len(solicitud.unidades) == 2
         assert solicitud.unidades[0].identificador_unidad == 'Depto 1'
-        assert solicitud.unidades[0].prorrateo == 2.5
+        assert solicitud.unidades[0].prorrateo == 0.025
 
     def test_unidades_validas_no_bloquean(self):
         uc, repo = _use_case()
@@ -83,7 +83,7 @@ class TestSolicitarCotizacionUnidades:
 
     def test_identificador_vacio_es_rechazado(self):
         uc, repo = _use_case()
-        unidades = [UnidadAlicuotaRequest(identificador_unidad='  ', prorrateo=2.5, fila_origen=2)]
+        unidades = [UnidadAlicuotaRequest(identificador_unidad='  ', prorrateo=0.025, fila_origen=2)]
 
         with pytest.raises(ConflictoEnAccionException):
             uc.ejecutar(id_proceso_comercial=42, request=_request(unidades=unidades), usuario=MagicMock(rut='1'))
@@ -93,8 +93,8 @@ class TestSolicitarCotizacionUnidades:
     def test_identificador_duplicado_es_rechazado(self):
         uc, repo = _use_case()
         unidades = [
-            UnidadAlicuotaRequest(identificador_unidad='Depto 1', prorrateo=2.5, fila_origen=2),
-            UnidadAlicuotaRequest(identificador_unidad='depto 1', prorrateo=1.5, fila_origen=3),
+            UnidadAlicuotaRequest(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
+            UnidadAlicuotaRequest(identificador_unidad='depto 1', prorrateo=0.015, fila_origen=3),
         ]
 
         with pytest.raises(ConflictoEnAccionException):

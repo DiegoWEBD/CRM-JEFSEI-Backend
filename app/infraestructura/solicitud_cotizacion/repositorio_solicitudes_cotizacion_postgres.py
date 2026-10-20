@@ -782,6 +782,27 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
                 return row is not None
 
+    def buscar_id_prospecto_de_solicitud(self, id_solicitud: int) -> int | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PC.id_prospecto
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row['id_prospecto'] if row is not None else None
+
     def eliminar(self, id_solicitud: int) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

@@ -57,8 +57,8 @@ class TestValidarAlicuotas:
 
         assert resultado['cantidad_registros'] == 2
         assert resultado['registros'][0]['identificador_unidad'] == 'Depto 1'
-        assert resultado['registros'][0]['prorrateo'] == 2.5
-        assert resultado['suma_prorrateos'] == 4.0
+        assert resultado['registros'][0]['prorrateo'] == 0.025
+        assert resultado['suma_prorrateos'] == 0.04
         assert resultado['tiene_errores_bloqueantes'] is False
 
     def test_pide_el_rango_al_lector(self):

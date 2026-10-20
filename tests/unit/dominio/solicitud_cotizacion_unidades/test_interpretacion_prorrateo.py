@@ -93,16 +93,18 @@ class TestInterpretarProrrateoColumna:
 class TestNormalizarProrrateo:
 
     def test_porcentaje_excel(self):
-        assert normalizar_prorrateo(0.0085, PORCENTAJE_EXCEL) == Decimal('0.85')
+        # La celda muestra 0,85 % y almacena 0,0085: ya es la fracción decimal
+        assert normalizar_prorrateo(0.0085, PORCENTAJE_EXCEL) == Decimal('0.0085')
 
     def test_fraccion_decimal(self):
-        assert normalizar_prorrateo(0.0085, FRACCION_DECIMAL) == Decimal('0.85')
+        assert normalizar_prorrateo(0.0085, FRACCION_DECIMAL) == Decimal('0.0085')
 
     def test_valor_porcentual(self):
-        assert normalizar_prorrateo(0.85, VALOR_PORCENTUAL) == Decimal('0.85')
+        # 0,85 significa 0,85 % y se normaliza a la fracción decimal 0,0085
+        assert normalizar_prorrateo(0.85, VALOR_PORCENTUAL) == Decimal('0.0085')
 
     def test_no_pierde_precision(self):
-        assert normalizar_prorrateo(0.1, VALOR_PORCENTUAL) * 3 == Decimal('0.3')
+        assert normalizar_prorrateo(0.1, VALOR_PORCENTUAL) * 3 == Decimal('0.003')
 
     def test_tipo_invalido_es_rechazado(self):
         with pytest.raises(DatoInvalidoException):

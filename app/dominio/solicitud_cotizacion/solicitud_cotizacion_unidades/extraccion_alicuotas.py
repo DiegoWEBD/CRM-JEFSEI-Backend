@@ -239,6 +239,17 @@ def extraer_registros(
         elif interpretacion.tipo is not None and isinstance(registro.prorrateo_original, (int, float)):
             registro.prorrateo = normalizar_prorrateo(registro.prorrateo_original, interpretacion.tipo)
 
+            if registro.prorrateo < 0 or registro.prorrateo > 1:
+                problema = ProblemaAlicuota(
+                    registro.fila_origen,
+                    CAMPO_PRORRATEO,
+                    'El prorrateo normalizado debe ser una fracción decimal entre 0 y 1',
+                )
+                registro.problemas.append(problema)
+                problemas_generales.append(problema)
+                registro.prorrateo = None
+                registro.estado = ESTADO_ERROR
+
     if interpretacion.requiere_confirmacion:
         suma_prorrateos = None
     else:

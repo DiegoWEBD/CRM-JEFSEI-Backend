@@ -10,7 +10,8 @@ from app.dominio.exceptions.dato_invalido_exception import DatoInvalidoException
 #   (0,85 significa 0,85 %).
 # - fraccion_decimal: fracción decimal del todo (0,0085 significa 0,85 %).
 #
-# El valor normalizado siempre es un porcentaje: 0,85 representa 0,85 %.
+# El valor normalizado siempre es la fracción decimal del todo, igual que
+# otros porcentajes de la base de datos: 0,0085 representa 0,85 %.
 PORCENTAJE_EXCEL = 'porcentaje_excel'
 VALOR_PORCENTUAL = 'valor_porcentual'
 FRACCION_DECIMAL = 'fraccion_decimal'
@@ -44,15 +45,15 @@ class ResultadoInterpretacionProrrateo:
 
 
 def normalizar_prorrateo(valor: float, tipo: str) -> Decimal:
-    """Devuelve el prorrateo como porcentaje (0,85 representa 0,85 %)."""
+    """Devuelve el prorrateo como fracción decimal (0,0085 representa 0,85 %)."""
 
     if tipo not in TIPOS_INTERPRETACION_PRORRATEO:
         raise DatoInvalidoException(f'Interpretación de prorrateo desconocida: {tipo}')
 
     numero = Decimal(str(valor))
 
-    if tipo in (PORCENTAJE_EXCEL, FRACCION_DECIMAL):
-        return numero * 100
+    if tipo == VALOR_PORCENTUAL:
+        return numero / Decimal('100')
 
     return numero
 

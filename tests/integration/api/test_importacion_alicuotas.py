@@ -106,8 +106,8 @@ def client_unidades(usuario_autenticado):
     def override_get_unidades():
         uc = MagicMock(spec=ObtenerUnidadesAlicuotasUseCase)
         uc.ejecutar.return_value = [
-            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=2.5, fila_origen=2),
-            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=1.5, fila_origen=3),
+            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
+            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.015, fila_origen=3),
         ]
         return uc
 
@@ -224,7 +224,7 @@ class TestValidarAlicuotasEndpoint:
         body = response.json()
         assert body['cantidad_registros'] == 2
         assert body['tiene_errores_bloqueantes'] is False
-        assert body['suma_prorrateos'] == 4.0
+        assert body['suma_prorrateos'] == 0.04
 
     def test_configuracion_invalida_es_rechazada(self, client, headers_auth_validos):
         response = client.post(

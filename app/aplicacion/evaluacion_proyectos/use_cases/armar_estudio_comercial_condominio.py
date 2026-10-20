@@ -47,7 +47,8 @@ class ArmarEstudioComercialCondominioUseCase:
         ids_cotizacion: list[int],
         secciones: list[SeccionEstudioComercialRequest] | None,
         valor_uf: float,
-        usuario: Usuario
+        usuario: Usuario,
+        es_unidades: bool = False
     ) -> str:
 
         if len(ids_cotizacion) == 0:
@@ -443,3 +444,6 @@ class ArmarEstudioComercialCondominioUseCase:
             })
 
         self.datos_plantilla[dict_key] = datos_detalles
+
+
+    
