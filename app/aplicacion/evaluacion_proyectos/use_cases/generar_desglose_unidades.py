@@ -1,4 +1,5 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.estudio_comercial.desglose_unidades.calculadora_desglose_unidades import CalculadoraDesgloseUnidades
@@ -8,19 +9,19 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
-from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
-from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.solicitud_cotizacion.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.infraestructura.estudio_comercial_condominio.generador_excel_desglose_unidades import GeneradorExcelDesgloseUnidades
 
 
 class GenerarDesgloseUnidadesUseCase:
     """Genera el Excel con el desglose por unidad de las cotizaciones de una solicitud de tipo 'unidades'.
 
-    Dos hojas: una con el monto asegurado de la solicitud y otra con el monto
-    sugerido (unidades del valor de reconstrucción depreciado del prospecto).
+    El cálculo de primas se hace una única vez por cotización sobre el monto
+    asegurado sugerido total (la suma de los montos redondeados a la centena
+    superior); cada prima se reparte luego por el `prorrateo_pago` de cada
+    unidad (monto asegurado sugerido de la unidad sobre el total sugerido).
     """
 
     def __init__(
@@ -29,16 +30,16 @@ class GenerarDesgloseUnidadesUseCase:
         repositorio_solicitudes: RepositorioSolicitudesCotizacion,
         repositorio_unidades: RepositorioUnidadesAlicuotas,
         repositorio_cotizaciones: RepositorioCotizaciones,
-        repositorio_prospectos: RepositorioProspectos,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
+        calcular_desglose_reconstruccion: CalcularDesgloseReconstruccionUnidadesUseCase,
         generador_excel: GeneradorExcelDesgloseUnidades | None = None,
     ) -> None:
         self.authorization_service = authorization_service
         self.repositorio_solicitudes = repositorio_solicitudes
         self.repositorio_unidades = repositorio_unidades
         self.repositorio_cotizaciones = repositorio_cotizaciones
-        self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
+        self.calcular_desglose_reconstruccion = calcular_desglose_reconstruccion
         self.generador_excel = generador_excel or GeneradorExcelDesgloseUnidades()
 
     def ejecutar(self, id_solicitud: int, ids_cotizacion: list[int], rut_usuario: str | None) -> str:
@@ -74,19 +75,26 @@ class GenerarDesgloseUnidadesUseCase:
         if not unidades:
             raise ConflictoEnAccionException('La oportunidad no tiene alícuota importada')
 
+        desglose_reconstruccion, total_sugerido = self.calcular_desglose_reconstruccion.ejecutar(
+            proceso.id_prospecto, unidades
+        )
+
+        if desglose_reconstruccion is None:
+            raise ConflictoEnAccionException(
+                'El desglose de reconstrucción de las unidades no se puede calcular, complete los datos de reconstrucción del prospecto'
+            )
+
+        if total_sugerido is None or total_sugerido <= 0:
+            raise ConflictoEnAccionException('El monto asegurado sugerido total de las unidades debe ser mayor a cero')
+
         cotizaciones = self.__buscar_cotizaciones(ids_cotizacion, id_solicitud)
-        monto_sugerido = self.__calcular_monto_sugerido(id_solicitud)
 
-        datos_actual = [
-            self.__detalle_cotizacion(cotizacion, unidades, solicitud.monto_asegurado)
-            for cotizacion in cotizaciones
-        ]
-        datos_sugerido = [
-            self.__detalle_cotizacion(cotizacion, unidades, monto_sugerido)
+        datos = [
+            self.__detalle_cotizacion(cotizacion, desglose_reconstruccion)
             for cotizacion in cotizaciones
         ]
 
-        return self.generador_excel.generar(id_solicitud, datos_actual, datos_sugerido)
+        return self.generador_excel.generar(id_solicitud, datos)
 
     def __buscar_cotizaciones(self, ids_cotizacion: list[int], id_solicitud: int) -> list[Cotizacion]:
         cotizaciones: list[Cotizacion] = []
@@ -106,42 +114,12 @@ class GenerarDesgloseUnidadesUseCase:
 
         return cotizaciones
 
-    def __calcular_monto_sugerido(self, id_solicitud: int) -> float:
-        id_prospecto = self.repositorio_solicitudes.buscar_id_prospecto_de_solicitud(id_solicitud)
-
-        if id_prospecto is None:
-            raise RecursoNoEncontradoException('Prospecto de la solicitud no encontrado')
-
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
-
-        if prospecto is None:
-            raise ConflictoEnAccionException('El prospecto de la solicitud no tiene datos de condominio')
-
-        if prospecto.metros_cuadrados is None:
-            raise ConflictoEnAccionException('No se puede calcular el monto sugerido, faltan los metros cuadrados')
-
-        if prospecto.uf_por_metro_cuadrado is None:
-            raise ConflictoEnAccionException('No se puede calcular el monto sugerido, falta el valor de la UF / m²')
-
-        if prospecto.porcentaje_depreciacion is None:
-            raise ConflictoEnAccionException('No se puede calcular el monto sugerido, falta el porcentaje de depreciación')
-
-        valor_reconstruccion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
-            prospecto.uf_por_metro_cuadrado, prospecto.metros_cuadrados
-        )
-        valor_reconstruccion_depreciacion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion_depreciacion(
-            valor_reconstruccion, prospecto.porcentaje_depreciacion
-        )
-
-        return ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion_depreciacion)
-
     def __detalle_cotizacion(
         self,
         cotizacion: Cotizacion,
-        unidades: list[UnidadAlicuota],
-        monto_base: float,
+        desglose_reconstruccion: list[DesgloseReconstruccionUnidad],
     ) -> tuple[Cotizacion, TotalesPrima, list[DesgloseUnidad]]:
-        totales = CalculadoraDesgloseUnidades.calcular_totales(cotizacion, monto_base)
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose(totales, unidades)
+        totales = CalculadoraDesgloseUnidades.calcular_totales(cotizacion)
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(cotizacion, desglose_reconstruccion)
 
         return cotizacion, totales, desglose

@@ -32,12 +32,15 @@ def _datos_desglose():
         DesgloseUnidad(
             identificador_unidad='Depto 1',
             prorrateo=0.030456521,
-            monto_asegurado=1263.95,
-            prima_afecta=0.76,
-            prima_excenta=2.43,
-            prima_neta=3.19,
-            prima_iva=0.14,
-            prima_bruta=3.33,
+            monto_asegurado=200.0,
+            prima_afecta=0.12,
+            prima_excenta=0.38,
+            prima_neta=0.5,
+            prima_iva=0.02,
+            prima_bruta=0.53,
+            prorrateo_pago=0.3333333333333333,
+            monto_reconstruccion=144.97,
+            monto_asegurado_sugerido=200.0,
         ),
     ]
 
@@ -50,7 +53,7 @@ def _datos_desglose():
 
 def _ruta_xlsx(tmp_path) -> str:
     generador = GeneradorExcelDesgloseUnidades(carpeta_base=str(tmp_path))
-    return generador.generar(10, _datos_desglose(), _datos_desglose())
+    return generador.generar(10, _datos_desglose())
 
 
 @pytest.fixture

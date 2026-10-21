@@ -10,13 +10,22 @@ from app.dominio.estudio_comercial.desglose_unidades.totales_prima import Totale
 
 
 FORMATO_MONTO = '#,##0.00'
-FORMATO_PRORRATEO_DECIMAL = '0.000000000'
+FORMATO_PRORRATEO = '0.000000000'
 
-HOJA_ACTUAL = 'Actual'
-HOJA_SUGERIDO = 'Sugerido'
+HOJA_DESGLOSE = 'Desglose por unidad'
+
+FILA_GRUPOS = 1
+FILA_ENCABEZADOS = 2
+PRIMERA_FILA_UNIDADES = 3
 
 # Columnas compartidas por todas las cotizaciones
-COLUMNAS_COMPARTIDAS = ('Unidad', 'Prorrateo decimal', 'Monto asegurado (UF)')
+COLUMNAS_COMPARTIDAS = (
+    'Unidad',
+    'Prorrateo alícuota',
+    'Prorrateo por monto asegurado',
+    'Monto de reconstrucción (UF)',
+    'Monto asegurado sugerido (UF)',
+)
 
 # Columnas que se repiten para cada cotización
 COLUMNAS_COTIZACION = (
@@ -29,15 +38,21 @@ COLUMNAS_COTIZACION = (
 
 COLORES_GRUPO = ('FFF2CC', 'DDEBF7', 'FCE4D6', 'E2EFDA', 'EDEDED')
 
-# (totales, desglose) de una cotización
+ETIQUETA_TOTALES = 'TOTAL'
+ETIQUETA_REFERENCIA = 'TOTALES COTIZACIÓN (referencia)'
+
+# (cotizacion, totales de referencia, desglose por unidad) de una cotización
 DetalleDesglose = tuple[Cotizacion, TotalesPrima, list[DesgloseUnidad]]
 
 
 class GeneradorExcelDesgloseUnidades:
     """Genera el Excel con el desglose por unidad de las cotizaciones de una solicitud.
 
-    Dos hojas («Actual» y «Sugerido») con todas las cotizaciones lado a lado:
-    una por cada variante de monto asegurado del desglose.
+    Hoja única con el desglose completo: por cada unidad, su prorrateo de alícuota,
+    el prorrateo por monto asegurado (el que reparte las primas), el monto de
+    reconstrucción y el monto asegurado sugerido, y por cada cotización las primas
+    repartidas según ese prorrateo. Cierra con una fila de totales y una fila de
+    referencia con los totales de cada cotización.
     """
 
     def __init__(self, carpeta_base: str = 'documentos/estudios') -> None:
@@ -46,62 +61,40 @@ class GeneradorExcelDesgloseUnidades:
     def generar(
         self,
         id_solicitud: int,
-        datos_actual: list[DetalleDesglose],
-        datos_sugerido: list[DetalleDesglose],
+        datos: list[DetalleDesglose],
     ) -> str:
         nombre = f'desglose_unidades_solicitud_{id_solicitud}'
         carpeta = self.carpeta_base / nombre
         carpeta.mkdir(parents=True, exist_ok=True)
 
         libro = Workbook()
+        hoja = libro.active
+        hoja.title = HOJA_DESGLOSE
 
-        hoja_actual = libro.active
-        hoja_actual.title = HOJA_ACTUAL
-        self.__armar_hoja_desglose(hoja_actual, 'Actual', datos_actual)
+        self.__escribir_grupos(hoja, [cotizacion.company.nombre.upper() for cotizacion, _, _ in datos])
+        self.__escribir_encabezados(hoja, datos)
 
-        hoja_sugerido = libro.create_sheet(HOJA_SUGERIDO)
-        self.__armar_hoja_desglose(hoja_sugerido, 'Monto sugerido', datos_sugerido)
+        unidades = datos[0][2] if datos else []
+
+        for indice, unidad in enumerate(unidades):
+            filas_cotizacion = [desglose[indice] for _, _, desglose in datos]
+            self.__escribir_fila_unidad(hoja, PRIMERA_FILA_UNIDADES + indice, unidad, filas_cotizacion)
+
+        fila_totales = PRIMERA_FILA_UNIDADES + len(unidades)
+        self.__escribir_fila_totales(hoja, fila_totales, datos)
+        self.__escribir_fila_referencia(hoja, fila_totales + 1, datos)
 
         ruta = carpeta / f'{nombre}.xlsx'
         libro.save(ruta)
 
         return str(ruta)
 
-    def __armar_hoja_desglose(
-        self,
-        hoja,
-        titulo_grupo_compartido: str,
-        datos: list[DetalleDesglose],
-    ) -> None:
+    def __escribir_grupos(self, hoja, nombres_companies: list[str]) -> None:
         cantidad_compartidas = len(COLUMNAS_COMPARTIDAS)
 
-        self.__escribir_grupos(
-            hoja,
-            titulo_grupo_compartido,
-            [cotizacion.company.nombre.upper() for cotizacion, _, _ in datos],
-            cantidad_compartidas,
-        )
-        self.__escribir_encabezados(hoja, datos)
-
-        unidades = datos[0][2] if datos else []
-        fila = 3
-
-        for indice, unidad in enumerate(unidades):
-            filas_cotizacion = [desglose[indice] for _, _, desglose in datos]
-            self.__escribir_fila_unidad(hoja, fila + indice, unidad, filas_cotizacion)
-
-        self.__escribir_fila_totales(hoja, fila + len(unidades), datos)
-
-    def __escribir_grupos(
-        self,
-        hoja,
-        titulo_grupo_compartido: str,
-        nombres_companies: list[str],
-        cantidad_compartidas: int,
-    ) -> None:
-        celda = hoja.cell(row=1, column=1, value=titulo_grupo_compartido)
+        celda = hoja.cell(row=FILA_GRUPOS, column=1, value='Unidades')
         hoja.merge_cells(
-            start_row=1, start_column=1, end_row=1, end_column=cantidad_compartidas
+            start_row=FILA_GRUPOS, start_column=1, end_row=FILA_GRUPOS, end_column=cantidad_compartidas
         )
         self.__estilo_grupo(celda, COLORES_GRUPO[0])
 
@@ -109,9 +102,9 @@ class GeneradorExcelDesgloseUnidades:
             inicio = cantidad_compartidas + 1 + indice * len(COLUMNAS_COTIZACION)
             fin = inicio + len(COLUMNAS_COTIZACION) - 1
 
-            celda = hoja.cell(row=1, column=inicio, value=nombre)
+            celda = hoja.cell(row=FILA_GRUPOS, column=inicio, value=nombre)
             hoja.merge_cells(
-                start_row=1, start_column=inicio, end_row=1, end_column=fin
+                start_row=FILA_GRUPOS, start_column=inicio, end_row=FILA_GRUPOS, end_column=fin
             )
             self.__estilo_grupo(celda, COLORES_GRUPO[(indice + 1) % len(COLORES_GRUPO)])
 
@@ -122,7 +115,7 @@ class GeneradorExcelDesgloseUnidades:
             encabezados.extend(COLUMNAS_COTIZACION)
 
         for columna, encabezado in enumerate(encabezados, start=1):
-            celda = hoja.cell(row=2, column=columna, value=encabezado)
+            celda = hoja.cell(row=FILA_ENCABEZADOS, column=columna, value=encabezado)
             celda.font = Font(bold=True)
             celda.alignment = Alignment(horizontal='center')
 
@@ -136,8 +129,14 @@ class GeneradorExcelDesgloseUnidades:
         unidad: DesgloseUnidad,
         filas_cotizacion: list[DesgloseUnidad],
     ) -> None:
-        valores = [unidad.identificador_unidad, unidad.prorrateo, unidad.monto_asegurado]
-        formatos = [None, FORMATO_PRORRATEO_DECIMAL, FORMATO_MONTO]
+        valores = [
+            unidad.identificador_unidad,
+            unidad.prorrateo,
+            unidad.prorrateo_pago,
+            unidad.monto_reconstruccion,
+            unidad.monto_asegurado_sugerido,
+        ]
+        formatos = [None, FORMATO_PRORRATEO, FORMATO_PRORRATEO, FORMATO_MONTO, FORMATO_MONTO]
 
         for fila_cotizacion in filas_cotizacion:
             valores.extend([
@@ -155,11 +154,13 @@ class GeneradorExcelDesgloseUnidades:
         unidades = datos[0][2] if datos else []
 
         valores = [
-            'TOTAL',
-            round(sum(unidad.prorrateo for unidad in unidades), 9),
-            round(sum(unidad.monto_asegurado for unidad in unidades), 2),
+            ETIQUETA_TOTALES,
+            round(sum(unidad.prorrateo or 0.0 for unidad in unidades), 9),
+            round(sum(unidad.prorrateo_pago or 0.0 for unidad in unidades), 9),
+            round(sum(unidad.monto_reconstruccion or 0.0 for unidad in unidades), 2),
+            round(sum(unidad.monto_asegurado_sugerido or 0.0 for unidad in unidades), 2),
         ]
-        formatos = [None, FORMATO_PRORRATEO_DECIMAL, FORMATO_MONTO]
+        formatos = [None, FORMATO_PRORRATEO, FORMATO_PRORRATEO, FORMATO_MONTO, FORMATO_MONTO]
 
         for _, _, desglose in datos:
             valores.extend([
@@ -168,6 +169,22 @@ class GeneradorExcelDesgloseUnidades:
                 round(sum(unidad.prima_neta for unidad in desglose), 2),
                 round(sum(unidad.prima_iva for unidad in desglose), 2),
                 round(sum(unidad.prima_bruta for unidad in desglose), 2),
+            ])
+            formatos.extend([FORMATO_MONTO] * len(COLUMNAS_COTIZACION))
+
+        self.__escribir_fila(hoja, fila, valores, formatos, negrita=True)
+
+    def __escribir_fila_referencia(self, hoja, fila: int, datos: list[DetalleDesglose]) -> None:
+        valores = [ETIQUETA_REFERENCIA, None, None, None, None]
+        formatos = [None, None, None, None, None]
+
+        for _, totales, _ in datos:
+            valores.extend([
+                totales.prima_afecta,
+                totales.prima_excenta,
+                totales.prima_neta,
+                totales.prima_iva,
+                totales.prima_bruta,
             ])
             formatos.extend([FORMATO_MONTO] * len(COLUMNAS_COTIZACION))
 

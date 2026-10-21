@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import FileResponse
 
 from app.aplicacion.historial_estado.use_cases.obtener_historial_estados_proceso_comercial import ObtenerHistorialEstadosProcesoComercialUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
@@ -9,8 +10,10 @@ from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_e
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.generar_excel_desglose_reconstruccion_unidades import GenerarExcelDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_unidades import ObtenerDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
@@ -24,7 +27,7 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
 from app.presentacion.api.poliza.dependencias.deps import get_registrar_poliza_a_proceso_comercial_use_case
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_importar_alicuota_oportunidad_use_case, get_obtener_alicuota_oportunidad_use_case, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_generar_excel_desglose_reconstruccion_unidades_use_case, get_importar_alicuota_oportunidad_use_case, get_obtener_alicuota_oportunidad_use_case, get_obtener_desglose_reconstruccion_unidades_use_case, get_obtener_todos_procesos_comerciales_use_case
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 from app.presentacion.api.proceso_comercial.dto.importar_alicuota_oportunidad_request import ImportarAlicuotaOportunidadRequest
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_fecha_estimada_cierre_request import ActualizarFechaEstimadaCierreRequest
@@ -222,7 +225,6 @@ def importar_alicuota_oportunidad(
         'cantidad': len(unidades)
     }
 
-
 @router.get('/{id}/alicuota', status_code=status.HTTP_200_OK)
 def obtener_alicuota_oportunidad(
     id: int,
@@ -236,6 +238,37 @@ def obtener_alicuota_oportunidad(
         'unidades': unidades,
         'cantidad': len(unidades)
     }
+
+
+@router.get('/{id}/desglose-reconstruccion', status_code=status.HTTP_200_OK)
+def obtener_desglose_reconstruccion_unidades(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerDesgloseReconstruccionUnidadesUseCase = Depends(get_obtener_desglose_reconstruccion_unidades_use_case)
+):
+    total, unidades = use_case.ejecutar(id, usuario)
+
+    return {
+        'desglose_calculado': total is not None,
+        'monto_asegurado_sugerido_unidades': total,
+        'unidades': [unidad.to_dict() for unidad in unidades],
+        'cantidad': len(unidades)
+    }
+
+
+@router.get('/{id}/desglose-reconstruccion/excel', status_code=status.HTTP_200_OK)
+def descargar_desglose_reconstruccion_unidades(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: GenerarExcelDesgloseReconstruccionUnidadesUseCase = Depends(get_generar_excel_desglose_reconstruccion_unidades_use_case)
+):
+    ruta = use_case.ejecutar(id, usuario)
+
+    return FileResponse(
+        ruta,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename=f'desglose_reconstruccion_oportunidad_{id}.xlsx'
+    )
 
 
 @router.get('/{id}/historial-estado', status_code=status.HTTP_200_OK)

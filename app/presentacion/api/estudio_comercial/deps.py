@@ -1,6 +1,7 @@
 from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.evaluacion_proyectos.use_cases.armar_estudio_comercial_condominio import ArmarEstudioComercialCondominioUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.generar_desglose_unidades import GenerarDesgloseUnidadesUseCase
+from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
 from app.infraestructura.estudio_comercial_condominio.generador_excel_desglose_unidades import GeneradorExcelDesgloseUnidades
@@ -31,8 +32,10 @@ def get_generar_desglose_unidades_use_case():
         repositorio_solicitudes=RepositorioSolicitudesCotizacionPostgres(),
         repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
         repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
-        repositorio_prospectos=RepositorioProspectosPostgres(),
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        calcular_desglose_reconstruccion=CalcularDesgloseReconstruccionUnidadesUseCase(
+            repositorio_prospectos=RepositorioProspectosPostgres(),
+        ),
         generador_excel=GeneradorExcelDesgloseUnidades(),
     )
 

@@ -1,5 +1,5 @@
 class DesgloseUnidad:
-    """Valores prorrateados de una cotización sobre una unidad de la alícuota."""
+    """Porción de una cotización que corresponde a una unidad de la alícuota."""
 
     def __init__(
         self,
@@ -11,6 +11,9 @@ class DesgloseUnidad:
         prima_neta: float,
         prima_iva: float,
         prima_bruta: float,
+        prorrateo_pago: float | None = None,
+        monto_reconstruccion: float | None = None,
+        monto_asegurado_sugerido: float | None = None,
     ) -> None:
         self.identificador_unidad = identificador_unidad
         self.prorrateo = prorrateo
@@ -20,3 +23,6 @@ class DesgloseUnidad:
         self.prima_neta = prima_neta
         self.prima_iva = prima_iva
         self.prima_bruta = prima_bruta
+        self.prorrateo_pago = prorrateo_pago
+        self.monto_reconstruccion = monto_reconstruccion
+        self.monto_asegurado_sugerido = monto_asegurado_sugerido

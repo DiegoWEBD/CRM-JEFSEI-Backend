@@ -7,9 +7,12 @@ from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.generar_excel_desglose_reconstruccion_unidades import GenerarExcelDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_unidades import ObtenerDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
@@ -97,6 +100,12 @@ def get_actualizar_probabilidad_cierre_ejecutivo_use_case():
         repositorio_procesos_comerciales=repositorio_procesos,
     )
 
+def get_calcular_desglose_reconstruccion_unidades_use_case():
+    return CalcularDesgloseReconstruccionUnidadesUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
+    )
+
+
 def get_importar_alicuota_oportunidad_use_case():
     return ImportarAlicuotaOportunidadUseCase(
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
@@ -109,6 +118,24 @@ def get_obtener_alicuota_oportunidad_use_case():
     return ObtenerAlicuotaOportunidadUseCase(
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
         repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_obtener_desglose_reconstruccion_unidades_use_case():
+    return ObtenerDesgloseReconstruccionUnidadesUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        calcular_desglose_reconstruccion=get_calcular_desglose_reconstruccion_unidades_use_case(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_generar_excel_desglose_reconstruccion_unidades_use_case():
+    return GenerarExcelDesgloseReconstruccionUnidadesUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        calcular_desglose_reconstruccion=get_calcular_desglose_reconstruccion_unidades_use_case(),
         authorization_service=AuthorizationServiceFactory.crear_authorization_service()
     )
 

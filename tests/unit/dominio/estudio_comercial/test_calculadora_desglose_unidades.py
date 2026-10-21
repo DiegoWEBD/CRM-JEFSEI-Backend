@@ -5,6 +5,8 @@ import pytest
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.estudio_comercial.desglose_unidades.calculadora_desglose_unidades import CalculadoraDesgloseUnidades
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
 
 
@@ -136,3 +138,150 @@ class TestCalcularDesglose:
 
         assert sum(u.monto_asegurado for u in desglose) == pytest.approx(41500.0, abs=0.01)
         assert sum(u.prima_bruta for u in desglose) == pytest.approx(109.31, abs=0.01)
+
+
+def _item_reconstruccion(
+    identificador='Depto 1',
+    prorrateo=0.5,
+    fila=2,
+    monto_reconstruccion=1500.0,
+    monto_asegurado_sugerido=1500.0,
+    prorrateo_pago=0.5,
+) -> DesgloseReconstruccionUnidad:
+    return DesgloseReconstruccionUnidad(
+        identificador_unidad=identificador,
+        prorrateo=prorrateo,
+        fila_origen=fila,
+        monto_reconstruccion=monto_reconstruccion,
+        monto_asegurado_sugerido=monto_asegurado_sugerido,
+        prorrateo_pago=prorrateo_pago,
+    )
+
+
+def _desglose_reconstruccion_200_400() -> list[DesgloseReconstruccionUnidad]:
+    # sugerido 200 y 400 (total 600) -> prorrateo de pago 1/3 y 2/3
+    return CalculadoraDesgloseReconstruccion.calcular(4760.0, [
+        UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
+        UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3),
+    ])
+
+
+@pytest.mark.unit
+class TestCalcularDesgloseUnidades:
+
+    def test_calcula_las_primas_una_unica_vez_sobre_el_total_sugerido(self):
+        # El cálculo único sobre 600 UF da: afecta 0,36 | excenta 1,15 | neta 1,51
+        # IVA 0,07 | bruta 1,58 y se reparte por el prorrateo de pago
+        cotizacion = _cotizacion()
+
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            cotizacion, _desglose_reconstruccion_200_400()
+        )
+
+        assert [u.identificador_unidad for u in desglose] == ['Depto 1', 'Depto 2']
+
+        unidad = desglose[0]
+        assert unidad.prorrateo_pago == pytest.approx(1 / 3)
+        assert unidad.monto_asegurado == 200.0
+        assert unidad.prima_afecta == 0.12
+        assert unidad.prima_excenta == 0.38
+        assert unidad.prima_neta == 0.5
+        assert unidad.prima_iva == 0.02
+        assert unidad.prima_bruta == 0.53
+
+        unidad = desglose[1]
+        assert unidad.prorrateo_pago == pytest.approx(2 / 3)
+        assert unidad.monto_asegurado == 400.0
+        assert unidad.prima_afecta == 0.24
+        assert unidad.prima_excenta == 0.77
+        assert unidad.prima_neta == 1.01
+        assert unidad.prima_iva == 0.05
+        assert unidad.prima_bruta == 1.05
+
+    def test_prorrateo_de_pago_difiere_del_prorrateo_de_alicuota(self):
+        # Dos unidades con la misma alícuota (0,5) pero distinto monto asegurado
+        # sugerido: el reparto de la prima sigue al monto, no a la alícuota
+        desglose_reconstruccion = [
+            _item_reconstruccion('Depto 1', prorrateo=0.5, fila=2, monto_asegurado_sugerido=200.0, prorrateo_pago=200.0 / 600.0),
+            _item_reconstruccion('Depto 2', prorrateo=0.5, fila=3, monto_asegurado_sugerido=400.0, prorrateo_pago=400.0 / 600.0),
+        ]
+
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            _cotizacion(), desglose_reconstruccion
+        )
+
+        assert desglose[0].prorrateo == 0.5
+        assert desglose[1].prorrateo == 0.5
+        assert desglose[0].prorrateo_pago == pytest.approx(1 / 3)
+        assert desglose[1].prorrateo_pago == pytest.approx(2 / 3)
+        assert desglose[0].prima_afecta == 0.12
+        assert desglose[1].prima_afecta == 0.24
+
+    def test_incluye_tasa_politica_y_asistencias_en_el_calculo_unico(self):
+        # prima afecta total = 600/1000 x (0,5 + 0,1) + 5 = 5,36
+        # prima excenta total = 600 x 1,92 / 1000 + 3 = 4,15
+        cotizacion = _cotizacion(
+            tasa_afecta=0.5,
+            tasa_excenta=1.92,
+            tasa_politica=0.1,
+            asistencia_afecta=5.0,
+            asistencia_excenta=3.0,
+        )
+
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            cotizacion, _desglose_reconstruccion_200_400()
+        )
+
+        assert desglose[0].prima_afecta == 1.79
+        assert desglose[0].prima_excenta == 1.38
+        assert desglose[1].prima_afecta == 3.57
+        assert desglose[1].prima_excenta == 2.77
+
+    def test_unidad_sin_monto_asegurado_no_paga_primas(self):
+        cotizacion = _cotizacion(asistencia_afecta=5.0, asistencia_excenta=3.0)
+        desglose_reconstruccion = [
+            _item_reconstruccion(
+                'Depto 1', prorrateo=0.0, fila=2,
+                monto_reconstruccion=0.0, monto_asegurado_sugerido=0.0, prorrateo_pago=0.0,
+            ),
+            _item_reconstruccion(
+                'Depto 2', prorrateo=0.5, fila=3,
+                monto_reconstruccion=2380.0, monto_asegurado_sugerido=2400.0, prorrateo_pago=1.0,
+            ),
+        ]
+
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            cotizacion, desglose_reconstruccion
+        )
+
+        unidad = desglose[0]
+        assert unidad.prorrateo_pago == 0.0
+        assert unidad.prima_afecta == 0.0
+        assert unidad.prima_excenta == 0.0
+        assert unidad.prima_bruta == 0.0
+
+        assert desglose[1].prima_bruta > 0
+
+    def test_las_cuotas_de_las_unidades_suman_las_primas_calculadas(self):
+        cotizacion = _cotizacion()
+
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            cotizacion, _desglose_reconstruccion_200_400()
+        )
+
+        # totales del cálculo único sobre 600 UF
+        assert sum(u.prima_afecta for u in desglose) == pytest.approx(0.36, abs=0.01)
+        assert sum(u.prima_excenta for u in desglose) == pytest.approx(1.15, abs=0.01)
+        assert sum(u.prima_neta for u in desglose) == pytest.approx(1.51, abs=0.01)
+        assert sum(u.prima_iva for u in desglose) == pytest.approx(0.07, abs=0.01)
+        assert sum(u.prima_bruta for u in desglose) == pytest.approx(1.58, abs=0.01)
+
+    def test_cada_unidad_lleva_su_desglose_de_reconstruccion(self):
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            _cotizacion(), _desglose_reconstruccion_200_400()
+        )
+
+        assert [(u.monto_reconstruccion, u.monto_asegurado_sugerido) for u in desglose] == [
+            (144.97, 200.0),
+            (331.03, 400.0),
+        ]

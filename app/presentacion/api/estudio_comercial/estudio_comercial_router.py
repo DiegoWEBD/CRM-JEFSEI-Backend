@@ -51,13 +51,10 @@ def generar_desglose_unidades(
     usuario: Usuario = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
     use_case: GenerarDesgloseUnidadesUseCase = Depends(get_generar_desglose_unidades_use_case)
 ):
-    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
-    rut_usuario = None if puede_ver_todas else usuario.rut
-
     ruta_archivo = use_case.ejecutar(
         id_solicitud=request.id_solicitud,
         ids_cotizacion=request.ids_cotizacion,
-        rut_usuario=rut_usuario
+        rut_usuario=usuario.rut
     )
 
     return FileResponse(
