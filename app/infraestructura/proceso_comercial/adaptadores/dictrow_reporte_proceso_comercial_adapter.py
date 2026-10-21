@@ -31,7 +31,11 @@ class DictRowReporteProcesoComercialAdapter:
             estado_actual=EstadoInformativoJson(
                 codigo=r['codigo_estado'],
                 nombre=r['nombre_estado'],
-                fecha_registro=r['fecha_registro_estado'].isoformat(),
+                etapa=EtapaProcesoComercialJson(
+                    codigo=r['codigo_etapa'],
+                    nombre=r['nombre_etapa'],
+                    dias_limite=r['dias_limite_etapa'],
+                ),
             ),
             etapa_actual=EtapaProcesoComercialJson(
                 codigo=r['codigo_etapa'],

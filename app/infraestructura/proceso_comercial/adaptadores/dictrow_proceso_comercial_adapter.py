@@ -19,7 +19,6 @@ class DictRowProcesoComercialAdapter:
         nombre_cliente = self.row['nombre_cliente']
         codigo_estado = self.row['codigo_estado']
         nombre_estado = self.row['nombre_estado']
-        fecha_registro_estado = self.row['fecha_registro_estado']
         codigo_etapa = self.row['codigo_etapa']
         nombre_etapa = self.row['nombre_etapa']
         dias_limite_etapa = self.row['dias_limite_etapa']
@@ -68,7 +67,6 @@ class DictRowProcesoComercialAdapter:
             codigo=codigo_estado,
             etapa=etapa,
             nombre=nombre_estado,
-            fecha_registro=fecha_registro_estado,
             probabilidad_cierre=probabilidad_cierre
         )
 

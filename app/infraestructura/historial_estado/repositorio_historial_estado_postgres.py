@@ -30,7 +30,7 @@ class RepositorioHistorialEstadoPostgres(RepositorioHistorialEstado):
                     inner join Usuario U
                     on HI.rut_registrado_por = U.rut
                     where HI.id_proceso_comercial = %(id_proceso_comercial)s
-                    order by HI.fecha_registro asc
+                    order by HI.fecha_registro desc
                 '''
                 
                 params = {

@@ -10,7 +10,7 @@ AHORA_REF = datetime(2026, 9, 22, 12, 0, 0, tzinfo=timezone.utc)
 
 def crear_notificacion_mock(
     id: int | None = 1,
-    rut_usuario: str = "12345678-9",
+    rut_usuario: str | None = "12345678-9",
     codigo_tipo: str = "SLA_POR_VENCER",
     nivel: str = "AVISO",
     titulo: str = "Oportunidad próximo al límite",

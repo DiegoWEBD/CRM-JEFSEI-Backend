@@ -34,12 +34,6 @@ def _conexion_mock():
 class TestSemaforoReporteUsaTransicionPrincipal:
 
     def test_el_dias_limite_del_semaforo_viene_de_la_transicion_principal(self, mock_conexion):
-        """El panel de gerencia calcula el semáforo con el mismo límite que las alertas.
-
-        El límite vive en la transición principal del estado actual
-        (TransicionEstadoProcesoComercial.es_principal = true), ya no en
-        EtapaProcesoComercial.dias_limite.
-        """
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
         cursor.fetchone.return_value = CONTADORES

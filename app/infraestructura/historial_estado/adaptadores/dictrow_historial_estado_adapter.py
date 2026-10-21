@@ -23,8 +23,7 @@ class DictRowHistorialEstadoAdapter:
         estado = EstadoInformativoProcesoComercial(
             codigo=self.row['codigo_estado'],
             nombre=self.row['estado'],
-            etapa=etapa,
-            fecha_registro=self.row['fecha_registro']
+            etapa=etapa
         )
 
         usuario = Usuario(
