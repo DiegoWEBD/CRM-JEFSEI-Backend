@@ -16,7 +16,6 @@ class DictRowHistorialEstadoAdapter:
             codigo=self.row['codigo_etapa'],
             nombre=self.row['etapa'],
             sigiuente_etapa=None,
-            dias_limite=None,
             es_terminal=False
         )
 

@@ -47,9 +47,9 @@ class TestSemaforoReporteUsaTransicionPrincipal:
         assert 'T.codigo_estado_origen = EI.codigo' in query_str
         assert 'T.es_principal = true' in query_str
         assert 'T.dias_limite AS dias_limite_transicion' in query_str
-        # El límite de la etapa sigue disponible como metadata de etapa_actual,
-        # pero el semáforo no debe calcularse con él.
-        assert 'base.dias_limite_etapa' not in query_str
+        # El SLA vive únicamente en la transición principal; el límite de la
+        # etapa (EtapaProcesoComercial.dias_limite) ya no existe.
+        assert 'dias_limite_etapa' not in query_str
 
     def test_los_dias_se_miden_desde_el_ingreso_al_estado_actual(self, mock_conexion):
         conexion, cursor = _conexion_mock()

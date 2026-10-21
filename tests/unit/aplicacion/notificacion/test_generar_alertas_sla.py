@@ -79,23 +79,6 @@ class TestGenerarAlertasSlaUmbrales:
         assert creadas[0].codigo_tipo == "SLA_VENCIDO"
         assert creadas[0].nivel == "CRITICO"
 
-    def test_dias_limite_de_la_transicion_principal_no_de_la_etapa(self, repositorio_mock):
-        # La transición principal límite 10 (0.70 -> alerta) pero la etapa dice 1
-        # (11.0 -> se descarta si se usara por error el límite de la etapa,
-        # entraría en vencido).
-        proceso = crear_proceso_alertable_sla_mock(
-            dias_transcurridos=7,
-            dias_limite=10,
-            dias_limite_etapa=1,
-            ahora=AHORA_REF,
-        )
-        uc = _use_case(repositorio_mock, proceso)
-
-        creadas = uc.ejecutar(ahora=AHORA_REF)
-
-        assert len(creadas) == 1
-        assert creadas[0].codigo_tipo == "SLA_POR_VENCER"
-
     def test_transicion_principal_sin_dias_limite_no_genera(self, repositorio_mock):
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11, dias_limite=None, ahora=AHORA_REF

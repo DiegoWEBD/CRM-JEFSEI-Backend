@@ -21,7 +21,6 @@ class DictRowProcesoComercialAdapter:
         nombre_estado = self.row['nombre_estado']
         codigo_etapa = self.row['codigo_etapa']
         nombre_etapa = self.row['nombre_etapa']
-        dias_limite_etapa = self.row['dias_limite_etapa']
         cerrado = self.row['cerrado']
         rut_ej_comercial = self.row['rut_ej_comercial']
         nombre_ej_comercial = self.row['nombre_ej_comercial']
@@ -59,8 +58,7 @@ class DictRowProcesoComercialAdapter:
         etapa = EtapaProcesoComercial(
             codigo=codigo_etapa,
             nombre=nombre_etapa,
-            sigiuente_etapa=None,
-            dias_limite=dias_limite_etapa
+            sigiuente_etapa=None
         )
 
         estado = EstadoInformativoProcesoComercial(

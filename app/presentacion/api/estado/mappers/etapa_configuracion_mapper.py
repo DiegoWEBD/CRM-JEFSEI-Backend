@@ -29,7 +29,6 @@ class EtapaConfiguracionMapper:
                     EtapaConfiguracionJson(
                         codigo_etapa=codigo_etapa,
                         nombre_etapa=estado.etapa.nombre,
-                        dias_limite_etapa=estado.etapa.dias_limite,
                         estados=[],
                     )
                 )

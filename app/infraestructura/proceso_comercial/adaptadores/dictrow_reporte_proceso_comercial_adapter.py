@@ -34,13 +34,11 @@ class DictRowReporteProcesoComercialAdapter:
                 etapa=EtapaProcesoComercialJson(
                     codigo=r['codigo_etapa'],
                     nombre=r['nombre_etapa'],
-                    dias_limite=r['dias_limite_etapa'],
                 ),
             ),
             etapa_actual=EtapaProcesoComercialJson(
                 codigo=r['codigo_etapa'],
                 nombre=r['nombre_etapa'],
-                dias_limite=r['dias_limite_etapa'],
             ),
             cerrado=r['cerrado'],
         )

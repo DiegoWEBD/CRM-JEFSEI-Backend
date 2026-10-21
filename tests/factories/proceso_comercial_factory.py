@@ -21,7 +21,6 @@ def crear_proceso_comercial_mock(
         codigo="ETAPA_1",
         nombre="Prospecto",
         sigiuente_etapa=None,
-        dias_limite=30,
     )
     estado = EstadoInformativoProcesoComercial(
         codigo="ESTADO_1",
