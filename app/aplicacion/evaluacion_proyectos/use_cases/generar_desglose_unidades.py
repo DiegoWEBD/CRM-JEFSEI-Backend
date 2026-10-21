@@ -1,18 +1,20 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
+from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
+from app.dominio.cotizacion.servicio_calculo_valor_cuota import ServicioCalculoValorCuota
 from app.dominio.estudio_comercial.desglose_unidades.calculadora_desglose_unidades import CalculadoraDesgloseUnidades
-from app.dominio.estudio_comercial.desglose_unidades.desglose_unidad import DesgloseUnidad
-from app.dominio.estudio_comercial.desglose_unidades.totales_prima import TotalesPrima
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.solicitud_cotizacion.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
-from app.infraestructura.estudio_comercial_condominio.generador_excel_desglose_unidades import GeneradorExcelDesgloseUnidades
+from app.infraestructura.estudio_comercial_condominio.generador_excel_desglose_unidades import DetalleDesglose, GeneradorExcelDesgloseUnidades
 
 
 class GenerarDesgloseUnidadesUseCase:
@@ -22,6 +24,8 @@ class GenerarDesgloseUnidadesUseCase:
     asegurado sugerido total (la suma de los montos redondeados a la centena
     superior); cada prima se reparte luego por el `prorrateo_pago` de cada
     unidad (monto asegurado sugerido de la unidad sobre el total sugerido).
+    Con la prima bruta de cada unidad se calcula su valor de cuota en UF y en
+    pesos.
     """
 
     def __init__(
@@ -32,6 +36,7 @@ class GenerarDesgloseUnidadesUseCase:
         repositorio_cotizaciones: RepositorioCotizaciones,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         calcular_desglose_reconstruccion: CalcularDesgloseReconstruccionUnidadesUseCase,
+        repositorio_company_seguros: RepositorioCompanySeguros,
         generador_excel: GeneradorExcelDesgloseUnidades | None = None,
     ) -> None:
         self.authorization_service = authorization_service
@@ -40,11 +45,25 @@ class GenerarDesgloseUnidadesUseCase:
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.calcular_desglose_reconstruccion = calcular_desglose_reconstruccion
+        self.repositorio_company_seguros = repositorio_company_seguros
         self.generador_excel = generador_excel or GeneradorExcelDesgloseUnidades()
 
-    def ejecutar(self, id_solicitud: int, ids_cotizacion: list[int], rut_usuario: str | None) -> str:
+    def ejecutar(
+        self,
+        id_solicitud: int,
+        ids_cotizacion: list[int],
+        cantidad_cuotas: int,
+        valor_uf: float,
+        rut_usuario: str | None,
+    ) -> str:
         if not ids_cotizacion:
             raise ConflictoEnAccionException('No se puede generar el desglose por unidad sin cotizaciones')
+
+        if cantidad_cuotas <= 0:
+            raise ConflictoEnAccionException('La cantidad de cuotas debe ser mayor a cero')
+
+        if valor_uf <= 0:
+            raise ConflictoEnAccionException('El valor de la UF debe ser mayor a cero')
 
         solicitud = self.repositorio_solicitudes.buscar(id_solicitud)
 
@@ -90,11 +109,15 @@ class GenerarDesgloseUnidadesUseCase:
         cotizaciones = self.__buscar_cotizaciones(ids_cotizacion, id_solicitud)
 
         datos = [
-            self.__detalle_cotizacion(cotizacion, desglose_reconstruccion)
+            self.__detalle_cotizacion(
+                cotizacion, desglose_reconstruccion, cantidad_cuotas, valor_uf
+            )
             for cotizacion in cotizaciones
         ]
 
-        return self.generador_excel.generar(id_solicitud, datos)
+        encabezado = self.__encabezado(solicitud, proceso, desglose_reconstruccion, total_sugerido, cantidad_cuotas, valor_uf)
+
+        return self.generador_excel.generar(id_solicitud, datos, encabezado)
 
     def __buscar_cotizaciones(self, ids_cotizacion: list[int], id_solicitud: int) -> list[Cotizacion]:
         cotizaciones: list[Cotizacion] = []
@@ -118,8 +141,45 @@ class GenerarDesgloseUnidadesUseCase:
         self,
         cotizacion: Cotizacion,
         desglose_reconstruccion: list[DesgloseReconstruccionUnidad],
-    ) -> tuple[Cotizacion, TotalesPrima, list[DesgloseUnidad]]:
-        totales = CalculadoraDesgloseUnidades.calcular_totales(cotizacion)
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(cotizacion, desglose_reconstruccion)
+        cantidad_cuotas: int,
+        valor_uf: float,
+    ) -> DetalleDesglose:
+        factores_cuotas = self.repositorio_company_seguros.obtener_factores_cuotas(cotizacion.company.id)
 
-        return cotizacion, totales, desglose
+        totales = CalculadoraDesgloseUnidades.calcular_totales(cotizacion)
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            cotizacion,
+            desglose_reconstruccion,
+            cantidad_cuotas,
+            factores_cuotas,
+            valor_uf,
+        )
+
+        # Cuota de la cotización completa, como fila de referencia del Excel
+        cuota_referencia_uf = ServicioCalculoValorCuota.calcular_valor_cuota(
+            totales.prima_bruta, cantidad_cuotas, factores_cuotas
+        )
+        cuota_referencia_pesos = ServicioCalculoValorCuota.calcular_valor_cuota_pesos(
+            cuota_referencia_uf, valor_uf
+        )
+
+        return cotizacion, totales, desglose, cuota_referencia_uf, cuota_referencia_pesos
+
+    def __encabezado(
+        self,
+        solicitud: SolicitudCotizacion,
+        proceso: ProcesoComercial,
+        desglose_reconstruccion: list[DesgloseReconstruccionUnidad],
+        total_sugerido: float,
+        cantidad_cuotas: int,
+        valor_uf: float,
+    ) -> dict:
+        return {
+            'cliente': proceso.nombre_cliente,
+            'id_solicitud': solicitud.id,
+            'fecha': solicitud.fecha,
+            'cantidad_unidades': len(desglose_reconstruccion),
+            'monto_asegurado_sugerido_total': total_sugerido,
+            'cantidad_cuotas': cantidad_cuotas,
+            'valor_uf': valor_uf,
+        }

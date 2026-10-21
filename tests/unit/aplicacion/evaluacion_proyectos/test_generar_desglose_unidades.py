@@ -6,8 +6,12 @@ from app.aplicacion.evaluacion_proyectos.use_cases.generar_desglose_unidades imp
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+
+CANTIDAD_CUOTAS = 11
+VALOR_UF = 38000.0
 
 
 def _solicitud(id=10, tipo='unidades', monto_asegurado=41500.0):
@@ -80,6 +84,11 @@ def _use_case(
         total_sugerido,
     )
 
+    repositorio_company_seguros = MagicMock()
+    repositorio_company_seguros.obtener_factores_cuotas.return_value = [
+        FactorCuotasCompany(numero_cuotas=CANTIDAD_CUOTAS, factor=2.0),
+    ]
+
     generador_excel = MagicMock()
     generador_excel.generar.return_value = 'documentos/estudios/desglose/desglose.xlsx'
 
@@ -90,6 +99,7 @@ def _use_case(
         repositorio_cotizaciones=repositorio_cotizaciones,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         calcular_desglose_reconstruccion=calcular_desglose_reconstruccion,
+        repositorio_company_seguros=repositorio_company_seguros,
         generador_excel=generador_excel,
     )
 
@@ -103,73 +113,85 @@ class TestGenerarDesgloseUnidadesValidaciones:
         use_case, _ = _use_case()
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_solicitud_no_encontrada(self):
         use_case, _ = _use_case(solicitud=None)
 
         with pytest.raises(RecursoNoEncontradoException):
-            use_case.ejecutar(id_solicitud=99, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=99, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_usuario_no_autorizado(self):
         use_case, _ = _use_case()
         use_case.authorization_service.usuario_puede_ver_solicitud_cotizacion.return_value = False
 
         with pytest.raises(UsuarioNoAutorizadoException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_solicitud_que_no_es_de_unidades_es_conflicto(self):
         use_case, _ = _use_case(solicitud=_solicitud(tipo='espacios_comunes'))
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_solicitud_sin_monto_asegurado_es_conflicto(self):
         use_case, _ = _use_case(solicitud=_solicitud(monto_asegurado=None))
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_solicitud_sin_unidades_es_conflicto(self):
         use_case, _ = _use_case(unidades=[])
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_desglose_no_calculable_es_conflicto(self):
         use_case, _ = _use_case(desglose=None, total_sugerido=None)
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_total_sugerido_cero_es_conflicto(self):
         use_case, _ = _use_case(total_sugerido=0.0)
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
+
+    def test_cantidad_de_cuotas_invalida_es_conflicto(self):
+        use_case, _ = _use_case()
+
+        with pytest.raises(ConflictoEnAccionException):
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=0, valor_uf=VALOR_UF, rut_usuario='1-1')
+
+    def test_valor_uf_invalido_es_conflicto(self):
+        use_case, _ = _use_case()
+
+        with pytest.raises(ConflictoEnAccionException):
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=0, rut_usuario='1-1')
 
     def test_solicitud_sin_oportunidad_es_recurso_no_encontrado(self):
         use_case, _ = _use_case(proceso=None)
 
         with pytest.raises(RecursoNoEncontradoException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_cotizacion_no_encontrada(self):
         use_case, _ = _use_case(cotizacion=None)
 
         with pytest.raises(RecursoNoEncontradoException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_cotizacion_de_otra_solicitud_es_conflicto(self):
         use_case, _ = _use_case(pertenece=False)
 
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
     def test_sin_rut_no_se_valida_autorizacion(self):
         use_case, _ = _use_case()
 
-        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario=None)
+        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario=None)
 
         use_case.authorization_service.usuario_puede_ver_solicitud_cotizacion.assert_not_called()
 
@@ -180,15 +202,21 @@ class TestGenerarDesgloseUnidadesExcel:
     def test_calcula_las_primas_una_unica_vez_y_las_reparte_por_prorrateo_de_pago(self):
         use_case, generador_excel = _use_case()
 
-        ruta = use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+        ruta = use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
         assert ruta == 'documentos/estudios/desglose/desglose.xlsx'
 
-        id_solicitud, datos = generador_excel.generar.call_args.args
+        id_solicitud, datos, encabezado = generador_excel.generar.call_args.args
         assert id_solicitud == 10
         assert len(datos) == 1
 
-        cotizacion, totales_referencia, desglose = datos[0]
+        assert encabezado['id_solicitud'] == 10
+        assert encabezado['cantidad_unidades'] == 2
+        assert encabezado['monto_asegurado_sugerido_total'] == 600.0
+        assert encabezado['cantidad_cuotas'] == CANTIDAD_CUOTAS
+        assert encabezado['valor_uf'] == VALOR_UF
+
+        cotizacion, totales_referencia, desglose, cuota_referencia_uf, cuota_referencia_pesos = datos[0]
         assert cotizacion.id == 7
 
         # Fila de referencia: totales registrados de la cotización (41.500 UF)
@@ -196,6 +224,10 @@ class TestGenerarDesgloseUnidadesExcel:
         assert totales_referencia.prima_neta == 104.58
         assert totales_referencia.prima_iva == 4.73
         assert totales_referencia.prima_bruta == 109.31
+
+        # Cuota de referencia: prima bruta de la cotización x factor 2,0 de la compañía
+        assert cuota_referencia_uf == 218.62
+        assert cuota_referencia_pesos == 8307560
 
         # El cálculo único sobre el total sugerido (600 UF) da:
         # afecta 0,36 | excenta 1,15 | neta 1,51 | IVA 0,07 | bruta 1,58
@@ -211,6 +243,8 @@ class TestGenerarDesgloseUnidadesExcel:
         assert desglose[0].prima_neta == 0.5
         assert desglose[0].prima_iva == 0.02
         assert desglose[0].prima_bruta == 0.53
+        assert desglose[0].valor_cuota_uf == 1.06
+        assert desglose[0].valor_cuota_pesos == 40280
 
         assert desglose[1].prorrateo_pago == pytest.approx(2 / 3)
         assert desglose[1].monto_asegurado == 400.0
@@ -219,6 +253,8 @@ class TestGenerarDesgloseUnidadesExcel:
         assert desglose[1].prima_neta == 1.01
         assert desglose[1].prima_iva == 0.05
         assert desglose[1].prima_bruta == 1.05
+        assert desglose[1].valor_cuota_uf == 2.1
+        assert desglose[1].valor_cuota_pesos == 79800
 
     def test_las_asistencias_se_incluyen_en_el_calculo_unico(self):
         cotizacion = _cotizacion()
@@ -226,9 +262,9 @@ class TestGenerarDesgloseUnidadesExcel:
         cotizacion.asistencia_excenta = 3.0
         use_case, generador_excel = _use_case(cotizacion=cotizacion)
 
-        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
-        _, datos = generador_excel.generar.call_args.args
+        _, datos, _ = generador_excel.generar.call_args.args
         desglose = datos[0][2]
 
         # Prima afecta total = 0,36 + 5 = 5,36 y excenta = 1,15 + 3 = 4,15
@@ -248,7 +284,7 @@ class TestGenerarDesgloseUnidadesExcel:
         )
         use_case, generador_excel = _use_case(unidades=unidades, desglose=desglose)
 
-        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
 
         desglose_resultado = generador_excel.generar.call_args.args[1][0][2]
 

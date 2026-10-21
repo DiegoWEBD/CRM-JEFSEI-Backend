@@ -47,11 +47,17 @@ class GenerarExcelDesgloseReconstruccionUnidadesUseCase:
         if not unidades:
             raise ConflictoEnAccionException('La oportunidad no tiene alícuota importada')
 
-        desglose, _ = self.calcular_desglose_reconstruccion.ejecutar(proceso.id_prospecto, unidades)
+        desglose, total = self.calcular_desglose_reconstruccion.ejecutar(proceso.id_prospecto, unidades)
 
         if desglose is None:
             raise ConflictoEnAccionException(
                 'El desglose de reconstrucción no se puede calcular, complete los datos de reconstrucción del prospecto'
             )
 
-        return self.generador_excel.generar(proceso.id, desglose)
+        encabezado = {
+            'cliente': proceso.nombre_cliente,
+            'cantidad_unidades': len(desglose),
+            'monto_asegurado_sugerido_total': total,
+        }
+
+        return self.generador_excel.generar(proceso.id, desglose, encabezado)

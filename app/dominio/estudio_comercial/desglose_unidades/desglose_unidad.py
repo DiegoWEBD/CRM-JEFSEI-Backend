@@ -14,6 +14,8 @@ class DesgloseUnidad:
         prorrateo_pago: float | None = None,
         monto_reconstruccion: float | None = None,
         monto_asegurado_sugerido: float | None = None,
+        valor_cuota_uf: float | None = None,
+        valor_cuota_pesos: int | None = None,
     ) -> None:
         self.identificador_unidad = identificador_unidad
         self.prorrateo = prorrateo
@@ -26,3 +28,5 @@ class DesgloseUnidad:
         self.prorrateo_pago = prorrateo_pago
         self.monto_reconstruccion = monto_reconstruccion
         self.monto_asegurado_sugerido = monto_asegurado_sugerido
+        self.valor_cuota_uf = valor_cuota_uf
+        self.valor_cuota_pesos = valor_cuota_pesos

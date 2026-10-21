@@ -5,9 +5,24 @@ import pytest
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.estudio_comercial.desglose_unidades.calculadora_desglose_unidades import CalculadoraDesgloseUnidades
+from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+
+CANTIDAD_CUOTAS = 11
+VALOR_UF = 38000.0
+FACTORES_CUOTAS = [FactorCuotasCompany(numero_cuotas=CANTIDAD_CUOTAS, factor=2.0)]
+
+
+def _calcular_desglose_unidades(cotizacion, desglose_reconstruccion):
+    return CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        cotizacion,
+        desglose_reconstruccion,
+        CANTIDAD_CUOTAS,
+        FACTORES_CUOTAS,
+        VALOR_UF,
+    )
 
 
 def _cotizacion(
@@ -174,7 +189,7 @@ class TestCalcularDesgloseUnidades:
         # IVA 0,07 | bruta 1,58 y se reparte por el prorrateo de pago
         cotizacion = _cotizacion()
 
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             cotizacion, _desglose_reconstruccion_200_400()
         )
 
@@ -206,7 +221,7 @@ class TestCalcularDesgloseUnidades:
             _item_reconstruccion('Depto 2', prorrateo=0.5, fila=3, monto_asegurado_sugerido=400.0, prorrateo_pago=400.0 / 600.0),
         ]
 
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             _cotizacion(), desglose_reconstruccion
         )
 
@@ -228,7 +243,7 @@ class TestCalcularDesgloseUnidades:
             asistencia_excenta=3.0,
         )
 
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             cotizacion, _desglose_reconstruccion_200_400()
         )
 
@@ -250,7 +265,7 @@ class TestCalcularDesgloseUnidades:
             ),
         ]
 
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             cotizacion, desglose_reconstruccion
         )
 
@@ -265,7 +280,7 @@ class TestCalcularDesgloseUnidades:
     def test_las_cuotas_de_las_unidades_suman_las_primas_calculadas(self):
         cotizacion = _cotizacion()
 
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             cotizacion, _desglose_reconstruccion_200_400()
         )
 
@@ -277,7 +292,7 @@ class TestCalcularDesgloseUnidades:
         assert sum(u.prima_bruta for u in desglose) == pytest.approx(1.58, abs=0.01)
 
     def test_cada_unidad_lleva_su_desglose_de_reconstruccion(self):
-        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+        desglose = _calcular_desglose_unidades(
             _cotizacion(), _desglose_reconstruccion_200_400()
         )
 
@@ -285,3 +300,27 @@ class TestCalcularDesgloseUnidades:
             (144.97, 200.0),
             (331.03, 400.0),
         ]
+
+    def test_calcula_el_valor_de_cuota_de_cada_unidad(self):
+        desglose = _calcular_desglose_unidades(
+            _cotizacion(), _desglose_reconstruccion_200_400()
+        )
+
+        # prima bruta 0,53 y 1,05 con el factor 2,0 de la compañía
+        assert desglose[0].valor_cuota_uf == 1.06
+        assert desglose[0].valor_cuota_pesos == 40280
+        assert desglose[1].valor_cuota_uf == 2.1
+        assert desglose[1].valor_cuota_pesos == 79800
+
+    def test_valor_de_cuota_con_factor_generico(self):
+        desglose = CalculadoraDesgloseUnidades.calcular_desglose_unidades(
+            _cotizacion(),
+            _desglose_reconstruccion_200_400(),
+            CANTIDAD_CUOTAS,
+            [],
+            VALOR_UF,
+        )
+
+        # prima bruta 0,53 -> (0,005 x 0,53) / (1 - 1,005^-11) = 0,05
+        assert desglose[0].valor_cuota_uf == 0.05
+        assert desglose[0].valor_cuota_pesos == 1900

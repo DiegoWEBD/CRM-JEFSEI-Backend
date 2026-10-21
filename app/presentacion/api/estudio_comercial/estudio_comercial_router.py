@@ -54,6 +54,8 @@ def generar_desglose_unidades(
     ruta_archivo = use_case.ejecutar(
         id_solicitud=request.id_solicitud,
         ids_cotizacion=request.ids_cotizacion,
+        cantidad_cuotas=request.cantidad_cuotas,
+        valor_uf=request.valor_uf,
         rut_usuario=usuario.rut
     )
 

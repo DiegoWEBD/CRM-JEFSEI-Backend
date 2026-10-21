@@ -1,14 +1,18 @@
 from pathlib import Path
 
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
-
-
-FORMATO_MONTO = '#,##0.00'
-FORMATO_PRORRATEO = '0.000000000'
+from app.infraestructura.lib.estilo_excel import (
+    COLOR_TOTAL,
+    FORMATO_MONTO_UF,
+    FORMATO_PRORRATEO,
+    escribir_celda,
+    escribir_encabezado,
+    escribir_linea_informativa,
+    escribir_titulo,
+)
 
 HOJA_DESGLOSE = 'Desglose reconstrucción'
 
@@ -20,7 +24,11 @@ COLUMNAS = (
     'Monto asegurado sugerido (UF)',
 )
 
-COLOR_GRUPO = 'FFF2CC'
+ETIQUETA_TOTALES = 'TOTAL'
+
+FILA_TITULO = 1
+FILA_INFORMACION = 2
+FILA_VACIA = 3
 
 
 class GeneradorExcelDesgloseReconstruccion:
@@ -33,7 +41,12 @@ class GeneradorExcelDesgloseReconstruccion:
     def __init__(self, carpeta_base: str = 'documentos/estudios') -> None:
         self.carpeta_base = Path(carpeta_base)
 
-    def generar(self, id_proceso_comercial: int, desglose: list[DesgloseReconstruccionUnidad]) -> str:
+    def generar(
+        self,
+        id_proceso_comercial: int,
+        desglose: list[DesgloseReconstruccionUnidad],
+        encabezado: dict | None = None,
+    ) -> str:
         nombre = f'desglose_reconstruccion_oportunidad_{id_proceso_comercial}'
         carpeta = self.carpeta_base / nombre
         carpeta.mkdir(parents=True, exist_ok=True)
@@ -42,66 +55,67 @@ class GeneradorExcelDesgloseReconstruccion:
         hoja = libro.active
         hoja.title = HOJA_DESGLOSE
 
-        self.__escribir_grupo(hoja)
-        self.__escribir_encabezados(hoja)
+        self.__escribir_bloque_encabezado(hoja, encabezado or {}, len(COLUMNAS))
 
-        fila = 3
+        fila_encabezados = FILA_VACIA + 1
+        for columna, texto in enumerate(COLUMNAS, start=1):
+            escribir_encabezado(hoja, fila_encabezados, columna, texto)
+
+        fila = fila_encabezados + 1
         for indice, unidad in enumerate(desglose):
-            self.__escribir_fila_unidad(hoja, fila + indice, unidad)
+            self.__escribir_fila_unidad(hoja, fila + indice, unidad, indice)
 
         self.__escribir_fila_totales(hoja, fila + len(desglose), desglose)
+
+        hoja.freeze_panes = hoja.cell(row=fila_encabezados + 1, column=1)
+
+        for columna, ancho in enumerate((18, 20, 26, 26, 28), start=1):
+            hoja.column_dimensions[get_column_letter(columna)].width = ancho
 
         ruta = carpeta / f'{nombre}.xlsx'
         libro.save(ruta)
 
         return str(ruta)
 
-    def __escribir_grupo(self, hoja) -> None:
-        celda = hoja.cell(row=1, column=1, value='Desglose de reconstrucción por unidad')
-        hoja.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(COLUMNAS))
-        celda.font = Font(bold=True)
-        celda.alignment = Alignment(horizontal='center')
-        celda.fill = PatternFill(fill_type='solid', fgColor=COLOR_GRUPO)
+    def __escribir_bloque_encabezado(self, hoja, encabezado: dict, cantidad_columnas: int) -> None:
+        escribir_titulo(hoja, FILA_TITULO, 'Desglose de reconstrucción por unidad', cantidad_columnas)
 
-    def __escribir_encabezados(self, hoja) -> None:
-        for columna, encabezado in enumerate(COLUMNAS, start=1):
-            celda = hoja.cell(row=2, column=columna, value=encabezado)
-            celda.font = Font(bold=True)
-            celda.alignment = Alignment(horizontal='center')
+        cliente = encabezado.get('cliente') or '—'
+        escribir_linea_informativa(
+            hoja,
+            FILA_INFORMACION,
+            (
+                f'Cliente: {cliente}'
+                f'   ·   Unidades: {encabezado.get("cantidad_unidades", 0)}'
+                f'   ·   Monto asegurado sugerido total: {encabezado.get("monto_asegurado_sugerido_total", 0)} UF'
+            ),
+            cantidad_columnas,
+        )
 
-        for columna in range(1, len(COLUMNAS) + 1):
-            hoja.column_dimensions[get_column_letter(columna)].width = 24
+    def __escribir_fila_unidad(self, hoja, fila: int, unidad: DesgloseReconstruccionUnidad, indice: int) -> None:
+        relleno = 'F7F9FC' if indice % 2 == 0 else None
 
-    def __escribir_fila_unidad(self, hoja, fila: int, unidad: DesgloseReconstruccionUnidad) -> None:
-        valores = [
-            unidad.identificador_unidad,
-            unidad.prorrateo,
-            unidad.prorrateo_pago,
-            unidad.monto_reconstruccion,
-            unidad.monto_asegurado_sugerido,
-        ]
-        formatos = [None, FORMATO_PRORRATEO, FORMATO_PRORRATEO, FORMATO_MONTO, FORMATO_MONTO]
-
-        self.__escribir_fila(hoja, fila, valores, formatos)
+        escribir_celda(hoja, fila, 1, unidad.identificador_unidad, negrita=True, color_relleno=relleno)
+        escribir_celda(hoja, fila, 2, unidad.prorrateo, FORMATO_PRORRATEO, color_relleno=relleno)
+        escribir_celda(hoja, fila, 3, unidad.prorrateo_pago, FORMATO_PRORRATEO, color_relleno=relleno)
+        escribir_celda(hoja, fila, 4, unidad.monto_reconstruccion, FORMATO_MONTO_UF, color_relleno=relleno)
+        escribir_celda(hoja, fila, 5, unidad.monto_asegurado_sugerido, FORMATO_MONTO_UF, color_relleno=relleno)
 
     def __escribir_fila_totales(self, hoja, fila: int, desglose: list[DesgloseReconstruccionUnidad]) -> None:
-        valores = [
-            'TOTAL',
-            round(sum(unidad.prorrateo for unidad in desglose), 9),
-            round(sum(unidad.prorrateo_pago for unidad in desglose), 9),
-            round(sum(unidad.monto_reconstruccion for unidad in desglose), 2),
-            round(sum(unidad.monto_asegurado_sugerido for unidad in desglose), 2),
-        ]
-        formatos = [None, FORMATO_PRORRATEO, FORMATO_PRORRATEO, FORMATO_MONTO, FORMATO_MONTO]
-
-        self.__escribir_fila(hoja, fila, valores, formatos, negrita=True)
-
-    def __escribir_fila(self, hoja, fila: int, valores: list, formatos: list, negrita: bool = False) -> None:
-        for columna, (valor, formato) in enumerate(zip(valores, formatos), start=1):
-            celda = hoja.cell(row=fila, column=columna, value=valor)
-
-            if negrita:
-                celda.font = Font(bold=True)
-
-            if formato is not None:
-                celda.number_format = formato
+        escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
+        escribir_celda(
+            hoja, fila, 2, round(sum(u.prorrateo for u in desglose), 9),
+            FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
+        )
+        escribir_celda(
+            hoja, fila, 3, round(sum(u.prorrateo_pago for u in desglose), 9),
+            FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
+        )
+        escribir_celda(
+            hoja, fila, 4, round(sum(u.monto_reconstruccion for u in desglose), 2),
+            FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
+        )
+        escribir_celda(
+            hoja, fila, 5, round(sum(u.monto_asegurado_sugerido for u in desglose), 2),
+            FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
+        )

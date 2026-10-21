@@ -36,6 +36,7 @@ def get_generar_desglose_unidades_use_case():
         calcular_desglose_reconstruccion=CalcularDesgloseReconstruccionUnidadesUseCase(
             repositorio_prospectos=RepositorioProspectosPostgres(),
         ),
+        repositorio_company_seguros=RepositorioCompanySegurosPostgres(),
         generador_excel=GeneradorExcelDesgloseUnidades(),
     )
 

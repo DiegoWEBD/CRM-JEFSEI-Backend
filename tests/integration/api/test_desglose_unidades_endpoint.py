@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -41,6 +42,8 @@ def _datos_desglose():
             prorrateo_pago=0.3333333333333333,
             monto_reconstruccion=144.97,
             monto_asegurado_sugerido=200.0,
+            valor_cuota_uf=1.06,
+            valor_cuota_pesos=40280,
         ),
     ]
 
@@ -48,12 +51,25 @@ def _datos_desglose():
     cotizacion.id = 7
     cotizacion.company.nombre = 'Company'
 
-    return [(cotizacion, totales, desglose)]
+    # (cotizacion, totales de referencia, desglose, cuota referencia UF, cuota referencia CLP)
+    return [(cotizacion, totales, desglose, 218.62, 8307560)]
+
+
+def _encabezado():
+    return {
+        'cliente': 'Condominio Prueba',
+        'id_solicitud': 10,
+        'fecha': datetime(2026, 1, 1),
+        'cantidad_unidades': 1,
+        'monto_asegurado_sugerido_total': 200.0,
+        'cantidad_cuotas': 11,
+        'valor_uf': 38000.0,
+    }
 
 
 def _ruta_xlsx(tmp_path) -> str:
     generador = GeneradorExcelDesgloseUnidades(carpeta_base=str(tmp_path))
-    return generador.generar(10, _datos_desglose())
+    return generador.generar(10, _datos_desglose(), _encabezado())
 
 
 @pytest.fixture
@@ -101,7 +117,7 @@ class TestGenerarDesgloseUnidadesEndpoint:
     def test_genera_y_descarga_el_excel(self, client_desglose, use_case_mock):
         response = client_desglose.post(
             '/estudio-comercial/unidades/desglose-excel',
-            json={'id_solicitud': 10, 'ids_cotizacion': [7]},
+            json={'id_solicitud': 10, 'ids_cotizacion': [7], 'cantidad_cuotas': 11, 'valor_uf': 38000},
         )
 
         assert response.status_code == 200
@@ -113,13 +129,15 @@ class TestGenerarDesgloseUnidadesEndpoint:
         kwargs = use_case_mock.ejecutar.call_args.kwargs
         assert kwargs['id_solicitud'] == 10
         assert kwargs['ids_cotizacion'] == [7]
+        assert kwargs['cantidad_cuotas'] == 11
+        assert kwargs['valor_uf'] == 38000
         # Sin permiso global: se delega la validación con el RUT del usuario
         assert kwargs['rut_usuario'] == '12345678-9'
 
     def test_sin_permiso_es_rechazado(self, client_desglose_sin_permiso, use_case_mock):
         response = client_desglose_sin_permiso.post(
             '/estudio-comercial/unidades/desglose-excel',
-            json={'id_solicitud': 10, 'ids_cotizacion': [7]},
+            json={'id_solicitud': 10, 'ids_cotizacion': [7], 'cantidad_cuotas': 11, 'valor_uf': 38000},
         )
 
         assert response.status_code == 403

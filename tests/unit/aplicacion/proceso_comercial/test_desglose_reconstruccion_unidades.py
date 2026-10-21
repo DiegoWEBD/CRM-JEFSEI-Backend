@@ -219,9 +219,11 @@ class TestGenerarExcelDesgloseReconstruccionUnidades:
         ruta = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert ruta == 'documentos/estudios/desglose/desglose.xlsx'
-        id_proceso, desglose = generador_excel.generar.call_args.args
+        id_proceso, desglose, encabezado = generador_excel.generar.call_args.args
         assert id_proceso == 42
         assert [u.identificador_unidad for u in desglose] == ['Depto 1', 'Depto 2']
+        assert encabezado['cantidad_unidades'] == 2
+        assert encabezado['monto_asegurado_sugerido_total'] == 600.0
 
     def test_sin_alicuota_es_conflicto(self):
         uc, generador_excel = _use_case_excel(unidades=[])

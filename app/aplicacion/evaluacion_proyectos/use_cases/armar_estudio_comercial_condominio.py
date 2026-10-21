@@ -14,6 +14,7 @@ from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoExce
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
+from app.dominio.cotizacion.servicio_calculo_valor_cuota import ServicioCalculoValorCuota
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.infraestructura.lib.convertir_numero_a_formato_chileno import convertir_numero_a_formato_chileno
@@ -102,6 +103,8 @@ class ArmarEstudioComercialCondominioUseCase:
             'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.uf_por_metro_cuadrado),
             'porcentaje_depreciacion': round(prospecto.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.porcentaje_espacios_comunes * 100),
+            'condominio_vertical': True,
+            'tipo_estudio': 'unidades',
             'cantidad_cuotas': cantidad_cuotas,
             'year_actual': datetime.now(tz=timezone.utc).year,
             'page_break': rt
@@ -155,10 +158,13 @@ class ArmarEstudioComercialCondominioUseCase:
             valor_total_reconstruccion_depreciacion_iva, porcentaje_bienes_espacios_comunes
         )
 
+        monto_sugerido_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_total_reconstruccion_depreciacion_iva)
+
         self.datos_plantilla.update({
             'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
             'valor_reconstruccion_depreciacion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_depreciacion_iva),
             'monto_asegurado_sugerido': convertir_numero_a_formato_chileno(monto_asegurado_sugerido),
+            'monto_asegurado_sugerido_unidades': convertir_numero_a_formato_chileno(monto_sugerido_unidades),
             'monto_asegurado_ejemplo_50': convertir_numero_a_formato_chileno(round(monto_asegurado_sugerido * 0.5)),
             'con_monto_sugerido': con_monto_sugerido
         })
@@ -336,19 +342,12 @@ class ArmarEstudioComercialCondominioUseCase:
         prima_bruta = ServicioCalculoPrimas.calcular_prima_bruta(prima_neta, iva_prima_afecta)
 
         factores_cuotas = self.repositorio_company_seguros.obtener_factores_cuotas(cotizacion.company.id)
-        factor = None
 
-        for factor_cuota in factores_cuotas:
-            if factor_cuota.numero_cuotas == cantidad_cuotas:
-                factor = factor_cuota.factor
-
-        if factor is not None:
-            valor_cuota = prima_bruta * factor
-        else:
-            valor_cuota = self.__valor_cuota_con_factor_generico(
-                cantidad_cuotas=cantidad_cuotas,
-                prima_bruta=prima_bruta
-            )
+        valor_cuota = ServicioCalculoValorCuota.calcular_valor_cuota(
+            prima_bruta=prima_bruta,
+            cantidad_cuotas=cantidad_cuotas,
+            factores_cuotas=factores_cuotas,
+        )
 
         return DetalleEstudioComercial(
             cotizacion=cotizacion,
@@ -356,15 +355,9 @@ class ArmarEstudioComercialCondominioUseCase:
             porcentaje_infraseguro=porcentaje_infraseguro,
             prima_neta=prima_neta,
             prima_bruta=prima_bruta,
-            valor_cuota=round(valor_cuota, 2)
+            valor_cuota=valor_cuota
         )
-    
-    def __valor_cuota_con_factor_generico(self, cantidad_cuotas: int, prima_bruta: float) -> float:
-        tasa = 0.005      # 0.5%
 
-        cuota = (tasa * prima_bruta) / (1 - (1 + tasa) ** -cantidad_cuotas)
-        return cuota
-    
     def __renderizar_secciones_docx(self, secciones: list[SeccionEstudioComercial] | None, valor_uf: float):
 
         if not secciones:
@@ -382,7 +375,7 @@ class ArmarEstudioComercialCondominioUseCase:
             detalles_seccion = []
 
             for detalle in seccion.detalles:
-                valor_cuota_pesos = round(detalle.valor_cuota * valor_uf)
+                valor_cuota_pesos = ServicioCalculoValorCuota.calcular_valor_cuota_pesos(detalle.valor_cuota, valor_uf)
                 prorrateo_uf: float | None = None
                 prorrateo_pesos: float | None = None
 
@@ -424,7 +417,7 @@ class ArmarEstudioComercialCondominioUseCase:
         datos_detalles = []
 
         for detalle in detalles:
-            valor_cuota_pesos = round(detalle.valor_cuota * valor_uf)
+            valor_cuota_pesos = ServicioCalculoValorCuota.calcular_valor_cuota_pesos(detalle.valor_cuota, valor_uf)
             prorrateo_pesos = round(valor_cuota_pesos / cantidad_unidades)
 
             logo = InlineImage(

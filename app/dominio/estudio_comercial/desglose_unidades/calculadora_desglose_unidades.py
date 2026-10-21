@@ -2,8 +2,10 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
+from app.dominio.cotizacion.servicio_calculo_valor_cuota import ServicioCalculoValorCuota
 from app.dominio.estudio_comercial.desglose_unidades.desglose_unidad import DesgloseUnidad
 from app.dominio.estudio_comercial.desglose_unidades.totales_prima import TotalesPrima
+from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
@@ -63,6 +65,9 @@ class CalculadoraDesgloseUnidades:
     def calcular_desglose_unidades(
         cotizacion: Cotizacion,
         desglose_reconstruccion: list[DesgloseReconstruccionUnidad],
+        cantidad_cuotas: int,
+        factores_cuotas: list[FactorCuotasCompany],
+        valor_uf: float,
     ) -> list[DesgloseUnidad]:
         """Reparte la prima de la cotización entre las unidades.
 
@@ -71,19 +76,35 @@ class CalculadoraDesgloseUnidades:
         cada prima se multiplica luego por el `prorrateo_pago` de la unidad
         (monto asegurado sugerido de la unidad sobre el total sugerido), que es
         la porción de prima que paga cada propietario.
+
+        Con la prima bruta de cada unidad se calcula además su valor de cuota
+        (factor de la compañía o fórmula genérica) y su valor en pesos.
         """
 
         total_sugerido = CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose_reconstruccion)
         totales = CalculadoraDesgloseUnidades.calcular_totales(cotizacion, monto_base=total_sugerido)
 
         return [
-            CalculadoraDesgloseUnidades.calcular_desglose_unidad_pago(totales, item)
+            CalculadoraDesgloseUnidades.calcular_desglose_unidad_pago(
+                totales, item, cantidad_cuotas, factores_cuotas, valor_uf
+            )
             for item in desglose_reconstruccion
         ]
 
     @staticmethod
-    def calcular_desglose_unidad_pago(totales: TotalesPrima, item: DesgloseReconstruccionUnidad) -> DesgloseUnidad:
+    def calcular_desglose_unidad_pago(
+        totales: TotalesPrima,
+        item: DesgloseReconstruccionUnidad,
+        cantidad_cuotas: int,
+        factores_cuotas: list[FactorCuotasCompany],
+        valor_uf: float,
+    ) -> DesgloseUnidad:
         prorrateo_pago = item.prorrateo_pago  # monto asegurado sugerido / total sugerido
+
+        prima_bruta = CalculadoraDesgloseUnidades._prorratear(totales.prima_bruta, prorrateo_pago)
+        valor_cuota_uf = ServicioCalculoValorCuota.calcular_valor_cuota(
+            prima_bruta, cantidad_cuotas, factores_cuotas
+        )
 
         return DesgloseUnidad(
             identificador_unidad=item.identificador_unidad,
@@ -93,10 +114,12 @@ class CalculadoraDesgloseUnidades:
             prima_excenta=CalculadoraDesgloseUnidades._prorratear(totales.prima_excenta, prorrateo_pago),
             prima_neta=CalculadoraDesgloseUnidades._prorratear(totales.prima_neta, prorrateo_pago),
             prima_iva=CalculadoraDesgloseUnidades._prorratear(totales.prima_iva, prorrateo_pago),
-            prima_bruta=CalculadoraDesgloseUnidades._prorratear(totales.prima_bruta, prorrateo_pago),
+            prima_bruta=prima_bruta,
             prorrateo_pago=prorrateo_pago,
             monto_reconstruccion=item.monto_reconstruccion,
             monto_asegurado_sugerido=item.monto_asegurado_sugerido,
+            valor_cuota_uf=valor_cuota_uf,
+            valor_cuota_pesos=ServicioCalculoValorCuota.calcular_valor_cuota_pesos(valor_cuota_uf, valor_uf),
         )
 
     @staticmethod
