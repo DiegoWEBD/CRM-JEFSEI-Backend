@@ -6,7 +6,6 @@ from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
-from app.aplicacion.solicitud_cotizacion.use_cases.obtener_unidades_alicuotas import ObtenerUnidadesAlicuotasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
@@ -16,7 +15,6 @@ from app.infraestructura.notificacion.repositorio_notificaciones_postgres import
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
-from app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres import RepositorioUnidadesAlicuotasPostgres
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
 
 
@@ -92,14 +90,6 @@ def get_obtener_detalle_solicitud_use_case():
     return ObtenerDetalleSolicitudUseCase(
         repositorio,
         AuthorizationServiceFactory.crear_authorization_service()
-    )
-
-
-def get_obtener_unidades_alicuotas_use_case():
-    return ObtenerUnidadesAlicuotasUseCase(
-        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
-        authorization_service=AuthorizationServiceFactory.crear_authorization_service(),
-        repositorio_solicitudes=RepositorioSolicitudesCotizacionPostgres()
     )
 
 

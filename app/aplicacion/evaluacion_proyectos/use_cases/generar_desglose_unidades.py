@@ -7,6 +7,7 @@ from app.dominio.estudio_comercial.desglose_unidades.totales_prima import Totale
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
@@ -29,6 +30,7 @@ class GenerarDesgloseUnidadesUseCase:
         repositorio_unidades: RepositorioUnidadesAlicuotas,
         repositorio_cotizaciones: RepositorioCotizaciones,
         repositorio_prospectos: RepositorioProspectos,
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         generador_excel: GeneradorExcelDesgloseUnidades | None = None,
     ) -> None:
         self.authorization_service = authorization_service
@@ -36,6 +38,7 @@ class GenerarDesgloseUnidadesUseCase:
         self.repositorio_unidades = repositorio_unidades
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.repositorio_prospectos = repositorio_prospectos
+        self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.generador_excel = generador_excel or GeneradorExcelDesgloseUnidades()
 
     def ejecutar(self, id_solicitud: int, ids_cotizacion: list[int], rut_usuario: str | None) -> str:
@@ -58,10 +61,18 @@ class GenerarDesgloseUnidadesUseCase:
         if solicitud.monto_asegurado is None:
             raise ConflictoEnAccionException('La solicitud no tiene monto asegurado registrado')
 
-        unidades = sorted(self.repositorio_unidades.listar_por_solicitud(id_solicitud), key=lambda u: u.fila_origen)
+        proceso = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(id_solicitud)
+
+        if proceso is None or proceso.id is None:
+            raise RecursoNoEncontradoException('Oportunidad de la solicitud no encontrada')
+
+        unidades = sorted(
+            self.repositorio_unidades.listar_por_oportunidad(proceso.id),
+            key=lambda u: u.fila_origen,
+        )
 
         if not unidades:
-            raise ConflictoEnAccionException('La solicitud no tiene unidades con alícuota importadas')
+            raise ConflictoEnAccionException('La oportunidad no tiene alícuota importada')
 
         cotizaciones = self.__buscar_cotizaciones(ids_cotizacion, id_solicitud)
         monto_sugerido = self.__calcular_monto_sugerido(id_solicitud)

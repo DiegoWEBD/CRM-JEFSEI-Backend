@@ -8,12 +8,15 @@ from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_e
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
+from app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres import RepositorioUnidadesAlicuotasPostgres
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 
 
@@ -93,6 +96,22 @@ def get_actualizar_probabilidad_cierre_ejecutivo_use_case():
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
     )
+
+def get_importar_alicuota_oportunidad_use_case():
+    return ImportarAlicuotaOportunidadUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_obtener_alicuota_oportunidad_use_case():
+    return ObtenerAlicuotaOportunidadUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
 
 def get_cambiar_estado_manual_use_case():
     repositorio_procesos = RepositorioProcesosComercialesPostgres()

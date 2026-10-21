@@ -4,7 +4,6 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotiz
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.actividad_accidentes_personales.actividad_accidentes_personales import ActividadAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.solicitud_cotizacion_accidentes_personales import SolicitudCotizacionAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_responsabilidad_civil.solicitud_cotizacion_responsabilidad_civil import SolicitudCotizacionResponsabilidadCivil
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.solicitud_cotizacion_unidades import SolicitudCotizacionUnidades
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitud_cotizacion_vida_guardia import SolicitudCotizacionVidaGuardia
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
@@ -133,40 +132,6 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                         nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
                         producto=producto,
                         actividades=actividades
-                    )
-
-                elif tipo == 'unidades':
-                    query = '''
-                        select nombre_excel
-                        from SolicitudCotizacionProductoUnidades
-                        where id = %(id_solicitud)s
-                    '''
-
-                    params = {
-                        'id_solicitud': id_solicitud
-                    }
-
-                    cur.execute(query, params)
-                    row_solicitud = cur.fetchone()
-
-                    if row_solicitud is None:
-                        return None
-
-                    return SolicitudCotizacionUnidades(
-                        id=id_solicitud,
-                        tipo=tipo,
-                        prioridad=prioridad,
-                        observaciones=observaciones,
-                        fecha=fecha,
-                        recotizacion=recotizacion,
-                        motivo_recotizacion=motivo_recotizacion,
-                        monto_asegurado=monto_asegurado,
-                        nombre_riesgo=nombre_riesgo,
-                        informacion_completa=informacion_completa,
-                        rut_ejecutivo_comercial=rut_ej_comercial,
-                        nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
-                        producto=producto,
-                        nombre_excel=row_solicitud['nombre_excel']
                     )
 
                 elif tipo == 'rc_condominio':
@@ -346,41 +311,6 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                             actividades=actividades
                         ))
 
-                    elif tipo == 'unidades':
-                        query = '''
-                            select nombre_excel
-                            from SolicitudCotizacionProductoUnidades
-                            where id = %(id_solicitud)s
-                        '''
-
-                        params = {
-                            'id_solicitud': id_solicitud
-                        }
-
-                        cur.execute(query, params)
-                        row_solicitud = cur.fetchone()
-
-                        if row_solicitud is None:
-                            continue
-
-                        cotizaciones.append(SolicitudCotizacionUnidades(
-                            id=id_solicitud,
-                            tipo=tipo,
-                            prioridad=prioridad,
-                            observaciones=observaciones,
-                            fecha=fecha,
-                            recotizacion=recotizacion,
-                            motivo_recotizacion=motivo_recotizacion,
-                            monto_asegurado=monto_asegurado,
-                            nombre_riesgo=nombre_riesgo,
-                            informacion_completa=informacion_completa,
-                            rut_ejecutivo_comercial=rut_ej_comercial,
-                            nombre_ejecutivo_comercial=nombre_ejecutivo_comercial,
-                            producto=producto,
-                            cantidad_cotizaciones=cantidad_cotizaciones,
-                            nombre_excel=row_solicitud['nombre_excel']
-                        ))
-
                     elif tipo == 'rc_condominio':
                         query = '''
                             select limite_responsabilidad_civil, actividad_del_condominio
@@ -496,37 +426,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 
                 # Creación de solicitud específica
 
-                if isinstance(solicitud, SolicitudCotizacionUnidades):
-                    query = '''
-                        insert into SolicitudCotizacionProductoUnidades (id, nombre_excel)
-                        values (%(id_solicitud)s, %(nombre_excel)s)
-                    '''
-                    
-                    params = {
-                        'id_solicitud': id_solicitud,
-                        'nombre_excel': solicitud.nombre_excel
-                    }
-
-                    cur.execute(query, params)
-
-                    # Unidades con alícuota importadas desde el Excel, en la
-                    # misma transacción que la solicitud.
-                    for unidad in solicitud.unidades:
-                        query = '''
-                            insert into SolicitudCotizacionUnidad (id_solicitud, identificador_unidad, prorrateo, fila_origen)
-                            values (%(id_solicitud)s, %(identificador_unidad)s, %(prorrateo)s, %(fila_origen)s)
-                        '''
-
-                        params = {
-                            'id_solicitud': id_solicitud,
-                            'identificador_unidad': unidad.identificador_unidad,
-                            'prorrateo': unidad.prorrateo,
-                            'fila_origen': unidad.fila_origen
-                        }
-
-                        cur.execute(query, params)
-
-                elif isinstance(solicitud, SolicitudCotizacionVidaGuardia):
+                if isinstance(solicitud, SolicitudCotizacionVidaGuardia):
                     query = '''
                         insert into SolicitudCotizacionProductoVidaGuardia (id, numero_guardias)
                         values (%(id_solicitud)s, %(numero_guardias)s)
@@ -658,37 +558,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                 
                 # Creación de solicitud específica
 
-                if isinstance(solicitud, SolicitudCotizacionUnidades):
-                    query = '''
-                        insert into SolicitudCotizacionProductoUnidades (id, nombre_excel)
-                        values (%(id_solicitud)s, %(nombre_excel)s)
-                    '''
-                    
-                    params = {
-                        'id_solicitud': id_solicitud,
-                        'nombre_excel': solicitud.nombre_excel
-                    }
-
-                    cur.execute(query, params)
-
-                    # Unidades con alícuota importadas desde el Excel, en la
-                    # misma transacción que la solicitud.
-                    for unidad in solicitud.unidades:
-                        query = '''
-                            insert into SolicitudCotizacionUnidad (id_solicitud, identificador_unidad, prorrateo, fila_origen)
-                            values (%(id_solicitud)s, %(identificador_unidad)s, %(prorrateo)s, %(fila_origen)s)
-                        '''
-
-                        params = {
-                            'id_solicitud': id_solicitud,
-                            'identificador_unidad': unidad.identificador_unidad,
-                            'prorrateo': unidad.prorrateo,
-                            'fila_origen': unidad.fila_origen
-                        }
-
-                        cur.execute(query, params)
-
-                elif isinstance(solicitud, SolicitudCotizacionVidaGuardia):
+                if isinstance(solicitud, SolicitudCotizacionVidaGuardia):
                     query = '''
                         insert into SolicitudCotizacionProductoVidaGuardia (id, numero_guardias)
                         values (%(id_solicitud)s, %(numero_guardias)s)

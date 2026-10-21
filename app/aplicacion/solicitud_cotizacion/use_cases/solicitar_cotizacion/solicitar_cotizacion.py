@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
-from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.unidades_desde_request import construir_unidades
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -16,7 +15,6 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotiz
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.actividad_accidentes_personales.actividad_accidentes_personales import ActividadAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.solicitud_cotizacion_accidentes_personales import SolicitudCotizacionAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_responsabilidad_civil.solicitud_cotizacion_responsabilidad_civil import SolicitudCotizacionResponsabilidadCivil
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.solicitud_cotizacion_unidades import SolicitudCotizacionUnidades
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitud_cotizacion_vida_guardia import SolicitudCotizacionVidaGuardia
 from app.dominio.usuario.usuario import Usuario
 
@@ -76,30 +74,6 @@ class SolicitarCotizacionUseCase:
                 recotizacion=False,
                 motivo_recotizacion=None,
                 actividades=actividades
-            )
-
-        elif request.tipo == 'unidades':
-            if request.nombre_excel is None:
-                raise ConflictoEnAccionException('El tipo unidades requiere el campo nombre_excel')
-
-            unidades = construir_unidades(request)
-
-            solicitud = SolicitudCotizacionUnidades(
-                id=None,
-                fecha=datetime.now(tz=timezone.utc),
-                nombre_riesgo='',
-                informacion_completa=False,
-                rut_ejecutivo_comercial=usuario.rut,
-                nombre_ejecutivo_comercial=usuario.rut,
-                prioridad=request.prioridad,
-                observaciones=request.observaciones,
-                tipo=request.tipo,
-                producto='',
-                recotizacion=False,
-                motivo_recotizacion=None,
-                monto_asegurado=request.monto_asegurado,
-                nombre_excel=request.nombre_excel,
-                unidades=unidades
             )
 
         elif request.tipo == 'vida_guardia':

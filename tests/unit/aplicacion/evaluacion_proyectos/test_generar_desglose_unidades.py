@@ -53,6 +53,7 @@ def _use_case(
     cotizacion=AUSENTE,
     prospecto=AUSENTE,
     id_prospecto=5,
+    proceso=AUSENTE,
     pertenece=True,
 ):
     authorization_service = MagicMock()
@@ -63,7 +64,7 @@ def _use_case(
     repositorio_solicitudes.buscar_id_prospecto_de_solicitud.return_value = id_prospecto
 
     repositorio_unidades = MagicMock()
-    repositorio_unidades.listar_por_solicitud.return_value = unidades if unidades is not None else _unidades()
+    repositorio_unidades.listar_por_oportunidad.return_value = unidades if unidades is not None else _unidades()
 
     repositorio_cotizaciones = MagicMock()
     repositorio_cotizaciones.obtener_por_id.return_value = _cotizacion() if cotizacion is AUSENTE else cotizacion
@@ -72,6 +73,12 @@ def _use_case(
     repositorio_prospectos = MagicMock()
     repositorio_prospectos.buscar_prospecto_condominio.return_value = (
         _prospecto() if prospecto is AUSENTE else prospecto
+    )
+
+    repositorio_procesos_comerciales = MagicMock()
+    proceso_oportunidad = MagicMock(id=42)
+    repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion.return_value = (
+        proceso_oportunidad if proceso is AUSENTE else proceso
     )
 
     generador_excel = MagicMock()
@@ -83,6 +90,7 @@ def _use_case(
         repositorio_unidades=repositorio_unidades,
         repositorio_cotizaciones=repositorio_cotizaciones,
         repositorio_prospectos=repositorio_prospectos,
+        repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         generador_excel=generador_excel,
     )
 
@@ -127,6 +135,12 @@ class TestGenerarDesgloseUnidadesValidaciones:
         use_case, _ = _use_case(unidades=[])
 
         with pytest.raises(ConflictoEnAccionException):
+            use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
+
+    def test_solicitud_sin_oportunidad_es_recurso_no_encontrado(self):
+        use_case, _ = _use_case(proceso=None)
+
+        with pytest.raises(RecursoNoEncontradoException):
             use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], rut_usuario='1-1')
 
     def test_cotizacion_no_encontrada(self):

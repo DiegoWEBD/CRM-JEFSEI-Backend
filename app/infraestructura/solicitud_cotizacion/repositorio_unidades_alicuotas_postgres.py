@@ -5,19 +5,19 @@ from app.infraestructura.db.conexion import obtener_conexion
 
 class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
 
-    def listar_por_solicitud(self, id_solicitud: int) -> list[UnidadAlicuota]:
+    def listar_por_oportunidad(self, id_proceso_comercial: int) -> list[UnidadAlicuota]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
                 query = '''
                     select identificador_unidad, prorrateo, fila_origen
-                    from SolicitudCotizacionUnidad
-                    where id_solicitud = %(id_solicitud)s
+                    from ProcesoComercialUnidad
+                    where id_proceso_comercial = %(id_proceso_comercial)s
                     order by fila_origen, id
                 '''
 
                 params = {
-                    'id_solicitud': id_solicitud
+                    'id_proceso_comercial': id_proceso_comercial
                 }
 
                 cur.execute(query, params)
@@ -31,3 +31,57 @@ class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
                     )
                     for row in rows
                 ]
+
+    def obtener_nombre_excel(self, id_proceso_comercial: int) -> str | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select nombre_excel_alicuota
+                    from ProcesoComercial
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                return row['nombre_excel_alicuota'] if row is not None else None
+
+    def guardar_o_reemplazar(
+        self,
+        id_proceso_comercial: int,
+        nombre_excel: str,
+        unidades: list[UnidadAlicuota],
+    ) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                cur.execute('''
+                    delete from ProcesoComercialUnidad
+                    where id_proceso_comercial = %(id_proceso_comercial)s
+                ''', {'id_proceso_comercial': id_proceso_comercial})
+
+                for unidad in unidades:
+                    cur.execute('''
+                        insert into ProcesoComercialUnidad
+                            (id_proceso_comercial, identificador_unidad, prorrateo, fila_origen)
+                        values (%(id_proceso_comercial)s, %(identificador_unidad)s, %(prorrateo)s, %(fila_origen)s)
+                    ''', {
+                        'id_proceso_comercial': id_proceso_comercial,
+                        'identificador_unidad': unidad.identificador_unidad,
+                        'prorrateo': unidad.prorrateo,
+                        'fila_origen': unidad.fila_origen,
+                    })
+
+                cur.execute('''
+                    update ProcesoComercial
+                    set nombre_excel_alicuota = %(nombre_excel)s
+                    where id = %(id_proceso_comercial)s
+                ''', {
+                    'nombre_excel': nombre_excel,
+                    'id_proceso_comercial': id_proceso_comercial,
+                })

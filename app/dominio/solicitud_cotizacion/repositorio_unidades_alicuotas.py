@@ -6,5 +6,18 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicu
 class RepositorioUnidadesAlicuotas(ABC):
 
     @abstractmethod
-    def listar_por_solicitud(self, id_solicitud: int) -> list[UnidadAlicuota]:
+    def listar_por_oportunidad(self, id_proceso_comercial: int) -> list[UnidadAlicuota]:
+        pass
+
+    @abstractmethod
+    def obtener_nombre_excel(self, id_proceso_comercial: int) -> str | None:
+        pass
+
+    @abstractmethod
+    def guardar_o_reemplazar(
+        self,
+        id_proceso_comercial: int,
+        nombre_excel: str,
+        unidades: list[UnidadAlicuota],
+    ) -> None:
         pass

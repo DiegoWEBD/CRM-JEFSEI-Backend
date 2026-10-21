@@ -9,11 +9,14 @@ from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_e
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.historial_estado.adaptadores.historial_estado_json_adapter import HistorialEstadoJsonAdapter
 from app.infraestructura.lib.parsear_fecha_sin_hora import parsear_fecha_sin_hora
@@ -21,8 +24,9 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
 from app.presentacion.api.poliza.dependencias.deps import get_registrar_poliza_a_proceso_comercial_use_case
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_importar_alicuota_oportunidad_use_case, get_obtener_alicuota_oportunidad_use_case, get_obtener_todos_procesos_comerciales_use_case
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
+from app.presentacion.api.proceso_comercial.dto.importar_alicuota_oportunidad_request import ImportarAlicuotaOportunidadRequest
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_fecha_estimada_cierre_request import ActualizarFechaEstimadaCierreRequest
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_probabilidad_cierre_ejecutivo_request import ActualizarProbabilidadCierreEjecutivoRequest
 from app.presentacion.api.proceso_comercial.dto.requests.cambiar_estado_manual_request import CambiarEstadoManualRequest
@@ -187,6 +191,50 @@ def obtener_solicitudes(
 
     return {
         'solicitudes': solicitudes
+    }
+
+
+@router.post('/{id}/alicuota', status_code=status.HTTP_200_OK)
+def importar_alicuota_oportunidad(
+    id: int,
+    request: ImportarAlicuotaOportunidadRequest,
+    usuario: Usuario = Depends(permisos_requeridos('SOLICITAR_COTIZACION')),
+    use_case: ImportarAlicuotaOportunidadUseCase = Depends(get_importar_alicuota_oportunidad_use_case)
+):
+    unidades = [
+        UnidadAlicuota(
+            identificador_unidad=unidad.identificador_unidad,
+            prorrateo=unidad.prorrateo,
+            fila_origen=unidad.fila_origen
+        )
+        for unidad in request.unidades
+    ]
+
+    use_case.ejecutar(
+        id_proceso_comercial=id,
+        nombre_excel=request.nombre_excel,
+        unidades=unidades,
+        usuario=usuario
+    )
+
+    return {
+        'message': 'Alícuota importada',
+        'cantidad': len(unidades)
+    }
+
+
+@router.get('/{id}/alicuota', status_code=status.HTTP_200_OK)
+def obtener_alicuota_oportunidad(
+    id: int,
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerAlicuotaOportunidadUseCase = Depends(get_obtener_alicuota_oportunidad_use_case)
+):
+    nombre_excel, unidades = use_case.ejecutar(id, usuario)
+
+    return {
+        'nombre_excel': nombre_excel,
+        'unidades': unidades,
+        'cantidad': len(unidades)
     }
 
 

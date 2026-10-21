@@ -5,15 +5,19 @@ import pytest
 from openpyxl import Workbook
 from unittest.mock import MagicMock
 
-from app.aplicacion.solicitud_cotizacion.use_cases.obtener_unidades_alicuotas import (
-    ObtenerUnidadesAlicuotasUseCase,
+from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import (
+    ImportarAlicuotaOportunidadUseCase,
+)
+from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import (
+    ObtenerAlicuotaOportunidadUseCase,
 )
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
 from app.main import app
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import (
-    get_obtener_unidades_alicuotas_use_case,
+from app.presentacion.api.proceso_comercial.dependencias.deps import (
+    get_importar_alicuota_oportunidad_use_case,
+    get_obtener_alicuota_oportunidad_use_case,
 )
 from tests.factories.auth_factory import crear_token_mock, headers_auth
 from tests.factories.usuario_factory import crear_permiso_mock, crear_rol_mock, crear_usuario_mock
@@ -104,15 +108,18 @@ def client_unidades(usuario_autenticado):
         return usuario_autenticado
 
     def override_get_unidades():
-        uc = MagicMock(spec=ObtenerUnidadesAlicuotasUseCase)
-        uc.ejecutar.return_value = [
-            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
-            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.015, fila_origen=3),
-        ]
+        uc = MagicMock(spec=ObtenerAlicuotaOportunidadUseCase)
+        uc.ejecutar.return_value = (
+            'alicuota.xlsx',
+            [
+                UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
+                UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.015, fila_origen=3),
+            ],
+        )
         return uc
 
     app.dependency_overrides[get_current_user] = override_get_current_user
-    app.dependency_overrides[get_obtener_unidades_alicuotas_use_case] = override_get_unidades
+    app.dependency_overrides[get_obtener_alicuota_oportunidad_use_case] = override_get_unidades
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:
@@ -127,12 +134,12 @@ def client_unidades_no_autorizado(usuario_autenticado):
         return usuario_autenticado
 
     def override_get_unidades():
-        uc = MagicMock(spec=ObtenerUnidadesAlicuotasUseCase)
+        uc = MagicMock(spec=ObtenerAlicuotaOportunidadUseCase)
         uc.ejecutar.side_effect = UsuarioNoAutorizadoException()
         return uc
 
     app.dependency_overrides[get_current_user] = override_get_current_user
-    app.dependency_overrides[get_obtener_unidades_alicuotas_use_case] = override_get_unidades
+    app.dependency_overrides[get_obtener_alicuota_oportunidad_use_case] = override_get_unidades
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:
@@ -277,19 +284,96 @@ class TestValidarAlicuotasEndpoint:
 
 
 @pytest.mark.integration
-class TestObtenerUnidadesEndpoint:
+class TestObtenerAlicuotaOportunidadEndpoint:
 
     def test_devuelve_las_unidades_importadas(self, client_unidades, headers_auth_validos):
-        response = client_unidades.get('/solicitudes-cotizacion/10/unidades', headers=headers_auth_validos)
+        response = client_unidades.get('/procesos-comerciales/42/alicuota', headers=headers_auth_validos)
 
         assert response.status_code == 200
         body = response.json()
+        assert body['nombre_excel'] == 'alicuota.xlsx'
         assert body['cantidad'] == 2
         assert body['unidades'][0]['identificador_unidad'] == 'Depto 1'
 
     def test_acceso_no_autorizado(self, client_unidades_no_autorizado, headers_auth_validos):
         response = client_unidades_no_autorizado.get(
-            '/solicitudes-cotizacion/10/unidades', headers=headers_auth_validos
+            '/procesos-comerciales/42/alicuota', headers=headers_auth_validos
         )
 
         assert response.status_code == 403
+
+
+@pytest.fixture
+def client_importar(usuario_autenticado):
+    def override_get_current_user():
+        return usuario_autenticado
+
+    uc = MagicMock(spec=ImportarAlicuotaOportunidadUseCase)
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_importar_alicuota_oportunidad_use_case] = lambda: uc
+
+    from starlette.testclient import TestClient
+    with TestClient(app) as c:
+        yield c, uc
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client_importar_sin_permiso():
+    usuario = crear_usuario_mock(roles=[crear_rol_mock(permisos=[crear_permiso_mock(codigo='VER_ALERTAS')])])
+
+    def override_get_current_user():
+        return usuario
+
+    uc = MagicMock(spec=ImportarAlicuotaOportunidadUseCase)
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_importar_alicuota_oportunidad_use_case] = lambda: uc
+
+    from starlette.testclient import TestClient
+    with TestClient(app) as c:
+        yield c, uc
+
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.integration
+class TestImportarAlicuotaOportunidadEndpoint:
+
+    def test_importa_la_alicuota_en_la_oportunidad(self, client_importar, headers_auth_validos):
+        client, uc = client_importar
+
+        response = client.post(
+            '/procesos-comerciales/42/alicuota',
+            headers=headers_auth_validos,
+            json={
+                'nombre_excel': 'alicuota.xlsx',
+                'unidades': [
+                    {'identificador_unidad': 'Depto 1', 'prorrateo': 0.025, 'fila_origen': 2},
+                    {'identificador_unidad': 'Depto 2', 'prorrateo': 0.015, 'fila_origen': 3},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()['cantidad'] == 2
+
+        kwargs = uc.ejecutar.call_args.kwargs
+        assert kwargs['id_proceso_comercial'] == 42
+        assert kwargs['nombre_excel'] == 'alicuota.xlsx'
+        assert [u.identificador_unidad for u in kwargs['unidades']] == ['Depto 1', 'Depto 2']
+        assert kwargs['unidades'][0].prorrateo == 0.025
+
+    def test_sin_permiso_es_rechazado(self, client_importar_sin_permiso, headers_auth_validos):
+        client, uc = client_importar_sin_permiso
+
+        response = client.post(
+            '/procesos-comerciales/42/alicuota',
+            headers=headers_auth_validos,
+            json={'nombre_excel': 'alicuota.xlsx', 'unidades': []},
+        )
+
+        assert response.status_code == 403
+        uc.ejecutar.assert_not_called()
