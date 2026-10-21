@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt 
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --upgrade "certifi>=2026.10.19" 
 
 COPY . .
 
