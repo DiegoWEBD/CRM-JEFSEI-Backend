@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
-from app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres import (
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
+from app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres import (
     RepositorioUnidadesAlicuotasPostgres,
 )
 

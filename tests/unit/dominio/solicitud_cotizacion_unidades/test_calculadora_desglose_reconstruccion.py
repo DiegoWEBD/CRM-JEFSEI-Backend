@@ -2,7 +2,7 @@ import pytest
 
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 
 def _unidad(identificador='Depto 1', prorrateo=0.030456521, fila=2) -> UnidadAlicuota:

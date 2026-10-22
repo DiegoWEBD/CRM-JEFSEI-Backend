@@ -12,7 +12,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad imp
     ObtenerAlicuotaOportunidadUseCase,
 )
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 from app.main import app
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.proceso_comercial.dependencias.deps import (

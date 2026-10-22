@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 
 class CalculadoraDesgloseReconstruccion:

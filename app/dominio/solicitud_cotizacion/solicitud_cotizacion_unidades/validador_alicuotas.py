@@ -5,7 +5,7 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.problema_ali
     SEVERIDAD_ERROR,
     ProblemaAlicuota,
 )
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 # Palabras que delatan filas de totales o subtotales dentro del rango.
 TERMINOS_FILA_TOTAL = (

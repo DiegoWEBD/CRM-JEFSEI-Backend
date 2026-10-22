@@ -12,8 +12,8 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
-from app.dominio.solicitud_cotizacion.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 AUSENTE = object()
 

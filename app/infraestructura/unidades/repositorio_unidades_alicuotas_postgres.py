@@ -1,6 +1,7 @@
-from app.dominio.solicitud_cotizacion.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.unidades.adaptadores.dictrow_unidad_alicuota_adapter import DictRowUnidadAlicuotaAdapter
 
 
 class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
@@ -24,11 +25,7 @@ class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
                 rows = cur.fetchall()
 
                 return [
-                    UnidadAlicuota(
-                        identificador_unidad=row['identificador_unidad'],
-                        prorrateo=row['prorrateo'],
-                        fila_origen=row['fila_origen'],
-                    )
+                    DictRowUnidadAlicuotaAdapter(row).to_unidad_alicuota()
                     for row in rows
                 ]
 

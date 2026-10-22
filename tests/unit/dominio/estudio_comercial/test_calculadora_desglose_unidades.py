@@ -8,7 +8,7 @@ from app.dominio.estudio_comercial.desglose_unidades.calculadora_desglose_unidad
 from app.dominio.factor_cuotas_company.factor_cuotas_company import FactorCuotasCompany
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 CANTIDAD_CUOTAS = 11
 VALOR_UF = 38000.0

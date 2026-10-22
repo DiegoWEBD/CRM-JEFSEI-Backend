@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 
 class RepositorioUnidadesAlicuotas(ABC):

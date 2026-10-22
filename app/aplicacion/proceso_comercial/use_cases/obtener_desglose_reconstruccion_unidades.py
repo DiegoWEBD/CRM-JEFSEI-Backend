@@ -3,7 +3,7 @@ from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
-from app.dominio.solicitud_cotizacion.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
+from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.dominio.usuario.usuario import Usuario
 

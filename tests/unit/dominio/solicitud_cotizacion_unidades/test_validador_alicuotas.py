@@ -1,6 +1,6 @@
 import pytest
 
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.validador_alicuotas import (
     validar_unidades,
 )

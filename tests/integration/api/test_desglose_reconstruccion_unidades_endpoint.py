@@ -9,7 +9,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_
     ObtenerDesgloseReconstruccionUnidadesUseCase,
 )
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.unidad_alicuota import UnidadAlicuota
+from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 from app.infraestructura.solicitud_cotizacion.generador_excel_desglose_reconstruccion import (
     GeneradorExcelDesgloseReconstruccion,
 )
