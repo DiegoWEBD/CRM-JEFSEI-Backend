@@ -4,7 +4,7 @@ from app.presentacion.api.estudio_comercial.dto.seccion_estudio_comercial_reques
 
 
 class ArmarEstudioComercialRequest(BaseModel):
-    id_prospecto: int
+    id_proceso_comercial: int
     monto_asegurado_actual: float | None
     con_monto_sugerido: bool
     infraseguro_primer_ejemplo: float | None

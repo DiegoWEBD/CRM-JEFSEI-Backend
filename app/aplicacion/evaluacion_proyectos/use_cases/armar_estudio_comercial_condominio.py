@@ -11,6 +11,7 @@ from app.dominio.estudio_comercial.seccion_estudio_comercial.seccion_estudio_com
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
@@ -29,17 +30,19 @@ class ArmarEstudioComercialCondominioUseCase:
         repositorio_prospectos: RepositorioProspectos,
         repositorio_company_seguros: RepositorioCompanySeguros,
         repositorio_cotizaciones: RepositorioCotizaciones,
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales
     ):
         self.authorization_service = authorization_service
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_company_seguros = repositorio_company_seguros
         self.repositorio_cotizaciones = repositorio_cotizaciones
+        self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.datos_plantilla: dict[str, object] = {}
         self.doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
 
     def ejecutar(
         self,
-        id_prospecto: int,
+        id_proceso_comercial: int,
         monto_asegurado_actual: float | None,
         con_monto_sugerido: bool,
         infraseguro_primer_ejemplo: float | None,
@@ -48,19 +51,26 @@ class ArmarEstudioComercialCondominioUseCase:
         ids_cotizacion: list[int],
         secciones: list[SeccionEstudioComercialRequest] | None,
         valor_uf: float,
-        usuario: Usuario,
-        es_unidades: bool = True
+        usuario: Usuario
     ) -> str:
 
         if len(ids_cotizacion) == 0:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio sin cotizaciones')
 
-        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id_prospecto)
+        proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
+
+        if not proceso:
+            raise RecursoNoEncontradoException('Oportunidad no encontrada')
+
+        if proceso.cerrado:
+            raise ConflictoEnAccionException('No se puede armar un estudio de una oportunidad cerrada')
+
+        prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(proceso.id_prospecto)
 
         if not prospecto or prospecto.id is None:
             raise RecursoNoEncontradoException('Prospecto no encontrado')
         
-        if not self.authorization_service.usuario_puede_crear_estudio_comercial(usuario.rut, id_prospecto):
+        if not self.authorization_service.usuario_puede_crear_estudio_comercial(usuario.rut, prospecto.id):
             raise UsuarioNoAutorizadoException
 
         if prospecto.year_construccion is None:
@@ -80,6 +90,8 @@ class ArmarEstudioComercialCondominioUseCase:
 
         if prospecto.porcentaje_depreciacion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
+
+        es_unidades = proceso.producto.codigo == 'unidades'
 
         cotizaciones = []
 
