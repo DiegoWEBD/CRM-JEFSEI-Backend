@@ -1,12 +1,17 @@
 import base64
+import os
 
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import FileResponse
 
 from app.aplicacion.evaluacion_proyectos.use_cases.armar_estudio_comercial_condominio import ArmarEstudioComercialCondominioUseCase
+from app.aplicacion.evaluacion_proyectos.use_cases.generar_desglose_unidades import GenerarDesgloseUnidadesUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.estudio_comercial.deps import get_armar_estudio_comercial_use_case
+from app.presentacion.api.estudio_comercial.deps import get_armar_estudio_comercial_use_case, get_generar_desglose_unidades_use_case
 from app.presentacion.api.estudio_comercial.dto.armar_estudio_comercial_request import ArmarEstudioComercialRequest
+from app.presentacion.api.estudio_comercial.dto.generar_desglose_unidades_request import GenerarDesgloseUnidadesRequest
+from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 
 router = APIRouter(prefix='/estudio-comercial', tags=['Estudio Comercial'])
 
@@ -18,7 +23,7 @@ def armar_estudio_comercial(
     use_case: ArmarEstudioComercialCondominioUseCase = Depends(get_armar_estudio_comercial_use_case)
 ):
     ruta_archivo = use_case.ejecutar(
-        id_prospecto=request.id_prospecto,
+        id_proceso_comercial=request.id_proceso_comercial,
         monto_asegurado_actual=request.monto_asegurado_actual,
         con_monto_sugerido=request.con_monto_sugerido,
         infraseguro_primer_ejemplo=request.infraseguro_primer_ejemplo,
@@ -36,5 +41,26 @@ def armar_estudio_comercial(
 
     return {
         'archivo_base64': archivo_base64,
-        'nombre_archivo': f'estudio_comercial_{request.id_prospecto}.docx',
+        'nombre_archivo': f'estudio_comercial_{request.id_proceso_comercial}.docx',
     }
+
+
+@router.post('/unidades/desglose-excel', status_code = status.HTTP_200_OK)
+def generar_desglose_unidades(
+    request: GenerarDesgloseUnidadesRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ARMAR_ESTUDIO_COMERCIAL')),
+    use_case: GenerarDesgloseUnidadesUseCase = Depends(get_generar_desglose_unidades_use_case)
+):
+    ruta_archivo = use_case.ejecutar(
+        id_solicitud=request.id_solicitud,
+        ids_cotizacion=request.ids_cotizacion,
+        cantidad_cuotas=request.cantidad_cuotas,
+        valor_uf=request.valor_uf,
+        rut_usuario=usuario.rut
+    )
+
+    return FileResponse(
+        ruta_archivo,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename=os.path.basename(ruta_archivo)
+    )

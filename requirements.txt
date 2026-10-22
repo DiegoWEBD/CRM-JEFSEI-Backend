@@ -26,6 +26,8 @@ cryptography==50.0.0
     # via pyjwt
 docxtpl==0.20.2
     # via -r requirements.in
+et-xmlfile==2.0.0
+    # via openpyxl
 fastapi==0.140.13
     # via -r requirements.in
 h11==0.16.0
@@ -42,6 +44,8 @@ lxml==6.1.1
     #   python-docx
 markupsafe==3.0.3
     # via jinja2
+openpyxl==3.1.5
+    # via -r requirements.in
 passlib==1.7.4
     # via -r requirements.in
 psycopg[binary]==3.3.4

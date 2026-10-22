@@ -32,7 +32,6 @@ def _make_row(
         "fecha_registro_estado": datetime(2026, 10, 1, 10, 0, 0, tzinfo=timezone.utc),
         "codigo_etapa": "ETAPA_1",
         "nombre_etapa": "Evaluación",
-        "dias_limite_etapa": 30,
         "cerrado": cerrado,
         "rut_ej_comercial": "12345678-9",
         "nombre_ej_comercial": "Juan Pérez",

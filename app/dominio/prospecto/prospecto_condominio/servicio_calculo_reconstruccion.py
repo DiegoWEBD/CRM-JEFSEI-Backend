@@ -1,3 +1,6 @@
+from decimal import Decimal, ROUND_CEILING
+
+
 class ServicioCalculoReconstruccion:
 
     FACTOR_IVA = 1.19
@@ -25,6 +28,27 @@ class ServicioCalculoReconstruccion:
 
     @staticmethod
     def calcular_valor_unidades(
-        valor_reconstruccion_depreciacion: float
+        valor_reconstruccion_sin_depreciacion: float
     ) -> float:
-        return round(valor_reconstruccion_depreciacion * 0.5)
+        return round(valor_reconstruccion_sin_depreciacion * 0.5)
+
+    @staticmethod
+    def calcular_valor_unidades_desde_datos(
+        uf_por_metro_cuadrado: float,
+        metros_cuadrados: float
+    ) -> float:
+        valor_reconstruccion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
+            uf_por_metro_cuadrado, metros_cuadrados
+        )
+        return ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion)
+
+    @staticmethod
+    def redondear_centena_superior(valor: float) -> int:
+        """Redondea al múltiplo de 100 igual o superior (1459.78 -> 1500, 1500 -> 1500)."""
+
+        if valor <= 0:
+            return 0
+
+        centenas = (Decimal(str(valor)) / 100).to_integral_value(rounding=ROUND_CEILING)
+
+        return int(centenas) * 100

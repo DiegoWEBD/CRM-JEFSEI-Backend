@@ -19,7 +19,6 @@ FILA = {
     'nombre_prospecto': 'Cliente SpA',
     'fecha_ingreso_estado': datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc),
     'dias_limite': 15,
-    'dias_limite_etapa': 30,
     'rol_responsable': 'EJECUTIVO_COMERCIAL',
     'rut_ej_comercial': '11111111-1',
     'rut_ej_evaluacion': '22222222-2',
@@ -57,12 +56,12 @@ class TestObtenerProcesosAlertables:
         query_str = str(cursor.execute.call_args.args[0])
         assert 'T.dias_limite' in query_str
         assert 'EI.dias_limite' not in query_str
+        assert 'EPC.dias_limite' not in query_str
         assert 'left join TransicionEstadoProcesoComercial T' in query_str
         assert 'T.es_principal = true' in query_str
 
         assert len(procesos) == 1
         assert procesos[0].dias_limite == 15
-        assert procesos[0].dias_limite_etapa == 30
         assert procesos[0].rol_responsable_siguiente == 'EJECUTIVO_EVALUACION_PROYECTOS'
 
     def test_sin_resultados_devuelve_vacio(self, mock_conexion):

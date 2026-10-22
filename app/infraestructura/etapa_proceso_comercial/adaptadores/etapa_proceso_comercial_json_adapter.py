@@ -10,6 +10,5 @@ class EtapaProcesoComercialJsonAdapter:
     def to_json(self) -> EtapaProcesoComercialJson:
         return EtapaProcesoComercialJson(
             codigo=self.etapa.codigo,
-            nombre=self.etapa.nombre,
-            dias_limite=self.etapa.dias_limite
+            nombre=self.etapa.nombre
         )

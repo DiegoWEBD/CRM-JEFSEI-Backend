@@ -25,6 +25,7 @@ class ProspectoCondominioJsonAdapter:
             valor_reconstruccion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion(
                 self.prospecto.uf_por_metro_cuadrado, self.prospecto.metros_cuadrados
             )
+            valor_reconstruccion_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion)
             if self.prospecto.porcentaje_depreciacion is not None:
                 valor_reconstruccion_depreciacion = ServicioCalculoReconstruccion.calcular_valor_reconstruccion_depreciacion(
                     valor_reconstruccion, self.prospecto.porcentaje_depreciacion
@@ -33,8 +34,6 @@ class ProspectoCondominioJsonAdapter:
                     valor_reconstruccion_espacio_comun = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
                         valor_reconstruccion_depreciacion, self.prospecto.porcentaje_espacios_comunes
                     )
-
-                    valor_reconstruccion_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_reconstruccion_depreciacion)
         
         return ProspectoCondominioJson(
             id=self.prospecto.id,

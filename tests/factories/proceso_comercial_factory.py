@@ -21,13 +21,11 @@ def crear_proceso_comercial_mock(
         codigo="ETAPA_1",
         nombre="Prospecto",
         sigiuente_etapa=None,
-        dias_limite=30,
     )
     estado = EstadoInformativoProcesoComercial(
         codigo="ESTADO_1",
         etapa=etapa,
         nombre="En gestión",
-        fecha_registro=datetime(2026, 9, 1, 10, 0, 0),
         probabilidad_cierre=probabilidad_cierre_sistema,
     )
     return ProcesoComercial(

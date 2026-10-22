@@ -1,4 +1,5 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.cotizacion.use_cases.registrar_renovacion_cotizada import RegistrarRenovacionCotizadaUseCase
 from app.aplicacion.poliza.use_cases.actualizar_poliza import ActualizarPolizaUseCase
 from app.aplicacion.poliza.use_cases.cancelar_poliza import CancelarPolizaUseCase
@@ -7,13 +8,11 @@ from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCas
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
-from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
-from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 
 
 def get_obtener_polizas_use_case():
@@ -24,8 +23,7 @@ def get_obtener_polizas_use_case():
     )
 
 def get_obtener_poliza_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_polizas = RepositorioPolizasPostgres()
     
     return ObtenerPolizaUseCase(
@@ -34,8 +32,7 @@ def get_obtener_poliza_use_case():
     )
 
 def get_registrar_renovacion_cotizada_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_polizas = RepositorioPolizasPostgres()
     repositorio_cotizaciones = RepositorioCotizacionesPostgres()
 
@@ -46,8 +43,7 @@ def get_registrar_renovacion_cotizada_use_case():
     )
 
 def get_registrar_poliza_a_proceso_comercial_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_polizas = RepositorioPolizasPostgres()
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
     repositorio_companies = RepositorioCompanySegurosPostgres()
@@ -80,8 +76,7 @@ def get_reactivar_poliza_use_case():
 
 
 def get_actualizar_poliza_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_polizas = RepositorioPolizasPostgres()
 
     return ActualizarPolizaUseCase(

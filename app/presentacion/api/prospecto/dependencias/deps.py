@@ -1,6 +1,6 @@
 from fastapi import Query
 
-from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
@@ -15,7 +15,6 @@ from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspect
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales import ObtenerProspectoLineasPersonalesUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
-from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.linea_negocio.repositorio_lineas_negocio_postgres import RepositorioLineasNegocioPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
@@ -54,8 +53,7 @@ def get_obtener_prospecto_use_case():
 
 def get_obtener_prospecto_lineas_personales_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
 
     return ObtenerProspectoLineasPersonalesUseCase(
         authorization_service=authorization_service,
@@ -64,8 +62,7 @@ def get_obtener_prospecto_lineas_personales_use_case():
 
 def get_obtener_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
 
     return ObtenerProspectoCondominioUseCase(
         authorization_service=authorization_service,

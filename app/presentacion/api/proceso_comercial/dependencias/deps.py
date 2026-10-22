@@ -1,20 +1,25 @@
 from fastapi import Query
 
-from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.generar_excel_desglose_reconstruccion_unidades import GenerarExcelDesgloseReconstruccionUnidadesUseCase
+from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
+from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_unidades import ObtenerDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
-from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
+from app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres import RepositorioUnidadesAlicuotasPostgres
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 
 
@@ -61,8 +66,7 @@ def get_cerrar_proceso_comercial_use_case():
     )
 
 def get_crear_proceso_comercial_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_procesos = RepositorioProcesosComercialesPostgres()
 
@@ -73,8 +77,7 @@ def get_crear_proceso_comercial_use_case():
     )
 
 def get_actualizar_fecha_estimada_cierre_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_procesos = RepositorioProcesosComercialesPostgres()
     repositorio_notificaciones = RepositorioNotificacionesPostgres()
 
@@ -89,14 +92,53 @@ def get_actualizar_fecha_estimada_cierre_use_case():
     )
 
 def get_actualizar_probabilidad_cierre_ejecutivo_use_case():
-    authorization_repository = AuthorizationRepositoryPostgres()
-    authorization_service = AuthorizationService(authorization_repository)
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     repositorio_procesos = RepositorioProcesosComercialesPostgres()
 
     return ActualizarProbabilidadCierreEjecutivoUseCase(
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
     )
+
+def get_calcular_desglose_reconstruccion_unidades_use_case():
+    return CalcularDesgloseReconstruccionUnidadesUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
+    )
+
+
+def get_importar_alicuota_oportunidad_use_case():
+    return ImportarAlicuotaOportunidadUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_obtener_alicuota_oportunidad_use_case():
+    return ObtenerAlicuotaOportunidadUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_obtener_desglose_reconstruccion_unidades_use_case():
+    return ObtenerDesgloseReconstruccionUnidadesUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        calcular_desglose_reconstruccion=get_calcular_desglose_reconstruccion_unidades_use_case(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_generar_excel_desglose_reconstruccion_unidades_use_case():
+    return GenerarExcelDesgloseReconstruccionUnidadesUseCase(
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
+        calcular_desglose_reconstruccion=get_calcular_desglose_reconstruccion_unidades_use_case(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
 
 def get_cambiar_estado_manual_use_case():
     repositorio_procesos = RepositorioProcesosComercialesPostgres()

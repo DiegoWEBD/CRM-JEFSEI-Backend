@@ -62,3 +62,19 @@ class AuthorizationRepository(ABC):
     @abstractmethod
     def usuario_puede_actualizar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         pass
+
+    @abstractmethod
+    def usuario_puede_eliminar_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass
+
+    @abstractmethod
+    def usuario_puede_subir_estudio_comercial_a_solicitud(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass
+
+    @abstractmethod
+    def usuario_puede_ver_estudios_comerciales(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass
+
+    @abstractmethod
+    def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass

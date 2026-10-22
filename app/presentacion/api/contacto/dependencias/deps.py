@@ -1,9 +1,8 @@
-from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.contacto.use_cases.actualizar_contacto import ActualizarContactoUseCase
 from app.aplicacion.contacto.use_cases.eliminar_contacto import EliminarContactoUseCase
 from app.aplicacion.contacto.use_cases.obtener_contactos_prospecto import ObtenerContactosProspectoUseCase
 from app.aplicacion.contacto.use_cases.registrar_contacto import RegistrarContactoUseCase
-from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
 from app.infraestructura.contacto.repositorio_contactos_postgres import RepositorioContactosPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 
@@ -11,7 +10,7 @@ from app.infraestructura.prospecto.repositorio_prospectos_postgres import Reposi
 def get_obtener_contactos_prospecto_use_case() -> ObtenerContactosProspectoUseCase:
     repositorio_contactos = RepositorioContactosPostgres()
     repositorio_prospectos = RepositorioProspectosPostgres()
-    authorization_service = AuthorizationService(AuthorizationRepositoryPostgres())
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     return ObtenerContactosProspectoUseCase(
         repositorio_contactos=repositorio_contactos,
         repositorio_prospectos=repositorio_prospectos,
@@ -22,7 +21,7 @@ def get_obtener_contactos_prospecto_use_case() -> ObtenerContactosProspectoUseCa
 def get_registrar_contacto_use_case() -> RegistrarContactoUseCase:
     repositorio_contactos = RepositorioContactosPostgres()
     repositorio_prospectos = RepositorioProspectosPostgres()
-    authorization_service = AuthorizationService(AuthorizationRepositoryPostgres())
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     return RegistrarContactoUseCase(
         repositorio_contactos=repositorio_contactos,
         repositorio_prospectos=repositorio_prospectos,
@@ -32,7 +31,7 @@ def get_registrar_contacto_use_case() -> RegistrarContactoUseCase:
 
 def get_actualizar_contacto_use_case() -> ActualizarContactoUseCase:
     repositorio_contactos = RepositorioContactosPostgres()
-    authorization_service = AuthorizationService(AuthorizationRepositoryPostgres())
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     return ActualizarContactoUseCase(
         repositorio_contactos=repositorio_contactos,
         authorization_service=authorization_service,
@@ -41,7 +40,7 @@ def get_actualizar_contacto_use_case() -> ActualizarContactoUseCase:
 
 def get_eliminar_contacto_use_case() -> EliminarContactoUseCase:
     repositorio_contactos = RepositorioContactosPostgres()
-    authorization_service = AuthorizationService(AuthorizationRepositoryPostgres())
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
     return EliminarContactoUseCase(
         repositorio_contactos=repositorio_contactos,
         authorization_service=authorization_service,

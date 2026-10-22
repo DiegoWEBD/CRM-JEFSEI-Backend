@@ -15,7 +15,6 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotiz
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.actividad_accidentes_personales.actividad_accidentes_personales import ActividadAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_accidentes_personales.solicitud_cotizacion_accidentes_personales import SolicitudCotizacionAccidentesPersonales
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_responsabilidad_civil.solicitud_cotizacion_responsabilidad_civil import SolicitudCotizacionResponsabilidadCivil
-from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.solicitud_cotizacion_unidades import SolicitudCotizacionUnidades
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitud_cotizacion_vida_guardia import SolicitudCotizacionVidaGuardia
 from app.dominio.usuario.usuario import Usuario
 
@@ -74,27 +73,6 @@ class SolicitarRecotizacionUseCase:
                 recotizacion=True,
                 motivo_recotizacion=request.motivo_recotizacion,
                 actividades=actividades
-            )
-
-        elif request.tipo == 'unidades':
-            if request.nombre_excel is None:
-                raise ConflictoEnAccionException('El tipo unidades requiere el campo nombre_excel')
-
-            solicitud = SolicitudCotizacionUnidades(
-                id=None,
-                fecha=datetime.now(tz=timezone.utc),
-                nombre_riesgo='',
-                informacion_completa=False,
-                rut_ejecutivo_comercial=usuario.rut,
-                nombre_ejecutivo_comercial=usuario.rut,
-                prioridad=request.prioridad,
-                observaciones=request.observaciones,
-                tipo=request.tipo,
-                producto='',
-                recotizacion=True,
-                motivo_recotizacion=request.motivo_recotizacion,
-                monto_asegurado=request.monto_asegurado,
-                nombre_excel=request.nombre_excel
             )
 
         elif request.tipo == 'vida_guardia':

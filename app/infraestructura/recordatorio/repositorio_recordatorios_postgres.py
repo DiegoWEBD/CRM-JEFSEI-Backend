@@ -289,4 +289,6 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute('delete from RecordatorioUsuario where id = %(id)s', {'id': id})
+                cur.execute('delete from RecordatorioRenovacionPoliza where id = %(id)s', {'id': id})
+                cur.execute('delete from RecordatorioCobranzaCuotaPoliza where id = %(id)s', {'id': id})
                 cur.execute('delete from Recordatorio where id = %(id)s', {'id': id})

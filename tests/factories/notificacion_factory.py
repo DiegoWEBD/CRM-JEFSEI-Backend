@@ -10,7 +10,7 @@ AHORA_REF = datetime(2026, 9, 22, 12, 0, 0, tzinfo=timezone.utc)
 
 def crear_notificacion_mock(
     id: int | None = 1,
-    rut_usuario: str = "12345678-9",
+    rut_usuario: str | None = "12345678-9",
     codigo_tipo: str = "SLA_POR_VENCER",
     nivel: str = "AVISO",
     titulo: str = "Oportunidad próximo al límite",
@@ -55,7 +55,6 @@ def crear_proceso_alertable_sla_mock(
     nombre_producto: str | None = "Producto Test",
     dias_transcurridos: int = 7,
     dias_limite: int | None = 10,
-    dias_limite_etapa: int | None = 10,
     rol_responsable: str | None = "EJECUTIVO_COMERCIAL",
     rut_ej_comercial: str | None = "11111111-1",
     rut_ej_evaluacion: str | None = "22222222-2",
@@ -78,7 +77,6 @@ def crear_proceso_alertable_sla_mock(
         nombre_prospecto=nombre_prospecto,
         fecha_ingreso_estado=ahora - timedelta(days=dias_transcurridos),
         dias_limite=dias_limite,
-        dias_limite_etapa=dias_limite_etapa,
         rol_responsable=rol_responsable,
         rut_ej_comercial=rut_ej_comercial,
         rut_ej_evaluacion=rut_ej_evaluacion,

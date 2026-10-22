@@ -819,3 +819,221 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     return False
 
                 return row['rut_ej_evaluacion_asignado'] == rut_usuario
+
+    def usuario_puede_eliminar_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'ELIMINAR_SOLICITUD_COTIZACION':
+                        tiene_permisos = True
+                        break
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_comercial_asignado
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return row['rut_ej_comercial_asignado'] == rut_usuario
+
+    def usuario_puede_subir_estudio_comercial_a_solicitud(self, rut_usuario: str, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'SUBIR_ESTUDIO_COMERCIAL':
+                        tiene_permisos = True
+                        break
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_evaluacion_asignado
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return row['rut_ej_evaluacion_asignado'] == rut_usuario
+
+    def usuario_puede_ver_estudios_comerciales(self, rut_usuario: str, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'VER_ESTUDIOS_COMERCIALES_TODOS':
+                        return True
+                    if row['codigo_permiso'] == 'VER_ESTUDIOS_COMERCIALES_PROPIOS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                ])
+
+    def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'VER_ESTUDIOS_COMERCIALES_TODOS':
+                        return True
+                    if row['codigo_permiso'] == 'VER_ESTUDIOS_COMERCIALES_PROPIOS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                ])

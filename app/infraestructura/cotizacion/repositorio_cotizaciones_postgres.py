@@ -286,3 +286,24 @@ class RepositorioCotizacionesPostgres(RepositorioCotizaciones):
                 }
 
                 cur.execute(query, params)
+
+    def cotizacion_pertenece_a_solicitud(self, cotizacion: Cotizacion, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+                with conn.cursor() as cur:
+                    query = '''
+                        select id_solicitud
+                        from Cotizacion
+                        where id = %(id_cotizacion)s
+                    '''
+    
+                    params = {
+                        'id_cotizacion': cotizacion.id
+                    }
+    
+                    cur.execute(query, params)
+                    row = cur.fetchone()
+
+                    if row is None:
+                        return False
+
+                    return row['id_solicitud'] == id_solicitud

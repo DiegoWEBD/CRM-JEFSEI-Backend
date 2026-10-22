@@ -19,7 +19,6 @@ class DictRowProcesoAlertableSlaAdapter:
             nombre_prospecto=r['nombre_prospecto'],
             fecha_ingreso_estado=r['fecha_ingreso_estado'],
             dias_limite=r['dias_limite'],
-            dias_limite_etapa=r['dias_limite_etapa'],
             rol_responsable=r['rol_responsable'],
             rut_ej_comercial=r['rut_ej_comercial'],
             rut_ej_evaluacion=r['rut_ej_evaluacion'],

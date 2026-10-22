@@ -160,3 +160,271 @@ class TestUsuarioPuedeActualizarProbabilidadCierre:
         )
 
         assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeSubirEstudioComercialASolicitud:
+
+    def test_permiso_y_evaluador_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "SUBIR_ESTUDIO_COMERCIAL"}]
+        solicitud = {"rut_ej_evaluacion_asignado": "12345678-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "OBTENER_PROSPECTOS_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_global_ver_no_permite_subir(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_pero_no_evaluador_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "SUBIR_ESTUDIO_COMERCIAL"}]
+        solicitud = {"rut_ej_evaluacion_asignado": "99999999-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+
+    def test_permiso_y_evaluador_comercial_no_basta(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "SUBIR_ESTUDIO_COMERCIAL"}]
+        solicitud = {"rut_ej_evaluacion_asignado": "99999999-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+
+    def test_solicitud_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "SUBIR_ESTUDIO_COMERCIAL"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_subir_estudio_comercial_a_solicitud(
+            rut_usuario="12345678-9", id_solicitud=999
+        )
+
+        assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeVerEstudiosComerciales:
+
+    def test_permiso_global_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_y_comercial_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        solicitud = {
+            "rut_ej_comercial_asignado": "12345678-9",
+            "rut_ej_evaluacion_asignado": "99999999-9",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+
+    def test_propios_y_evaluador_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        solicitud = {
+            "rut_ej_comercial_asignado": "99999999-9",
+            "rut_ej_evaluacion_asignado": "12345678-9",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        solicitud = {
+            "rut_ej_comercial_asignado": "99999999-9",
+            "rut_ej_evaluacion_asignado": "88888888-8",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "OBTENER_PROSPECTOS_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_solicitud_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_ver_estudios_comerciales(
+            rut_usuario="12345678-9", id_solicitud=999
+        )
+
+        assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeDescargarEstudioComercial:
+
+    def test_permiso_global_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_descargar_estudio_comercial(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_y_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        solicitud = {
+            "rut_ej_comercial_asignado": "12345678-9",
+            "rut_ej_evaluacion_asignado": "99999999-9",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_descargar_estudio_comercial(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_ESTUDIOS_COMERCIALES_PROPIOS"}]
+        solicitud = {
+            "rut_ej_comercial_asignado": "99999999-9",
+            "rut_ej_evaluacion_asignado": "88888888-8",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_descargar_estudio_comercial(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "OBTENER_PROSPECTOS_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_descargar_estudio_comercial(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()

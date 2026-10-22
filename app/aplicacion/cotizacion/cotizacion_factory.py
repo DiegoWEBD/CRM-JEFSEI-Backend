@@ -52,9 +52,9 @@ class CotizacionFactory:
         return Cotizacion(
             id=None,
             monto_total_asegurado=monto_total_asegurado,
-            tasa_afecta=round(tasa_afecta, 2),
-            tasa_excenta=round(tasa_excenta, 2),
-            tasa_politica=round(tasa_politica, 2),
+            tasa_afecta=tasa_afecta,
+            tasa_excenta=tasa_excenta,
+            tasa_politica=tasa_politica,
             asistencia_afecta=asistencia_afecta,
             asistencia_excenta=asistencia_excenta,
             company=company,

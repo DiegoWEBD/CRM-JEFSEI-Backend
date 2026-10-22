@@ -39,7 +39,6 @@ def _estado_mock(**kwargs):
         codigo="ETAPA_1",
         nombre="Prospección",
         sigiuente_etapa=None,
-        dias_limite=None,
     )
     defaults = {
         'codigo': 'ESTADO_ORIGEN',
