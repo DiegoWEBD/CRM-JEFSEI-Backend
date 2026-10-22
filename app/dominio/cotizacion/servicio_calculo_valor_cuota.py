@@ -28,7 +28,7 @@ class ServicioCalculoValorCuota:
         )
 
         if factor is not None:
-            return round(prima_bruta * factor, ServicioCalculoValorCuota.DECIMALES)
+            return prima_bruta * factor
 
         return ServicioCalculoValorCuota.calcular_con_factor_generico(prima_bruta, cantidad_cuotas)
 
@@ -38,7 +38,7 @@ class ServicioCalculoValorCuota:
 
         cuota = (tasa * prima_bruta) / (1 - (1 + tasa) ** -cantidad_cuotas)
 
-        return round(cuota, ServicioCalculoValorCuota.DECIMALES)
+        return cuota
 
     @staticmethod
     def calcular_valor_cuota_pesos(valor_cuota: float, valor_uf: float) -> int:

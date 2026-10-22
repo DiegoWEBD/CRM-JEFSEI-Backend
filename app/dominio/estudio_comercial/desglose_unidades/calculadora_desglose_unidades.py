@@ -31,6 +31,7 @@ class CalculadoraDesgloseUnidades:
             cotizacion.tasa_politica,
             cotizacion.asistencia_afecta,
         )
+
         prima_excenta = ServicioCalculoPrimas.calcular_prima_excenta(
             monto_asegurado,
             cotizacion.tasa_excenta,
@@ -140,4 +141,5 @@ class CalculadoraDesgloseUnidades:
     @staticmethod
     def _prorratear(total: float, prorrateo: float) -> float:
         resultado = Decimal(str(total)) * Decimal(str(prorrateo))
-        return float(resultado.quantize(CalculadoraDesgloseUnidades.DECIMALES, rounding=ROUND_HALF_UP))
+        #return float(resultado.quantize(CalculadoraDesgloseUnidades.DECIMALES, rounding=ROUND_HALF_UP))
+        return float(resultado)
