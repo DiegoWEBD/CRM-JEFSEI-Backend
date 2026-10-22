@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
@@ -12,9 +12,11 @@ from app.dominio.unidades.unidad_alicuota import UnidadAlicuota
 
 
 class CalculadoraDesgloseUnidades:
-    """Prorratea los valores de cada cotización sobre las unidades de la alícuota."""
+    """Prorratea los valores de cada cotización sobre las unidades de la alícuota.
 
-    DECIMALES = Decimal('0.01')
+    Los cálculos mantienen precisión completa; el redondeo se aplica únicamente
+    al mostrar cada resultado final (formatos numéricos del Excel).
+    """
 
     @staticmethod
     def calcular_totales(cotizacion: Cotizacion, monto_base: float | None = None) -> TotalesPrima:
@@ -55,7 +57,7 @@ class CalculadoraDesgloseUnidades:
         totales: TotalesPrima,
         unidades: list[UnidadAlicuota],
     ) -> list[DesgloseUnidad]:
-        """Multiplica los totales ya redondeados por el prorrateo decimal de cada unidad."""
+        """Multiplica los totales por el prorrateo decimal de cada unidad."""
 
         return [
             CalculadoraDesgloseUnidades.calcular_desglose_unidad(totales, unidad)
@@ -140,6 +142,4 @@ class CalculadoraDesgloseUnidades:
 
     @staticmethod
     def _prorratear(total: float, prorrateo: float) -> float:
-        resultado = Decimal(str(total)) * Decimal(str(prorrateo))
-        #return float(resultado.quantize(CalculadoraDesgloseUnidades.DECIMALES, rounding=ROUND_HALF_UP))
-        return float(resultado)
+        return float(Decimal(str(total)) * Decimal(str(prorrateo)))

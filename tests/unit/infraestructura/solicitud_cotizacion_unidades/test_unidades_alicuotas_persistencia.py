@@ -30,7 +30,7 @@ def _unidades():
 
 
 @patch(
-    'app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres.obtener_conexion'
+    'app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres.obtener_conexion'
 )
 @pytest.mark.unit
 class TestListarUnidadesPorOportunidad:
@@ -63,7 +63,7 @@ class TestListarUnidadesPorOportunidad:
 
 
 @patch(
-    'app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres.obtener_conexion'
+    'app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres.obtener_conexion'
 )
 @pytest.mark.unit
 class TestObtenerNombreExcel:
@@ -86,7 +86,7 @@ class TestObtenerNombreExcel:
 
 
 @patch(
-    'app.infraestructura.solicitud_cotizacion.repositorio_unidades_alicuotas_postgres.obtener_conexion'
+    'app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres.obtener_conexion'
 )
 @pytest.mark.unit
 class TestGuardarOReemplazar:

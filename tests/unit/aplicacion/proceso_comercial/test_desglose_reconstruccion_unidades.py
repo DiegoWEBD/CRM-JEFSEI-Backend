@@ -38,8 +38,8 @@ def _unidades():
 
 
 def _desglose():
-    # 10 UF/m² × 1000 m² × 1.19 = 11.900 → depreciado 20 % = 9.520 → unidades = 4.760
-    # Depto 1: 4.760 × 0,030456521 = 144,97 → 200 | Depto 2: 331,03 → 400
+    # Fixture con montos de ejemplo: 4.760 UF repartidas por el prorrateo de cada
+    # unidad: Depto 1: 4.760 × 0,030456521 = 144,97303996 → 200 | Depto 2: 331,02696004 → 400
     return CalculadoraDesgloseReconstruccion.calcular(4760.0, _unidades())
 
 
@@ -119,11 +119,16 @@ class TestCalcularDesgloseReconstruccionUnidades:
 
         desglose, total = uc.ejecutar(5, _unidades())
 
+        # Regla de negocio vigente: el valor de las unidades NO se deprecia
+        # valor_unidades = 11.900 x 0,5 = 5.950 (sin redondear por unidad)
         assert [u.identificador_unidad for u in desglose] == ['Depto 1', 'Depto 2']
-        assert [u.monto_reconstruccion for u in desglose] == [144.97, 331.03]
-        assert [u.monto_asegurado_sugerido for u in desglose] == [200.0, 400.0]
-        assert [round(u.prorrateo_pago, 6) for u in desglose] == [0.333333, 0.666667]
-        assert total == 600.0
+        assert [u.monto_reconstruccion for u in desglose] == [
+            pytest.approx(181.21629995),
+            pytest.approx(413.78370005),
+        ]
+        assert [u.monto_asegurado_sugerido for u in desglose] == [200.0, 500.0]
+        assert [round(u.prorrateo_pago, 6) for u in desglose] == [0.285714, 0.714286]
+        assert total == 700.0
 
     def test_consulta_el_prospecto_de_la_oportunidad(self):
         uc = _uc_calcular()

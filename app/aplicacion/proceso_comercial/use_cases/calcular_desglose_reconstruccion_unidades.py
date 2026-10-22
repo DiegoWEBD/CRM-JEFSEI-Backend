@@ -45,7 +45,6 @@ class CalcularDesgloseReconstruccionUnidadesUseCase:
         valor_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades_desde_datos(
             prospecto.uf_por_metro_cuadrado,
             prospecto.metros_cuadrados,
-            prospecto.porcentaje_depreciacion,
         )
 
         desglose = CalculadoraDesgloseReconstruccion.calcular(valor_unidades, unidades)

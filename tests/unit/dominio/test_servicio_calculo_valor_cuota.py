@@ -22,28 +22,29 @@ class TestCalcularValorCuota:
 
         valor_cuota = ServicioCalculoValorCuota.calcular_valor_cuota(100.0, 12, factores)
 
-        # cuota = (0,005 x 100) / (1 - 1,005^-12) = 8,6066... -> 8,61
-        assert valor_cuota == 8.61
+        # cuota = (0,005 x 100) / (1 - 1,005^-12) = 8,60664297... (sin redondear)
+        assert valor_cuota == pytest.approx(8.60664297)
 
     def test_sin_factores_usa_formula_generica(self):
         valor_cuota = ServicioCalculoValorCuota.calcular_valor_cuota(100.0, 12, [])
 
-        assert valor_cuota == 8.61
+        assert valor_cuota == pytest.approx(8.60664297)
 
     def test_formula_generica(self):
         cuota = ServicioCalculoValorCuota.calcular_con_factor_generico(100.0, 12)
 
-        assert cuota == 8.61
+        assert cuota == pytest.approx(8.60664297)
 
-    def test_valor_cuota_redondea_a_dos_decimales(self):
+    def test_valor_cuota_no_se_redondea(self):
         factores = [FactorCuotasCompany(numero_cuotas=11, factor=1.1)]
 
         valor_cuota = ServicioCalculoValorCuota.calcular_valor_cuota(0.53, 11, factores)
 
-        assert valor_cuota == 0.58
+        # 0,53 x 1,1 = 0,583: se conserva la precisión completa
+        assert valor_cuota == pytest.approx(0.583)
 
     def test_valor_cuota_pesos(self):
         assert ServicioCalculoValorCuota.calcular_valor_cuota_pesos(105.0, 38000.0) == 3990000
 
-    def test_valor_cuota_pesos_redondea_al_entero(self):
-        assert ServicioCalculoValorCuota.calcular_valor_cuota_pesos(8.61, 38000.0) == 327180
+    def test_valor_cuota_pesos_no_se_redondea(self):
+        assert ServicioCalculoValorCuota.calcular_valor_cuota_pesos(0.583, 40850.0) == pytest.approx(23815.55)

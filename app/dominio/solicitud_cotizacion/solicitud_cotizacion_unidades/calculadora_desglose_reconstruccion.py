@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from app.dominio.prospecto.prospecto_condominio.servicio_calculo_reconstruccion import ServicioCalculoReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
@@ -11,11 +11,12 @@ class CalculadoraDesgloseReconstruccion:
     Por cada unidad: monto de reconstrucción = valor de las unidades × prorrateo,
     y monto asegurado sugerido = ese monto redondeado a la centena superior.
 
+    Los cálculos intermedios no se redondean para no propagar errores; el
+    redondeo se aplica únicamente al mostrar cada resultado final.
+
     El `prorrateo_pago` de cada unidad (monto asegurado sugerido de la unidad
     sobre el total sugerido) es el que reparte las primas entre los propietarios.
     """
-
-    DECIMALES = Decimal('0.01')
 
     @staticmethod
     def calcular(
@@ -40,11 +41,7 @@ class CalculadoraDesgloseReconstruccion:
 
     @staticmethod
     def calcular_unidad(valor_unidades: float, unidad: UnidadAlicuota) -> DesgloseReconstruccionUnidad:
-        monto_reconstruccion = float(
-            (Decimal(str(valor_unidades)) * Decimal(str(unidad.prorrateo))).quantize(
-                CalculadoraDesgloseReconstruccion.DECIMALES, rounding=ROUND_HALF_UP
-            )
-        )
+        monto_reconstruccion = float(Decimal(str(valor_unidades)) * Decimal(str(unidad.prorrateo)))
         monto_asegurado_sugerido = float(
             ServicioCalculoReconstruccion.redondear_centena_superior(monto_reconstruccion)
         )
@@ -60,4 +57,4 @@ class CalculadoraDesgloseReconstruccion:
 
     @staticmethod
     def total_monto_asegurado_sugerido(desglose: list[DesgloseReconstruccionUnidad]) -> float:
-        return round(sum(item.monto_asegurado_sugerido for item in desglose), 2)
+        return sum(item.monto_asegurado_sugerido for item in desglose)

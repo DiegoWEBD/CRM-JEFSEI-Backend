@@ -1,8 +1,8 @@
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 # Formatos numéricos compartidos por los Excel de desglose
-FORMATO_MONTO_UF = '#,##0.00'
-FORMATO_MONTO_CLP = '#,##0'
+FORMATO_MONTO_UF = '#,##0.000'
+FORMATO_MONTO_CLP = '$ #,##0'
 FORMATO_PRORRATEO = '0.000000000'
 
 # Paleta de colores

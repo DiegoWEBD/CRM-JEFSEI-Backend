@@ -15,7 +15,7 @@ class DesgloseUnidad:
         monto_reconstruccion: float | None = None,
         monto_asegurado_sugerido: float | None = None,
         valor_cuota_uf: float | None = None,
-        valor_cuota_pesos: int | None = None,
+        valor_cuota_pesos: float | None = None,
     ) -> None:
         self.identificador_unidad = identificador_unidad
         self.prorrateo = prorrateo

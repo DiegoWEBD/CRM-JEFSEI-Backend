@@ -10,7 +10,6 @@ class ServicioCalculoValorCuota:
     """
 
     TASA_FACTOR_GENERICO = 0.005
-    DECIMALES = 2
 
     @staticmethod
     def calcular_valor_cuota(
@@ -41,5 +40,9 @@ class ServicioCalculoValorCuota:
         return cuota
 
     @staticmethod
-    def calcular_valor_cuota_pesos(valor_cuota: float, valor_uf: float) -> int:
-        return round(valor_cuota * valor_uf)
+    def calcular_valor_cuota_pesos(valor_cuota: float, valor_uf: float) -> float:
+        """Convierte la cuota en UF a pesos sin redondear.
+
+        El redondeo al peso se aplica únicamente al mostrar el resultado final.
+        """
+        return valor_cuota * valor_uf

@@ -127,15 +127,15 @@ class GeneradorExcelDesgloseUnidades:
     def __escribir_totales_prorrateo(self, hoja, fila: int, unidades: list[DesgloseUnidad]) -> None:
         escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
         escribir_celda(
-            hoja, fila, 2, round(sum(u.prorrateo or 0.0 for u in unidades), 9),
+            hoja, fila, 2, sum(u.prorrateo or 0.0 for u in unidades),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 3, round(sum(u.monto_reconstruccion or 0.0 for u in unidades), 2),
+            hoja, fila, 3, sum(u.monto_reconstruccion or 0.0 for u in unidades),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 4, round(sum(u.monto_asegurado_sugerido or 0.0 for u in unidades), 2),
+            hoja, fila, 4, sum(u.monto_asegurado_sugerido or 0.0 for u in unidades),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
 
@@ -215,22 +215,22 @@ class GeneradorExcelDesgloseUnidades:
 
         escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
         escribir_celda(
-            hoja, fila, 2, round(sum(u.monto_asegurado_sugerido or 0.0 for u in unidades), 2),
+            hoja, fila, 2, sum(u.monto_asegurado_sugerido or 0.0 for u in unidades),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 3, round(sum(u.prorrateo_pago or 0.0 for u in unidades), 9),
+            hoja, fila, 3, sum(u.prorrateo_pago or 0.0 for u in unidades),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
 
         columna = len(COLUMNAS_COMPARTIDAS) + 1
         for _, _, desglose, _, _ in datos:
             escribir_celda(
-                hoja, fila, columna, round(sum(u.prima_bruta for u in desglose), 2),
+                hoja, fila, columna, sum(u.prima_bruta for u in desglose),
                 FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
             )
             escribir_celda(
-                hoja, fila, columna + 1, round(sum(u.valor_cuota_uf or 0.0 for u in desglose), 2),
+                hoja, fila, columna + 1, sum(u.valor_cuota_uf or 0.0 for u in desglose),
                 FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
             )
             escribir_celda(
@@ -287,15 +287,15 @@ class GeneradorExcelDesgloseUnidades:
             FILA_RESUMEN,
             (
                 f'Unidades: {encabezado.get("cantidad_unidades", 0)}'
-                f'   ·   Monto asegurado sugerido total: {self.__numero(encabezado.get("monto_asegurado_sugerido_total"))} UF'
+                f'   ·   Monto asegurado sugerido total: {encabezado.get("monto_asegurado_sugerido_total")} UF'
                 f'   ·   Cuotas: {encabezado.get("cantidad_cuotas", 0)}'
-                f'   ·   Valor UF: ${self.__numero(encabezado.get("valor_uf"), decimales=0)}'
+                f'   ·   Valor UF: ${encabezado.get("valor_uf")}'
             ),
             cantidad_columnas,
         )
 
     @staticmethod
-    def __numero(valor, decimales: int = 2) -> str:
+    def __numero(valor, decimales: int = 3) -> str:
         if valor is None:
             return '—'
         return f'{valor:,.{decimales}f}'.replace(',', '.')

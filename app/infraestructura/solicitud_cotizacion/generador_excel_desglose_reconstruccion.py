@@ -104,18 +104,18 @@ class GeneradorExcelDesgloseReconstruccion:
     def __escribir_fila_totales(self, hoja, fila: int, desglose: list[DesgloseReconstruccionUnidad]) -> None:
         escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
         escribir_celda(
-            hoja, fila, 2, round(sum(u.prorrateo for u in desglose), 9),
+            hoja, fila, 2, sum(u.prorrateo for u in desglose),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 3, round(sum(u.prorrateo_pago for u in desglose), 9),
+            hoja, fila, 3, sum(u.prorrateo_pago for u in desglose),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 4, round(sum(u.monto_reconstruccion for u in desglose), 2),
+            hoja, fila, 4, sum(u.monto_reconstruccion for u in desglose),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 5, round(sum(u.monto_asegurado_sugerido for u in desglose), 2),
+            hoja, fila, 5, sum(u.monto_asegurado_sugerido for u in desglose),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )

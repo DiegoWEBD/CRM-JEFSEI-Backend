@@ -36,7 +36,7 @@ def _usuario_con_permisos(*permisos: str):
 
 
 def _unidades_con_desglose():
-    # 4.760 UF de reconstrucción: Depto 1 → 144,97 → 200 | Depto 2 → 331,03 → 400
+    # 4.760 UF de reconstrucción: Depto 1 → 144,97303996 → 200 | Depto 2 → 331,02696004 → 400
     return CalculadoraDesgloseReconstruccion.calcular(4760.0, [
         UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
         UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3),
@@ -119,7 +119,7 @@ class TestDesgloseReconstruccionUnidadesEndpoint:
         unidad = body['unidades'][0]
         assert unidad['identificador_unidad'] == 'Depto 1'
         assert unidad['prorrateo'] == 0.030456521
-        assert unidad['monto_reconstruccion'] == 144.97
+        assert unidad['monto_reconstruccion'] == pytest.approx(144.97303996)
         assert unidad['monto_asegurado_sugerido'] == 200.0
         assert unidad['prorrateo_pago'] == pytest.approx(200.0 / 600.0)
 

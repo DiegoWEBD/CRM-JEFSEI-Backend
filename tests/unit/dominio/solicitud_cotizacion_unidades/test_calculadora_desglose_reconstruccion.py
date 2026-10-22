@@ -42,7 +42,8 @@ class TestCalcularDesgloseReconstruccion:
         desglose = CalculadoraDesgloseReconstruccion.calcular(4760.0, [_unidad()])
 
         assert len(desglose) == 1
-        assert desglose[0].monto_reconstruccion == 144.97
+        # 4.760 x 0,030456521 = 144,97303996 (sin redondear)
+        assert desglose[0].monto_reconstruccion == pytest.approx(144.97303996)
         assert desglose[0].monto_asegurado_sugerido == 200.0
 
     def test_monto_asegurado_sugerido_es_la_centena_superior(self):
@@ -52,9 +53,9 @@ class TestCalcularDesgloseReconstruccion:
         ])
 
         assert [u.identificador_unidad for u in desglose] == ['Depto 1', 'Depto 2']
-        assert desglose[0].monto_reconstruccion == 144.97
+        assert desglose[0].monto_reconstruccion == pytest.approx(144.97303996)
         assert desglose[0].monto_asegurado_sugerido == 200.0
-        assert desglose[1].monto_reconstruccion == 331.03
+        assert desglose[1].monto_reconstruccion == pytest.approx(331.02696004)
         assert desglose[1].monto_asegurado_sugerido == 400.0
 
     def test_prorrateo_de_pago_es_el_monto_sugerido_sobre_el_total(self):
@@ -103,7 +104,7 @@ class TestCalcularDesgloseReconstruccion:
             'identificador_unidad': 'Depto 1',
             'prorrateo': 0.030456521,
             'fila_origen': 2,
-            'monto_reconstruccion': 144.97,
+            'monto_reconstruccion': 144.97303996,
             'monto_asegurado_sugerido': 200.0,
             'prorrateo_pago': 1.0,
         }

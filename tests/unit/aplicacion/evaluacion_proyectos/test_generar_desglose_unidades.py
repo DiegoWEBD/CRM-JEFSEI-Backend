@@ -219,42 +219,42 @@ class TestGenerarDesgloseUnidadesExcel:
         cotizacion, totales_referencia, desglose, cuota_referencia_uf, cuota_referencia_pesos = datos[0]
         assert cotizacion.id == 7
 
-        # Fila de referencia: totales registrados de la cotización (41.500 UF)
+        # Fila de referencia: totales registrados de la cotización (41.500 UF, sin redondear)
         assert totales_referencia.monto_asegurado == 41500.0
-        assert totales_referencia.prima_neta == 104.58
-        assert totales_referencia.prima_iva == 4.73
-        assert totales_referencia.prima_bruta == 109.31
+        assert totales_referencia.prima_neta == pytest.approx(104.58)
+        assert totales_referencia.prima_iva == pytest.approx(4.731)
+        assert totales_referencia.prima_bruta == pytest.approx(109.311)
 
         # Cuota de referencia: prima bruta de la cotización x factor 2,0 de la compañía
-        assert cuota_referencia_uf == 218.62
-        assert cuota_referencia_pesos == 8307560
+        assert cuota_referencia_uf == pytest.approx(218.622)
+        assert cuota_referencia_pesos == pytest.approx(8307636.0)
 
         # El cálculo único sobre el total sugerido (600 UF) da:
-        # afecta 0,36 | excenta 1,15 | neta 1,51 | IVA 0,07 | bruta 1,58
-        # y se reparte por el prorrateo de pago de cada unidad
+        # afecta 0,36 | excenta 1,152 | neta 1,512 | IVA 0,0684 | bruta 1,5804
+        # y se reparte por el prorrateo de pago de cada unidad (sin redondear)
         assert [u.identificador_unidad for u in desglose] == ['Depto 1', 'Depto 2']
 
         assert desglose[0].prorrateo_pago == pytest.approx(1 / 3)
         assert desglose[0].monto_asegurado == 200.0
-        assert desglose[0].monto_reconstruccion == 144.97
+        assert desglose[0].monto_reconstruccion == pytest.approx(144.97303996)
         assert desglose[0].monto_asegurado_sugerido == 200.0
-        assert desglose[0].prima_afecta == 0.12
-        assert desglose[0].prima_excenta == 0.38
-        assert desglose[0].prima_neta == 0.5
-        assert desglose[0].prima_iva == 0.02
-        assert desglose[0].prima_bruta == 0.53
-        assert desglose[0].valor_cuota_uf == 1.06
-        assert desglose[0].valor_cuota_pesos == 40280
+        assert desglose[0].prima_afecta == pytest.approx(0.12)
+        assert desglose[0].prima_excenta == pytest.approx(0.384)
+        assert desglose[0].prima_neta == pytest.approx(0.504)
+        assert desglose[0].prima_iva == pytest.approx(0.0228)
+        assert desglose[0].prima_bruta == pytest.approx(0.5268)
+        assert desglose[0].valor_cuota_uf == pytest.approx(1.0536)
+        assert desglose[0].valor_cuota_pesos == pytest.approx(40036.8)
 
         assert desglose[1].prorrateo_pago == pytest.approx(2 / 3)
         assert desglose[1].monto_asegurado == 400.0
-        assert desglose[1].prima_afecta == 0.24
-        assert desglose[1].prima_excenta == 0.77
-        assert desglose[1].prima_neta == 1.01
-        assert desglose[1].prima_iva == 0.05
-        assert desglose[1].prima_bruta == 1.05
-        assert desglose[1].valor_cuota_uf == 2.1
-        assert desglose[1].valor_cuota_pesos == 79800
+        assert desglose[1].prima_afecta == pytest.approx(0.24)
+        assert desglose[1].prima_excenta == pytest.approx(0.768)
+        assert desglose[1].prima_neta == pytest.approx(1.008)
+        assert desglose[1].prima_iva == pytest.approx(0.0456)
+        assert desglose[1].prima_bruta == pytest.approx(1.0536)
+        assert desglose[1].valor_cuota_uf == pytest.approx(2.1072)
+        assert desglose[1].valor_cuota_pesos == pytest.approx(80073.6)
 
     def test_las_asistencias_se_incluyen_en_el_calculo_unico(self):
         cotizacion = _cotizacion()
@@ -267,11 +267,11 @@ class TestGenerarDesgloseUnidadesExcel:
         _, datos, _ = generador_excel.generar.call_args.args
         desglose = datos[0][2]
 
-        # Prima afecta total = 0,36 + 5 = 5,36 y excenta = 1,15 + 3 = 4,15
-        assert desglose[0].prima_afecta == 1.79
-        assert desglose[0].prima_excenta == 1.38
-        assert desglose[1].prima_afecta == 3.57
-        assert desglose[1].prima_excenta == 2.77
+        # Prima afecta total = 0,36 + 5 = 5,36 y excenta = 1,152 + 3 = 4,152 (sin redondear)
+        assert desglose[0].prima_afecta == pytest.approx(1.7866666666666664)
+        assert desglose[0].prima_excenta == pytest.approx(1.384)
+        assert desglose[1].prima_afecta == pytest.approx(3.573333333333333)
+        assert desglose[1].prima_excenta == pytest.approx(2.768)
 
     def test_las_unidades_se_ordenan_por_fila_de_origen(self):
         unidades = [

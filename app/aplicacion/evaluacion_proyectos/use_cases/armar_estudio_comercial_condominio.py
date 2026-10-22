@@ -49,7 +49,7 @@ class ArmarEstudioComercialCondominioUseCase:
         secciones: list[SeccionEstudioComercialRequest] | None,
         valor_uf: float,
         usuario: Usuario,
-        es_unidades: bool = False
+        es_unidades: bool = True
     ) -> str:
 
         if len(ids_cotizacion) == 0:
@@ -104,7 +104,7 @@ class ArmarEstudioComercialCondominioUseCase:
             'porcentaje_depreciacion': round(prospecto.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.porcentaje_espacios_comunes * 100),
             'condominio_vertical': True,
-            'tipo_estudio': 'unidades',
+            'tipo_estudio': 'unidades' if es_unidades else 'espacios_comunes',
             'cantidad_cuotas': cantidad_cuotas,
             'year_actual': datetime.now(tz=timezone.utc).year,
             'page_break': rt
@@ -124,7 +124,8 @@ class ArmarEstudioComercialCondominioUseCase:
             secciones=secciones,
             valor_uf=valor_uf,
             con_monto_sugerido=con_monto_sugerido,
-            cantidad_unidades=prospecto.cantidad_departamentos
+            cantidad_unidades=prospecto.cantidad_departamentos,
+            es_unidades=es_unidades
         )
 
         return str(ruta_docx)
@@ -144,7 +145,8 @@ class ArmarEstudioComercialCondominioUseCase:
         valor_uf: float,
         secciones: list[SeccionEstudioComercialRequest] | None,
         con_monto_sugerido: bool,
-        cantidad_unidades: int
+        cantidad_unidades: int,
+        es_unidades: bool
 
     ) -> str:
         
@@ -154,18 +156,19 @@ class ArmarEstudioComercialCondominioUseCase:
         valor_total_reconstruccion_depreciacion_iva = ServicioCalculoReconstruccion.calcular_valor_reconstruccion_depreciacion(
             valor_total_reconstruccion_iva, porcentaje_depreciacion
         )
-        monto_asegurado_sugerido = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
-            valor_total_reconstruccion_depreciacion_iva, porcentaje_bienes_espacios_comunes
-        )
 
-        monto_sugerido_unidades = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_total_reconstruccion_depreciacion_iva)
+        if not es_unidades:
+            monto_asegurado_sugerido = ServicioCalculoReconstruccion.calcular_valor_espacio_comun(
+                valor_total_reconstruccion_depreciacion_iva, porcentaje_bienes_espacios_comunes
+            )
+        else:
+            monto_asegurado_sugerido = ServicioCalculoReconstruccion.calcular_valor_unidades(valor_total_reconstruccion_iva)
 
         self.datos_plantilla.update({
             'valor_reconstruccion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_iva),
             'valor_reconstruccion_depreciacion': convertir_numero_a_formato_chileno(valor_total_reconstruccion_depreciacion_iva),
             'monto_asegurado_sugerido': convertir_numero_a_formato_chileno(monto_asegurado_sugerido),
-            'monto_asegurado_sugerido_unidades': convertir_numero_a_formato_chileno(monto_sugerido_unidades),
-            'monto_asegurado_ejemplo_50': convertir_numero_a_formato_chileno(round(monto_asegurado_sugerido * 0.5)),
+            'monto_asegurado_ejemplo_50': convertir_numero_a_formato_chileno(monto_asegurado_sugerido * 0.5, decimales=0),
             'con_monto_sugerido': con_monto_sugerido
         })
 
@@ -248,17 +251,17 @@ class ArmarEstudioComercialCondominioUseCase:
         infraseguro_actual = None
 
         if monto_asegurado_actual is not None:
-            infraseguro_actual = round(1 - (monto_asegurado_actual / monto_asegurado_sugerido), 2)
-        
-        monto_asegurado_primer_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo)) if infraseguro_primer_ejemplo is not None else None
-        monto_asegurado_segundo_ejemplo = round(monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo)) if infraseguro_segundo_ejemplo is not None else None
+            infraseguro_actual = 1 - (monto_asegurado_actual / monto_asegurado_sugerido)
+
+        monto_asegurado_primer_ejemplo = monto_asegurado_sugerido * (1 - infraseguro_primer_ejemplo) if infraseguro_primer_ejemplo is not None else None
+        monto_asegurado_segundo_ejemplo = monto_asegurado_sugerido * (1 - infraseguro_segundo_ejemplo) if infraseguro_segundo_ejemplo is not None else None
 
         self.datos_plantilla.update({
             'monto_asegurado_actual': convertir_numero_a_formato_chileno(monto_asegurado_actual) if monto_asegurado_actual is not None else None,
             'porcentaje_infraseguro_actual': round(infraseguro_actual * 100) if infraseguro_actual is not None else None,
-            'monto_asegurado_primer_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_primer_ejemplo) if monto_asegurado_primer_ejemplo is not None else None,
+            'monto_asegurado_primer_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_primer_ejemplo, decimales=0) if monto_asegurado_primer_ejemplo is not None else None,
             'porcentaje_infraseguro_primer_ejemplo': convertir_numero_a_formato_chileno(infraseguro_primer_ejemplo * 100) if infraseguro_primer_ejemplo is not None else None,
-            'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo) if monto_asegurado_segundo_ejemplo is not None else None,
+            'monto_asegurado_segundo_ejemplo': convertir_numero_a_formato_chileno(monto_asegurado_segundo_ejemplo, decimales=0) if monto_asegurado_segundo_ejemplo is not None else None,
             'porcentaje_infraseguro_segundo_ejemplo': convertir_numero_a_formato_chileno(infraseguro_segundo_ejemplo * 100) if infraseguro_segundo_ejemplo is not None else None,
         })
 
@@ -381,7 +384,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
                 if seccion.numero_propietarios is not None:
                     prorrateo_uf = detalle.valor_cuota / seccion.numero_propietarios
-                    prorrateo_pesos = round(valor_cuota_pesos / seccion.numero_propietarios)
+                    prorrateo_pesos = valor_cuota_pesos / seccion.numero_propietarios
 
                 logo = InlineImage(
                     self.doc,
@@ -395,9 +398,9 @@ class ArmarEstudioComercialCondominioUseCase:
                     'monto_asegurado': convertir_numero_a_formato_chileno(detalle.monto_asegurado),
                     'prima_anual': convertir_numero_a_formato_chileno(detalle.prima_bruta),
                     'valor_cuota_uf': convertir_numero_a_formato_chileno(detalle.valor_cuota),
-                    'valor_cuota_pesos': convertir_numero_a_formato_chileno(valor_cuota_pesos),
+                    'valor_cuota_pesos': convertir_numero_a_formato_chileno(valor_cuota_pesos, decimales=0),
                     'prorrateo_uf': convertir_numero_a_formato_chileno(prorrateo_uf, 4) if prorrateo_uf is not None else None,
-                    'prorrateo_pesos': convertir_numero_a_formato_chileno(prorrateo_pesos) if prorrateo_pesos is not None else None,
+                    'prorrateo_pesos': convertir_numero_a_formato_chileno(prorrateo_pesos, decimales=0) if prorrateo_pesos is not None else None,
                     'numero_propietarios': seccion.numero_propietarios
                 })
 
@@ -418,7 +421,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
         for detalle in detalles:
             valor_cuota_pesos = ServicioCalculoValorCuota.calcular_valor_cuota_pesos(detalle.valor_cuota, valor_uf)
-            prorrateo_pesos = round(valor_cuota_pesos / cantidad_unidades)
+            prorrateo_pesos = valor_cuota_pesos / cantidad_unidades
 
             logo = InlineImage(
                 self.doc,
@@ -432,8 +435,8 @@ class ArmarEstudioComercialCondominioUseCase:
                 'monto_asegurado': convertir_numero_a_formato_chileno(detalle.monto_asegurado),
                 'prima_anual': convertir_numero_a_formato_chileno(detalle.prima_bruta),
                 'valor_cuota_uf': convertir_numero_a_formato_chileno(detalle.valor_cuota),
-                'valor_cuota_pesos': convertir_numero_a_formato_chileno(valor_cuota_pesos),
-                'prorrateo_pesos': convertir_numero_a_formato_chileno(prorrateo_pesos)
+                'valor_cuota_pesos': convertir_numero_a_formato_chileno(valor_cuota_pesos, decimales=0),
+                'prorrateo_pesos': convertir_numero_a_formato_chileno(prorrateo_pesos, decimales=0)
             })
 
         self.datos_plantilla[dict_key] = datos_detalles
