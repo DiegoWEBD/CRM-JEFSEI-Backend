@@ -67,7 +67,7 @@ def client_desglose(tmp_path):
 
     def override_get_obtener():
         uc = MagicMock(spec=ObtenerDesgloseReconstruccionUnidadesUseCase)
-        uc.ejecutar.return_value = (600.0, _unidades_con_desglose())
+        uc.ejecutar.return_value = (600.0, 600.0, _unidades_con_desglose())
         return uc
 
     def override_get_excel():
@@ -113,8 +113,10 @@ class TestDesgloseReconstruccionUnidadesEndpoint:
         assert response.status_code == 200
         body = response.json()
         assert body['desglose_calculado'] is True
-        assert body['monto_asegurado_sugerido_unidades'] == 600.0
+        assert body['monto_asegurado_total'] == 600.0
+        assert body['monto_asegurado_sugerido_total'] == 600.0
         assert body['cantidad'] == 2
+        assert body['cantidad_descartadas'] == 0
 
         unidad = body['unidades'][0]
         assert unidad['identificador_unidad'] == 'Depto 1'

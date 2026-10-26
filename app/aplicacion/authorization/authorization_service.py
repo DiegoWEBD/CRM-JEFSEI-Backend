@@ -89,3 +89,21 @@ class AuthorizationService:
             prospecto.ejecutivo_comercial_asignado.rut == usuario.rut if prospecto.ejecutivo_comercial_asignado else False,
             prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut if prospecto.ejecutivo_evaluacion_asignado else False
         ])
+
+    def usuario_puede_administrar_alicuotas(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
+        """Administrar la alícuota (descartar unidades, fijar montos personalizados).
+
+        Requiere el permiso ADMINISTRAR_ALICUOTAS y ser el ejecutivo de
+        evaluación asignado al prospecto de la oportunidad. Si el prospecto no
+        tiene ejecutivo de evaluación asignado, nadie puede administrarla.
+        """
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ALICUOTAS'):
+            return False
+
+        prospecto = self.repositorio_prospectos.buscar_prospecto_por_proceso_comercial(id_proceso_comercial)
+
+        if not prospecto or not prospecto.ejecutivo_evaluacion_asignado:
+            return False
+
+        return prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut

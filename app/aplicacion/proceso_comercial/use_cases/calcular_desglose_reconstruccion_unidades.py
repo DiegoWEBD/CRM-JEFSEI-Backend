@@ -11,8 +11,10 @@ class CalcularDesgloseReconstruccionUnidadesUseCase:
     Toma `ServicioCalculoReconstruccion.calcular_valor_unidades` (valor de
     reconstrucción de las unidades) y lo distribuye por el prorrateo de cada
     unidad; el monto resultante redondeado a la centena superior es el monto
-    asegurado sugerido de la unidad. El `prorrateo_pago` de cada unidad
-    (monto asegurado sugerido sobre el total sugerido) reparte las primas.
+    asegurado sugerido de la unidad. Si la unidad tiene un monto asegurado
+    personalizado, ese monto reemplaza al sugerido. El `prorrateo_pago` de
+    cada unidad (monto asegurado sobre el total de las unidades activas)
+    reparte las primas; las unidades descartadas quedan fuera del reparto.
 
     Los valores son derivados: se calculan bajo demanda y no se persisten,
     de modo que siempre reflejan los datos actuales del condominio.
@@ -48,6 +50,6 @@ class CalcularDesgloseReconstruccionUnidadesUseCase:
         )
 
         desglose = CalculadoraDesgloseReconstruccion.calcular(valor_unidades, unidades)
-        total = CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose)
+        total = CalculadoraDesgloseReconstruccion.total_monto_asegurado(desglose)
 
         return desglose, total

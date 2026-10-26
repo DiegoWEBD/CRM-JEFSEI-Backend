@@ -13,6 +13,7 @@ from app.dominio.proceso_comercial.repositorio_procesos_comerciales import Repos
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion import SolicitudCotizacion
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
 from app.infraestructura.estudio_comercial_condominio.generador_excel_desglose_unidades import DetalleDesglose, GeneradorExcelDesgloseUnidades
 
@@ -21,11 +22,12 @@ class GenerarDesgloseUnidadesUseCase:
     """Genera el Excel con el desglose por unidad de las cotizaciones de una solicitud de tipo 'unidades'.
 
     El cálculo de primas se hace una única vez por cotización sobre el monto
-    asegurado sugerido total (la suma de los montos redondeados a la centena
-    superior); cada prima se reparte luego por el `prorrateo_pago` de cada
-    unidad (monto asegurado sugerido de la unidad sobre el total sugerido).
-    Con la prima bruta de cada unidad se calcula su valor de cuota en UF y en
-    pesos.
+    asegurado total de las unidades activas (la suma de sus montos asegurados:
+    el personalizado si existe, si no el sugerido); cada prima se reparte luego
+    por el `prorrateo_pago` de cada unidad (monto asegurado de la unidad sobre
+    el total). Las unidades descartadas se listan marcadas en el Excel, sin
+    montos. Con la prima bruta de cada unidad se calcula su valor de cuota en
+    UF y en pesos.
     """
 
     def __init__(
@@ -94,7 +96,7 @@ class GenerarDesgloseUnidadesUseCase:
         if not unidades:
             raise ConflictoEnAccionException('La oportunidad no tiene alícuota importada')
 
-        desglose_reconstruccion, total_sugerido = self.calcular_desglose_reconstruccion.ejecutar(
+        desglose_reconstruccion, total_asegurado = self.calcular_desglose_reconstruccion.ejecutar(
             proceso.id_prospecto, unidades
         )
 
@@ -103,8 +105,10 @@ class GenerarDesgloseUnidadesUseCase:
                 'El desglose de reconstrucción de las unidades no se puede calcular, complete los datos de reconstrucción del prospecto'
             )
 
-        if total_sugerido is None or total_sugerido <= 0:
-            raise ConflictoEnAccionException('El monto asegurado sugerido total de las unidades debe ser mayor a cero')
+        if total_asegurado is None or total_asegurado <= 0:
+            raise ConflictoEnAccionException(
+                'El monto asegurado total de las unidades activas debe ser mayor a cero'
+            )
 
         cotizaciones = self.__buscar_cotizaciones(ids_cotizacion, id_solicitud)
 
@@ -115,7 +119,7 @@ class GenerarDesgloseUnidadesUseCase:
             for cotizacion in cotizaciones
         ]
 
-        encabezado = self.__encabezado(solicitud, proceso, desglose_reconstruccion, total_sugerido, cantidad_cuotas, valor_uf)
+        encabezado = self.__encabezado(solicitud, proceso, desglose_reconstruccion, total_asegurado, cantidad_cuotas, valor_uf)
 
         return self.generador_excel.generar(id_solicitud, datos, encabezado)
 
@@ -170,16 +174,20 @@ class GenerarDesgloseUnidadesUseCase:
         solicitud: SolicitudCotizacion,
         proceso: ProcesoComercial,
         desglose_reconstruccion: list[DesgloseReconstruccionUnidad],
-        total_sugerido: float,
+        total_asegurado: float,
         cantidad_cuotas: int,
         valor_uf: float,
     ) -> dict:
+        activas = [item for item in desglose_reconstruccion if not item.descartada]
+
         return {
             'cliente': proceso.nombre_cliente,
             'id_solicitud': solicitud.id,
             'fecha': solicitud.fecha,
-            'cantidad_unidades': len(desglose_reconstruccion),
-            'monto_asegurado_sugerido_total': total_sugerido,
+            'cantidad_unidades': len(activas),
+            'cantidad_unidades_descartadas': len(desglose_reconstruccion) - len(activas),
+            'monto_asegurado_total': total_asegurado,
+            'monto_asegurado_sugerido_total': CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose_reconstruccion),
             'cantidad_cuotas': cantidad_cuotas,
             'valor_uf': valor_uf,
         }

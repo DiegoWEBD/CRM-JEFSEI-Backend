@@ -11,11 +11,13 @@ class CalculadoraDesgloseReconstruccion:
     Por cada unidad: monto de reconstrucción = valor de las unidades × prorrateo,
     y monto asegurado sugerido = ese monto redondeado a la centena superior.
 
-    Los cálculos intermedios no se redondean para no propagar errores; el
-    redondeo se aplica únicamente al mostrar cada resultado final.
+    El monto asegurado de la unidad es el personalizado si el propietario fijó
+    uno explícito; si no, el sugerido. Las unidades descartadas no aportan al
+    total.
 
-    El `prorrateo_pago` de cada unidad (monto asegurado sugerido de la unidad
-    sobre el total sugerido) es el que reparte las primas entre los propietarios.
+    El `prorrateo_pago` de cada unidad (monto asegurado de la unidad sobre el
+    total de las unidades activas) es el que reparte las primas entre los
+    propietarios.
     """
 
     @staticmethod
@@ -28,33 +30,63 @@ class CalculadoraDesgloseReconstruccion:
             for unidad in unidades
         ]
 
-        total = CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose)
+        total = CalculadoraDesgloseReconstruccion.total_monto_asegurado(desglose)
 
         for item in desglose:
-            item.prorrateo_pago = (
-                float(Decimal(str(item.monto_asegurado_sugerido)) / Decimal(str(total)))
-                if total > 0
-                else 0.0
-            )
+            if item.descartada or total <= 0:
+                item.prorrateo_pago = 0.0
+            else:
+                item.prorrateo_pago = float(
+                    Decimal(str(item.monto_asegurado)) / Decimal(str(total))
+                )
 
         return desglose
 
     @staticmethod
     def calcular_unidad(valor_unidades: float, unidad: UnidadAlicuota) -> DesgloseReconstruccionUnidad:
-        monto_reconstruccion = float(Decimal(str(valor_unidades)) * Decimal(str(unidad.prorrateo)))
+        # Precisión completa: el redondeo se aplica solo al mostrar el resultado.
+        monto_reconstruccion = float(
+            Decimal(str(valor_unidades)) * Decimal(str(unidad.prorrateo))
+        )
         monto_asegurado_sugerido = float(
             ServicioCalculoReconstruccion.redondear_centena_superior(monto_reconstruccion)
         )
 
         return DesgloseReconstruccionUnidad(
+            id_unidad=unidad.id,
             identificador_unidad=unidad.identificador_unidad,
             prorrateo=unidad.prorrateo,
             fila_origen=unidad.fila_origen,
             monto_reconstruccion=monto_reconstruccion,
             monto_asegurado_sugerido=monto_asegurado_sugerido,
             prorrateo_pago=0.0,
+            descartada=unidad.descartada,
+            monto_asegurado=unidad.monto_asegurado_efectivo(monto_asegurado_sugerido),
+            monto_asegurado_personalizado=unidad.monto_asegurado_personalizado,
+        )
+
+    @staticmethod
+    def total_monto_asegurado(desglose: list[DesgloseReconstruccionUnidad]) -> float:
+        """Monto asegurado total de las unidades activas (personalizado o sugerido)."""
+
+        return round(
+            sum(
+                item.monto_asegurado or 0.0
+                for item in desglose
+                if not item.descartada
+            ),
+            2,
         )
 
     @staticmethod
     def total_monto_asegurado_sugerido(desglose: list[DesgloseReconstruccionUnidad]) -> float:
-        return sum(item.monto_asegurado_sugerido for item in desglose)
+        """Suma de los montos sugeridos de las unidades activas (dato informativo)."""
+
+        return round(
+            sum(
+                item.monto_asegurado_sugerido or 0.0
+                for item in desglose
+                if not item.descartada
+            ),
+            2,
+        )

@@ -180,9 +180,10 @@ class TestObtenerDesgloseReconstruccionUnidades:
         calcular = _mock_calcular()
         uc, repositorio_unidades = _use_case_obtener(calcular=calcular)
 
-        total, desglose = uc.ejecutar(42, MagicMock(rut='1'))
+        total, total_sugerido, desglose = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert total == 600.0
+        assert total_sugerido == 600.0
         assert [u.monto_asegurado_sugerido for u in desglose] == [200.0, 400.0]
         repositorio_unidades.listar_por_oportunidad.assert_called_once_with(42)
         args = calcular.ejecutar.call_args.args
@@ -193,9 +194,10 @@ class TestObtenerDesgloseReconstruccionUnidades:
         calcular = _mock_calcular(desglose=None, total=None)
         uc, _ = _use_case_obtener(calcular=calcular)
 
-        total, desglose = uc.ejecutar(42, MagicMock(rut='1'))
+        total, total_sugerido, desglose = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert total is None
+        assert total_sugerido is None
         assert desglose == []
 
     def test_oportunidad_no_encontrada(self):

@@ -27,14 +27,17 @@ HOJA_DESGLOSE = 'Desglose cotizaciones'
 # Hoja «Prorrateo metros cuadrados»
 COLUMNAS_PRORRATEO = (
     'Unidad',
+    'Estado',
     'Prorrateo (m²)',
     'Monto de reconstrucción (UF)',
     'Monto asegurado sugerido (UF)',
+    'Monto asegurado (UF)',
 )
 
 # Hoja «Desglose cotizaciones»
 COLUMNAS_COMPARTIDAS = (
     'Unidad',
+    'Estado',
     'Monto asegurado (UF)',
     'Prorrateo por monto asegurado',
 )
@@ -44,6 +47,9 @@ COLUMNAS_COTIZACION = (
     'Valor cuota (UF)',
     'Valor cuota (CLP)',
 )
+
+ESTADO_ACTIVA = 'Activa'
+ESTADO_DESCARTADA = 'Descartada'
 
 ETIQUETA_TOTALES = 'TOTAL'
 ETIQUETA_REFERENCIA = 'TOTALES COTIZACIÓN (referencia)'
@@ -60,10 +66,13 @@ DetalleDesglose = tuple[Cotizacion, TotalesPrima, list[DesgloseUnidad], float, f
 class GeneradorExcelDesgloseUnidades:
     """Genera el Excel con el desglose por unidad de las cotizaciones de una solicitud.
 
-    Dos hojas: «Prorrateo metros cuadrados» (alícuota, monto de reconstrucción y
-    monto asegurado sugerido por unidad) y «Desglose cotizaciones» (monto
-    asegurado, prorrateo por monto asegurado y, por cada cotización, la prima
-    bruta repartida junto al valor de la cuota en UF y en pesos de cada unidad).
+    Dos hojas: «Prorrateo metros cuadrados» (alícuota, montos de reconstrucción
+    y asegurados por unidad) y «Desglose cotizaciones» (monto asegurado,
+    prorrateo por monto asegurado y, por cada cotización, la prima bruta
+    repartida junto al valor de la cuota en UF y en pesos de cada unidad).
+
+    Las unidades descartadas se listan marcadas y sin montos; los totales suman
+    solo las unidades activas.
     """
 
     def __init__(self, carpeta_base: str = 'documentos/estudios') -> None:
@@ -114,28 +123,38 @@ class GeneradorExcelDesgloseUnidades:
         self.__escribir_totales_prorrateo(hoja, fila + len(unidades), unidades)
 
         hoja.freeze_panes = hoja.cell(row=fila_encabezados + 1, column=1)
-        self.__ajustar_anchos(hoja, cantidad_columnas, (18, 18, 26, 26))
+        self.__ajustar_anchos(hoja, cantidad_columnas, (18, 14, 18, 26, 26, 22))
 
     def __escribir_fila_prorrateo(self, hoja, fila: int, unidad: DesgloseUnidad, indice: int) -> None:
         relleno = 'F7F9FC' if indice % 2 == 0 else None
+        descartada = unidad.descartada
 
         escribir_celda(hoja, fila, 1, unidad.identificador_unidad, negrita=True, color_relleno=relleno)
-        escribir_celda(hoja, fila, 2, unidad.prorrateo, FORMATO_PRORRATEO, color_relleno=relleno)
-        escribir_celda(hoja, fila, 3, unidad.monto_reconstruccion, FORMATO_MONTO_UF, color_relleno=relleno)
-        escribir_celda(hoja, fila, 4, unidad.monto_asegurado_sugerido, FORMATO_MONTO_UF, color_relleno=relleno)
+        escribir_celda(hoja, fila, 2, ESTADO_DESCARTADA if descartada else ESTADO_ACTIVA, color_relleno=relleno)
+        escribir_celda(hoja, fila, 3, unidad.prorrateo, FORMATO_PRORRATEO, color_relleno=relleno)
+        escribir_celda(hoja, fila, 4, None if descartada else unidad.monto_reconstruccion, FORMATO_MONTO_UF, color_relleno=relleno)
+        escribir_celda(hoja, fila, 5, None if descartada else unidad.monto_asegurado_sugerido, FORMATO_MONTO_UF, color_relleno=relleno)
+        escribir_celda(hoja, fila, 6, None if descartada else unidad.monto_asegurado, FORMATO_MONTO_UF, color_relleno=relleno)
 
     def __escribir_totales_prorrateo(self, hoja, fila: int, unidades: list[DesgloseUnidad]) -> None:
+        activas = [unidad for unidad in unidades if not unidad.descartada]
+
         escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
+        escribir_celda(hoja, fila, 2, None, negrita=True, color_relleno=COLOR_TOTAL)
         escribir_celda(
-            hoja, fila, 2, sum(u.prorrateo or 0.0 for u in unidades),
+            hoja, fila, 3, sum(u.prorrateo or 0.0 for u in activas),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 3, sum(u.monto_reconstruccion or 0.0 for u in unidades),
+            hoja, fila, 4, sum(u.monto_reconstruccion or 0.0 for u in activas),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 4, sum(u.monto_asegurado_sugerido or 0.0 for u in unidades),
+            hoja, fila, 5, sum(u.monto_asegurado_sugerido or 0.0 for u in activas),
+            FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
+        )
+        escribir_celda(
+            hoja, fila, 6, sum(u.monto_asegurado or 0.0 for u in activas),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
 
@@ -187,7 +206,7 @@ class GeneradorExcelDesgloseUnidades:
         self.__escribir_fila_referencia(hoja, fila_totales + 1, datos)
 
         hoja.freeze_panes = hoja.cell(row=fila_encabezados + 1, column=1)
-        self.__ajustar_anchos(hoja, cantidad_columnas, (18, 22, 26))
+        self.__ajustar_anchos(hoja, cantidad_columnas, (18, 14, 22, 26))
 
     def __escribir_fila_unidad(
         self,
@@ -198,43 +217,61 @@ class GeneradorExcelDesgloseUnidades:
         indice: int,
     ) -> None:
         relleno = 'F7F9FC' if indice % 2 == 0 else None
+        descartada = unidad.descartada
 
         escribir_celda(hoja, fila, 1, unidad.identificador_unidad, negrita=True, color_relleno=relleno)
-        escribir_celda(hoja, fila, 2, unidad.monto_asegurado_sugerido, FORMATO_MONTO_UF, color_relleno=relleno)
-        escribir_celda(hoja, fila, 3, unidad.prorrateo_pago, FORMATO_PRORRATEO, color_relleno=relleno)
+        escribir_celda(hoja, fila, 2, ESTADO_DESCARTADA if descartada else ESTADO_ACTIVA, color_relleno=relleno)
+        escribir_celda(hoja, fila, 3, None if descartada else unidad.monto_asegurado, FORMATO_MONTO_UF, color_relleno=relleno)
+        escribir_celda(hoja, fila, 4, None if descartada else unidad.prorrateo_pago, FORMATO_PRORRATEO, color_relleno=relleno)
 
         columna = len(COLUMNAS_COMPARTIDAS) + 1
         for fila_cotizacion in filas_cotizacion:
-            escribir_celda(hoja, fila, columna, fila_cotizacion.prima_bruta, FORMATO_MONTO_UF, color_relleno=relleno)
-            escribir_celda(hoja, fila, columna + 1, fila_cotizacion.valor_cuota_uf, FORMATO_MONTO_UF, color_relleno=relleno)
-            escribir_celda(hoja, fila, columna + 2, fila_cotizacion.valor_cuota_pesos, FORMATO_MONTO_CLP, color_relleno=relleno)
+            escribir_celda(
+                hoja, fila, columna,
+                None if descartada else fila_cotizacion.prima_bruta,
+                FORMATO_MONTO_UF, color_relleno=relleno,
+            )
+            escribir_celda(
+                hoja, fila, columna + 1,
+                None if descartada else fila_cotizacion.valor_cuota_uf,
+                FORMATO_MONTO_UF, color_relleno=relleno,
+            )
+            escribir_celda(
+                hoja, fila, columna + 2,
+                None if descartada else fila_cotizacion.valor_cuota_pesos,
+                FORMATO_MONTO_CLP, color_relleno=relleno,
+            )
             columna += len(COLUMNAS_COTIZACION)
 
     def __escribir_fila_totales(self, hoja, fila: int, datos: list[DetalleDesglose]) -> None:
         unidades = datos[0][2] if datos else []
+        activas = [unidad for unidad in unidades if not unidad.descartada]
 
         escribir_celda(hoja, fila, 1, ETIQUETA_TOTALES, negrita=True, color_relleno=COLOR_TOTAL)
+        escribir_celda(hoja, fila, 2, None, negrita=True, color_relleno=COLOR_TOTAL)
         escribir_celda(
-            hoja, fila, 2, sum(u.monto_asegurado_sugerido or 0.0 for u in unidades),
+            hoja, fila, 3, sum(u.monto_asegurado or 0.0 for u in activas),
             FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
         )
         escribir_celda(
-            hoja, fila, 3, sum(u.prorrateo_pago or 0.0 for u in unidades),
+            hoja, fila, 4, sum(u.prorrateo_pago or 0.0 for u in activas),
             FORMATO_PRORRATEO, negrita=True, color_relleno=COLOR_TOTAL,
         )
 
         columna = len(COLUMNAS_COMPARTIDAS) + 1
         for _, _, desglose, _, _ in datos:
+            desglose_activo = [u for u in desglose if not u.descartada]
+
             escribir_celda(
-                hoja, fila, columna, sum(u.prima_bruta for u in desglose),
+                hoja, fila, columna, sum(u.prima_bruta for u in desglose_activo),
                 FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
             )
             escribir_celda(
-                hoja, fila, columna + 1, sum(u.valor_cuota_uf or 0.0 for u in desglose),
+                hoja, fila, columna + 1, sum(u.valor_cuota_uf or 0.0 for u in desglose_activo),
                 FORMATO_MONTO_UF, negrita=True, color_relleno=COLOR_TOTAL,
             )
             escribir_celda(
-                hoja, fila, columna + 2, sum(u.valor_cuota_pesos or 0 for u in desglose),
+                hoja, fila, columna + 2, sum(u.valor_cuota_pesos or 0 for u in desglose_activo),
                 FORMATO_MONTO_CLP, negrita=True, color_relleno=COLOR_TOTAL,
             )
             columna += len(COLUMNAS_COTIZACION)
@@ -282,12 +319,15 @@ class GeneradorExcelDesgloseUnidades:
             cantidad_columnas,
         )
 
+        descartadas = encabezado.get('cantidad_unidades_descartadas', 0)
+        texto_descartadas = f' ({descartadas} descartadas)' if descartadas else ''
+
         escribir_linea_informativa(
             hoja,
             FILA_RESUMEN,
             (
-                f'Unidades: {encabezado.get("cantidad_unidades", 0)}'
-                f'   ·   Monto asegurado sugerido total: {encabezado.get("monto_asegurado_sugerido_total")} UF'
+                f'Unidades: {encabezado.get("cantidad_unidades", 0)}{texto_descartadas}'
+                f'   ·   Monto asegurado total: {encabezado.get("monto_asegurado_total")} UF'
                 f'   ·   Cuotas: {encabezado.get("cantidad_cuotas", 0)}'
                 f'   ·   Valor UF: ${encabezado.get("valor_uf")}'
             ),

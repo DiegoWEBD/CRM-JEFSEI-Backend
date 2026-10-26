@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 
 from app.aplicacion.historial_estado.use_cases.obtener_historial_estados_proceso_comercial import ObtenerHistorialEstadosProcesoComercialUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.administrar_unidad_alicuota import SIN_CAMBIO, AdministrarUnidadAlicuotaUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
@@ -27,7 +28,8 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.presentacion.api.historial_estado.dependencias.deps import get_obtener_historial_estados_proceso_comercial_use_case
 from app.presentacion.api.poliza.dependencias.deps import get_registrar_poliza_a_proceso_comercial_use_case
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_generar_excel_desglose_reconstruccion_unidades_use_case, get_importar_alicuota_oportunidad_use_case, get_obtener_alicuota_oportunidad_use_case, get_obtener_desglose_reconstruccion_unidades_use_case, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_administrar_unidad_alicuota_use_case, get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_cambiar_estado_manual_use_case, get_cerrar_proceso_comercial_use_case, get_crear_proceso_comercial_use_case, get_generar_excel_desglose_reconstruccion_unidades_use_case, get_importar_alicuota_oportunidad_use_case, get_obtener_alicuota_oportunidad_use_case, get_obtener_desglose_reconstruccion_unidades_use_case, get_obtener_todos_procesos_comerciales_use_case
+from app.presentacion.api.proceso_comercial.dto.actualizar_unidad_alicuota_request import ActualizarUnidadAlicuotaRequest
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
 from app.presentacion.api.proceso_comercial.dto.importar_alicuota_oportunidad_request import ImportarAlicuotaOportunidadRequest
 from app.presentacion.api.proceso_comercial.dto.requests.actualizar_fecha_estimada_cierre_request import ActualizarFechaEstimadaCierreRequest
@@ -231,12 +233,42 @@ def obtener_alicuota_oportunidad(
     usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
     use_case: ObtenerAlicuotaOportunidadUseCase = Depends(get_obtener_alicuota_oportunidad_use_case)
 ):
-    nombre_excel, unidades = use_case.ejecutar(id, usuario)
+    nombre_excel, unidades, puede_administrar_alicuota = use_case.ejecutar(id, usuario)
 
     return {
         'nombre_excel': nombre_excel,
-        'unidades': unidades,
-        'cantidad': len(unidades)
+        'unidades': [unidad.to_dict() for unidad in unidades],
+        'cantidad': len(unidades),
+        'cantidad_descartadas': sum(1 for unidad in unidades if unidad.descartada),
+        'puede_administrar_alicuota': puede_administrar_alicuota
+    }
+
+
+@router.patch('/{id}/alicuota/unidades/{id_unidad}', status_code=status.HTTP_200_OK)
+def actualizar_unidad_alicuota(
+    id: int,
+    id_unidad: int,
+    request: ActualizarUnidadAlicuotaRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ALICUOTAS')),
+    use_case: AdministrarUnidadAlicuotaUseCase = Depends(get_administrar_unidad_alicuota_use_case)
+):
+    campos_informados = request.model_fields_set
+
+    unidad = use_case.ejecutar(
+        id_proceso_comercial=id,
+        id_unidad=id_unidad,
+        usuario=usuario,
+        descartada=request.descartada if 'descartada' in campos_informados else SIN_CAMBIO,
+        monto_asegurado_personalizado=(
+            request.monto_asegurado_personalizado
+            if 'monto_asegurado_personalizado' in campos_informados
+            else SIN_CAMBIO
+        ),
+    )
+
+    return {
+        'message': 'Unidad de la alícuota actualizada',
+        'unidad': unidad.to_dict()
     }
 
 
@@ -246,13 +278,15 @@ def obtener_desglose_reconstruccion_unidades(
     usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
     use_case: ObtenerDesgloseReconstruccionUnidadesUseCase = Depends(get_obtener_desglose_reconstruccion_unidades_use_case)
 ):
-    total, unidades = use_case.ejecutar(id, usuario)
+    total, total_sugerido, unidades = use_case.ejecutar(id, usuario)
 
     return {
         'desglose_calculado': total is not None,
-        'monto_asegurado_sugerido_unidades': total,
+        'monto_asegurado_total': total,
+        'monto_asegurado_sugerido_total': total_sugerido,
         'unidades': [unidad.to_dict() for unidad in unidades],
-        'cantidad': len(unidades)
+        'cantidad': len(unidades),
+        'cantidad_descartadas': sum(1 for unidad in unidades if unidad.descartada)
     }
 
 
