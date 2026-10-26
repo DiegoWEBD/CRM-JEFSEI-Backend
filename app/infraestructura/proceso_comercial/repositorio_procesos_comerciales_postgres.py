@@ -737,3 +737,36 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 }
 
                 cur.execute(query, params)
+
+    def actualizar(self, proceso: ProcesoComercial):
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    update ProcesoComercial
+                    set id_prospecto = %(id_prospecto)s,
+                    rut_ej_comercial = %(rut_ej_comercial)s,
+                    id_producto = %(id_producto)s,
+                    cerrado = %(cerrado)s,
+                    codigo_estado_actual = %(codigo_estado_actual)s,
+                    rut_ej_renovacion = %(rut_ej_renovacion)s,
+                    rut_ej_evaluacion = %(rut_ej_evaluacion)s,
+                    fecha_estimada_cierre = %(fecha_estimada_cierre)s,
+                    probabilidad_cierre_ejecutivo = %(probabilidad_cierre_ejecutivo)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': proceso.id,
+                    'id_prospecto': proceso.id_prospecto,
+                    'rut_ej_comercial': proceso.ejecutivo_comercial.rut if proceso.ejecutivo_comercial else None,
+                    'rut_ej_evaluacion': proceso.ejecutivo_evaluacion.rut if proceso.ejecutivo_evaluacion else None,
+                    'rut_ej_renovacion': proceso.ejecutivo_renovacion.rut if proceso.ejecutivo_renovacion else None,
+                    'id_producto': proceso.producto.id,
+                    'cerrado': proceso.cerrado,
+                    'codigo_estado_actual': proceso.estado_actual.codigo,
+                    'fecha_estimada_cierre': proceso.fecha_estimada_cierre,
+                    'probabilidad_cierre_ejecutivo': proceso.probabilidad_cierre_ejecutivo,
+                }
+
+                cur.execute(query, params)
