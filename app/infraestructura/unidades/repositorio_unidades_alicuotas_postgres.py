@@ -1,3 +1,5 @@
+from psycopg import sql
+
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.validador_alicuotas import (
     normalizar_clave_identificador,
 )
@@ -9,18 +11,28 @@ from app.infraestructura.unidades.adaptadores.dictrow_unidad_alicuota_adapter im
 
 class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
 
-    COLUMNAS = 'id, identificador_unidad, prorrateo, fila_origen, descartada, monto_asegurado_personalizado'
+    COLUMNAS = sql.SQL(', ').join(
+        sql.Identifier(columna)
+        for columna in (
+            'id',
+            'identificador_unidad',
+            'prorrateo',
+            'fila_origen',
+            'descartada',
+            'monto_asegurado_personalizado',
+        )
+    )
 
     def listar_por_oportunidad(self, id_proceso_comercial: int) -> list[UnidadAlicuota]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = f'''
-                    select {self.COLUMNAS}
+                query = sql.SQL('''
+                    select {columnas}
                     from ProcesoComercialUnidad
                     where id_proceso_comercial = %(id_proceso_comercial)s
                     order by fila_origen, id
-                '''
+                ''').format(columnas=self.COLUMNAS)
 
                 params = {
                     'id_proceso_comercial': id_proceso_comercial
@@ -38,12 +50,12 @@ class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = f'''
-                    select {self.COLUMNAS}
+                query = sql.SQL('''
+                    select {columnas}
                     from ProcesoComercialUnidad
                     where id = %(id_unidad)s
                     and id_proceso_comercial = %(id_proceso_comercial)s
-                '''
+                ''').format(columnas=self.COLUMNAS)
 
                 params = {
                     'id_unidad': id_unidad,
