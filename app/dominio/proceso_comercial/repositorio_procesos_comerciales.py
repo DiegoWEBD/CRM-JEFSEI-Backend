@@ -65,3 +65,7 @@ class RepositorioProcesosComerciales(ABC):
     ):
         """Cambia el estado del proceso validando la transición manual."""
         pass
+
+    @abstractmethod
+    def actualizar(self, proceso: ProcesoComercial):
+        pass

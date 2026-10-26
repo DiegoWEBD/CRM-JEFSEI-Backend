@@ -41,5 +41,11 @@ class CrearProcesoComercialUseCase:
 
         if not proceso:
             raise Exception('Error al crear una nueva oportunidad comercial')
+
+        proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
+        proceso.ejecutivo_evaluacion = prospecto.ejecutivo_evaluacion_asignado
+        proceso.ejecutivo_renovacion = prospecto.ejecutivo_renovacion_asignado
+
+        self.repositorio_procesos_comerciales.actualizar(proceso)
         
         return proceso
