@@ -262,3 +262,18 @@ class TestGenerarExcelDesgloseReconstruccionUnidades:
             uc.ejecutar(42, MagicMock(rut='1'))
 
         generador_excel.generar.assert_not_called()
+
+    def test_solo_pasa_las_unidades_no_descartadas_al_excel(self):
+        desglose = CalculadoraDesgloseReconstruccion.calcular(4760.0, [
+            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
+            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3, descartada=True),
+        ])
+        uc, generador_excel = _use_case_excel(calcular=_mock_calcular(desglose=desglose, total=200.0))
+
+        uc.ejecutar(42, MagicMock(rut='1'))
+
+        _, desglose_enviado, encabezado = generador_excel.generar.call_args.args
+
+        assert [u.identificador_unidad for u in desglose_enviado] == ['Depto 1']
+        assert encabezado['cantidad_unidades'] == 1
+        assert 'cantidad_unidades_descartadas' not in encabezado

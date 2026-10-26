@@ -65,9 +65,8 @@ class GenerarExcelDesgloseReconstruccionUnidadesUseCase:
         encabezado = {
             'cliente': proceso.nombre_cliente,
             'cantidad_unidades': len(activas),
-            'cantidad_unidades_descartadas': len(desglose) - len(activas),
             'monto_asegurado_total': total,
             'monto_asegurado_sugerido_total': CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose),
         }
 
-        return self.generador_excel.generar(proceso.id, desglose, encabezado)
+        return self.generador_excel.generar(proceso.id, activas, encabezado)

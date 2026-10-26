@@ -1,7 +1,10 @@
 from datetime import datetime
+from io import BytesIO
 from unittest.mock import MagicMock
 
 import pytest
+from openpyxl import load_workbook
+
 from app.main import app
 from app.aplicacion.evaluacion_proyectos.use_cases.generar_desglose_unidades import GenerarDesgloseUnidadesUseCase
 from app.dominio.estudio_comercial.desglose_unidades.desglose_unidad import DesgloseUnidad
@@ -44,6 +47,22 @@ def _datos_desglose():
             monto_asegurado_sugerido=200.0,
             valor_cuota_uf=1.06,
             valor_cuota_pesos=40280,
+        ),
+        DesgloseUnidad(
+            identificador_unidad='Depto 2',
+            prorrateo=0.069543479,
+            monto_asegurado=400.0,
+            prima_afecta=0.24,
+            prima_excenta=0.76,
+            prima_neta=1.0,
+            prima_iva=0.04,
+            prima_bruta=1.06,
+            prorrateo_pago=0.6666666666666666,
+            monto_reconstruccion=331.03,
+            monto_asegurado_sugerido=400.0,
+            valor_cuota_uf=2.12,
+            valor_cuota_pesos=80560,
+            descartada=True,
         ),
     ]
 
@@ -133,6 +152,39 @@ class TestGenerarDesgloseUnidadesEndpoint:
         assert kwargs['valor_uf'] == 38000
         # Sin permiso global: se delega la validación con el RUT del usuario
         assert kwargs['rut_usuario'] == '12345678-9'
+
+    def test_el_excel_solo_lista_las_unidades_no_descartadas_y_sin_columna_estado(self, client_desglose):
+        response = client_desglose.post(
+            '/estudio-comercial/unidades/desglose-excel',
+            json={'id_solicitud': 10, 'ids_cotizacion': [7], 'cantidad_cuotas': 11, 'valor_uf': 38000},
+        )
+
+        libro = load_workbook(BytesIO(response.content))
+
+        hoja_prorrateo = libro['Prorrateo metros cuadrados']
+        assert [celda.value for celda in hoja_prorrateo[5]] == [
+            'Unidad', 'Prorrateo (m²)', 'Monto de reconstrucción (UF)',
+            'Monto asegurado sugerido (UF)', 'Monto asegurado (UF)',
+        ]
+        assert hoja_prorrateo['A6'].value == 'Depto 1'
+        assert hoja_prorrateo['A7'].value == 'TOTAL'
+
+        hoja_desglose = libro['Desglose cotizaciones']
+        assert [celda.value for celda in hoja_desglose[6]] == [
+            'Unidad', 'Monto asegurado (UF)', 'Prorrateo por monto asegurado',
+            'Prima bruta (UF)', 'Valor cuota (UF)', 'Valor cuota (CLP)',
+        ]
+        assert hoja_desglose['A7'].value == 'Depto 1'
+        assert hoja_desglose['A8'].value == 'TOTAL'
+
+        valores = {
+            celda.value
+            for hoja in libro.worksheets
+            for fila in hoja.iter_rows()
+            for celda in fila
+            if isinstance(celda.value, str)
+        }
+        assert not {'Estado', 'Activa', 'Descartada'} & valores
 
     def test_sin_permiso_es_rechazado(self, client_desglose_sin_permiso, use_case_mock):
         response = client_desglose_sin_permiso.post(

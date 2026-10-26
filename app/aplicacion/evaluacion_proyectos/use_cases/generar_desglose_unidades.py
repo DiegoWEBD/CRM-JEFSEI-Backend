@@ -25,9 +25,8 @@ class GenerarDesgloseUnidadesUseCase:
     asegurado total de las unidades activas (la suma de sus montos asegurados:
     el personalizado si existe, si no el sugerido); cada prima se reparte luego
     por el `prorrateo_pago` de cada unidad (monto asegurado de la unidad sobre
-    el total). Las unidades descartadas se listan marcadas en el Excel, sin
-    montos. Con la prima bruta de cada unidad se calcula su valor de cuota en
-    UF y en pesos.
+    el total). El Excel solo lista las unidades no descartadas. Con la prima
+    bruta de cada unidad se calcula su valor de cuota en UF y en pesos.
     """
 
     def __init__(
@@ -158,6 +157,8 @@ class GenerarDesgloseUnidadesUseCase:
             factores_cuotas,
             valor_uf,
         )
+        # El desglose por unidad solo incluye las unidades no descartadas
+        desglose = [unidad for unidad in desglose if not unidad.descartada]
 
         # Cuota de la cotización completa, como fila de referencia del Excel
         cuota_referencia_uf = ServicioCalculoValorCuota.calcular_valor_cuota(
@@ -185,7 +186,6 @@ class GenerarDesgloseUnidadesUseCase:
             'id_solicitud': solicitud.id,
             'fecha': solicitud.fecha,
             'cantidad_unidades': len(activas),
-            'cantidad_unidades_descartadas': len(desglose_reconstruccion) - len(activas),
             'monto_asegurado_total': total_asegurado,
             'monto_asegurado_sugerido_total': CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose_reconstruccion),
             'cantidad_cuotas': cantidad_cuotas,
