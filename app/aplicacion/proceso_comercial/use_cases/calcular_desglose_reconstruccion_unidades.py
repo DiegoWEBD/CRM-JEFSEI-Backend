@@ -40,7 +40,6 @@ class CalcularDesgloseReconstruccionUnidadesUseCase:
             prospecto is None
             or prospecto.metros_cuadrados is None
             or prospecto.uf_por_metro_cuadrado is None
-            or prospecto.porcentaje_depreciacion is None
         ):
             return None, None
 
