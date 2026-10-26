@@ -3,7 +3,7 @@ from fastapi import Query
 from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
-from app.aplicacion.proceso_comercial.use_cases.administrar_unidad_alicuota import AdministrarUnidadAlicuotaUseCase
+from app.aplicacion.proceso_comercial.use_cases.administrar_unidades_alicuota import AdministrarUnidadesAlicuotaUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
 from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import CambiarEstadoManualUseCase
@@ -115,8 +115,8 @@ def get_importar_alicuota_oportunidad_use_case():
     )
 
 
-def get_administrar_unidad_alicuota_use_case():
-    return AdministrarUnidadAlicuotaUseCase(
+def get_administrar_unidades_alicuota_use_case():
+    return AdministrarUnidadesAlicuotaUseCase(
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
         repositorio_unidades=RepositorioUnidadesAlicuotasPostgres(),
         authorization_service=AuthorizationServiceFactory.crear_authorization_service()

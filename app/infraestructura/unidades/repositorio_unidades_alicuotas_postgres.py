@@ -140,22 +140,20 @@ class RepositorioUnidadesAlicuotasPostgres(RepositorioUnidadesAlicuotas):
                     'id_proceso_comercial': id_proceso_comercial,
                 })
 
-    def actualizar_unidad(
-        self,
-        id_unidad: int,
-        descartada: bool,
-        monto_asegurado_personalizado: float | None,
-    ) -> None:
+    def actualizar_unidades(self, unidades: list[UnidadAlicuota]) -> None:
+        # Todos los updates comparten la misma conexión: o se aplican todas
+        # las unidades del lote o no se aplican ninguna.
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                cur.execute('''
-                    update ProcesoComercialUnidad
-                    set descartada = %(descartada)s,
-                        monto_asegurado_personalizado = %(monto_asegurado_personalizado)s
-                    where id = %(id_unidad)s
-                ''', {
-                    'id_unidad': id_unidad,
-                    'descartada': descartada,
-                    'monto_asegurado_personalizado': monto_asegurado_personalizado,
-                })
+                for unidad in unidades:
+                    cur.execute('''
+                        update ProcesoComercialUnidad
+                        set descartada = %(descartada)s,
+                            monto_asegurado_personalizado = %(monto_asegurado_personalizado)s
+                        where id = %(id_unidad)s
+                    ''', {
+                        'id_unidad': unidad.id,
+                        'descartada': unidad.descartada,
+                        'monto_asegurado_personalizado': unidad.monto_asegurado_personalizado,
+                    })

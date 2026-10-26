@@ -27,10 +27,6 @@ class RepositorioUnidadesAlicuotas(ABC):
         pass
 
     @abstractmethod
-    def actualizar_unidad(
-        self,
-        id_unidad: int,
-        descartada: bool,
-        monto_asegurado_personalizado: float | None,
-    ) -> None:
+    def actualizar_unidades(self, unidades: list[UnidadAlicuota]) -> None:
+        """Actualiza la configuración de las unidades en una única transacción."""
         pass
