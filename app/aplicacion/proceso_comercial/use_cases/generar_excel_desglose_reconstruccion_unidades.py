@@ -4,6 +4,7 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.solicitud_cotizacion.generador_excel_desglose_reconstruccion import GeneradorExcelDesgloseReconstruccion
@@ -54,10 +55,18 @@ class GenerarExcelDesgloseReconstruccionUnidadesUseCase:
                 'El desglose de reconstrucción no se puede calcular, complete los datos de reconstrucción del prospecto'
             )
 
+        activas = [item for item in desglose if not item.descartada]
+
+        if not activas:
+            raise ConflictoEnAccionException(
+                'Todas las unidades de la alícuota están descartadas'
+            )
+
         encabezado = {
             'cliente': proceso.nombre_cliente,
-            'cantidad_unidades': len(desglose),
-            'monto_asegurado_sugerido_total': total,
+            'cantidad_unidades': len(activas),
+            'monto_asegurado_total': total,
+            'monto_asegurado_sugerido_total': CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose),
         }
 
-        return self.generador_excel.generar(proceso.id, desglose, encabezado)
+        return self.generador_excel.generar(proceso.id, activas, encabezado)

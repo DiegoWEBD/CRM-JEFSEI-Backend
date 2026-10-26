@@ -1,6 +1,8 @@
+from io import BytesIO
 from unittest.mock import MagicMock
 
 import pytest
+from openpyxl import load_workbook
 
 from app.aplicacion.proceso_comercial.use_cases.generar_excel_desglose_reconstruccion_unidades import (
     GenerarExcelDesgloseReconstruccionUnidadesUseCase,
@@ -43,9 +45,17 @@ def _unidades_con_desglose():
     ])
 
 
+def _unidades_con_descartada():
+    # Depto 1 activa y Depto 2 descartada: el Excel solo debe listar la primera
+    return CalculadoraDesgloseReconstruccion.calcular(4760.0, [
+        UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
+        UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3, descartada=True),
+    ])
+
+
 def _ruta_xlsx(tmp_path) -> str:
     generador = GeneradorExcelDesgloseReconstruccion(carpeta_base=str(tmp_path))
-    return generador.generar(42, _unidades_con_desglose())
+    return generador.generar(42, _unidades_con_descartada())
 
 
 @pytest.fixture
@@ -67,7 +77,7 @@ def client_desglose(tmp_path):
 
     def override_get_obtener():
         uc = MagicMock(spec=ObtenerDesgloseReconstruccionUnidadesUseCase)
-        uc.ejecutar.return_value = (600.0, _unidades_con_desglose())
+        uc.ejecutar.return_value = (600.0, 600.0, _unidades_con_desglose())
         return uc
 
     def override_get_excel():
@@ -113,8 +123,10 @@ class TestDesgloseReconstruccionUnidadesEndpoint:
         assert response.status_code == 200
         body = response.json()
         assert body['desglose_calculado'] is True
-        assert body['monto_asegurado_sugerido_unidades'] == 600.0
+        assert body['monto_asegurado_total'] == 600.0
+        assert body['monto_asegurado_sugerido_total'] == 600.0
         assert body['cantidad'] == 2
+        assert body['cantidad_descartadas'] == 0
 
         unidad = body['unidades'][0]
         assert unidad['identificador_unidad'] == 'Depto 1'
@@ -132,6 +144,29 @@ class TestDesgloseReconstruccionUnidadesEndpoint:
         assert response.headers['content-type'] == CONTENT_TYPE_XLSX
         assert 'desglose_reconstruccion_oportunidad_42.xlsx' in response.headers['content-disposition']
         assert response.content[:2] == b'PK'  # el .xlsx es un ZIP
+
+    def test_el_excel_solo_lista_las_unidades_no_descartadas_y_sin_columna_estado(self, client_desglose, headers_auth_validos):
+        response = client_desglose.get(
+            '/procesos-comerciales/42/desglose-reconstruccion/excel', headers=headers_auth_validos
+        )
+
+        libro = load_workbook(BytesIO(response.content))
+        hoja = libro['Desglose reconstrucción']
+
+        assert [celda.value for celda in hoja[4]] == [
+            'Unidad', 'Prorrateo alícuota', 'Prorrateo por monto asegurado',
+            'Monto de reconstrucción (UF)', 'Monto asegurado sugerido (UF)', 'Monto asegurado (UF)',
+        ]
+        assert hoja['A5'].value == 'Depto 1'
+        assert hoja['A6'].value == 'TOTAL'
+
+        valores = {
+            celda.value
+            for fila in hoja.iter_rows()
+            for celda in fila
+            if isinstance(celda.value, str)
+        }
+        assert not {'Estado', 'Activa', 'Descartada'} & valores
 
     def test_sin_permiso_es_rechazado(self, client_desglose_sin_permiso, headers_auth_validos):
         response = client_desglose_sin_permiso.get(

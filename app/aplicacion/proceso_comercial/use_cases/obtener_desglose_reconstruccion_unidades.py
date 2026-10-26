@@ -3,8 +3,9 @@ from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
-from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
+from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.calculadora_desglose_reconstruccion import CalculadoraDesgloseReconstruccion
 from app.dominio.solicitud_cotizacion.solicitud_cotizacion_unidades.desglose_reconstruccion_unidad import DesgloseReconstruccionUnidad
+from app.dominio.unidades.repositorio_unidades_alicuotas import RepositorioUnidadesAlicuotas
 from app.dominio.usuario.usuario import Usuario
 
 
@@ -27,7 +28,15 @@ class ObtenerDesgloseReconstruccionUnidadesUseCase:
         self,
         id_proceso_comercial: int,
         usuario: Usuario,
-    ) -> tuple[float | None, list[DesgloseReconstruccionUnidad]]:
+    ) -> tuple[float | None, float | None, list[DesgloseReconstruccionUnidad]]:
+        """Devuelve (monto asegurado total, monto sugerido total, desglose).
+
+        El monto asegurado total suma los montos efectivos de las unidades
+        activas (el personalizado si existe, si no el sugerido); el sugerido
+        total es el dato informativo sin personalizaciones. Ambos son None
+        cuando el desglose no es calculable.
+        """
+
         proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
 
         if not proceso or not proceso.id:
@@ -39,4 +48,9 @@ class ObtenerDesgloseReconstruccionUnidadesUseCase:
         unidades = self.repositorio_unidades.listar_por_oportunidad(proceso.id)
         desglose, total = self.calcular_desglose_reconstruccion.ejecutar(proceso.id_prospecto, unidades)
 
-        return total, desglose or []
+        if desglose is None:
+            return None, None, []
+
+        total_sugerido = CalculadoraDesgloseReconstruccion.total_monto_asegurado_sugerido(desglose)
+
+        return total, total_sugerido, desglose

@@ -115,6 +115,7 @@ def client_unidades(usuario_autenticado):
                 UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.025, fila_origen=2),
                 UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.015, fila_origen=3),
             ],
+            True,
         )
         return uc
 
@@ -293,7 +294,10 @@ class TestObtenerAlicuotaOportunidadEndpoint:
         body = response.json()
         assert body['nombre_excel'] == 'alicuota.xlsx'
         assert body['cantidad'] == 2
+        assert body['puede_administrar_alicuota'] is True
         assert body['unidades'][0]['identificador_unidad'] == 'Depto 1'
+        assert body['unidades'][0]['descartada'] is False
+        assert body['unidades'][0]['monto_asegurado_personalizado'] is None
 
     def test_acceso_no_autorizado(self, client_unidades_no_autorizado, headers_auth_validos):
         response = client_unidades_no_autorizado.get(

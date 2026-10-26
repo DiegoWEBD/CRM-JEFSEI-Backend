@@ -180,9 +180,10 @@ class TestObtenerDesgloseReconstruccionUnidades:
         calcular = _mock_calcular()
         uc, repositorio_unidades = _use_case_obtener(calcular=calcular)
 
-        total, desglose = uc.ejecutar(42, MagicMock(rut='1'))
+        total, total_sugerido, desglose = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert total == 600.0
+        assert total_sugerido == 600.0
         assert [u.monto_asegurado_sugerido for u in desglose] == [200.0, 400.0]
         repositorio_unidades.listar_por_oportunidad.assert_called_once_with(42)
         args = calcular.ejecutar.call_args.args
@@ -193,9 +194,10 @@ class TestObtenerDesgloseReconstruccionUnidades:
         calcular = _mock_calcular(desglose=None, total=None)
         uc, _ = _use_case_obtener(calcular=calcular)
 
-        total, desglose = uc.ejecutar(42, MagicMock(rut='1'))
+        total, total_sugerido, desglose = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert total is None
+        assert total_sugerido is None
         assert desglose == []
 
     def test_oportunidad_no_encontrada(self):
@@ -260,3 +262,18 @@ class TestGenerarExcelDesgloseReconstruccionUnidades:
             uc.ejecutar(42, MagicMock(rut='1'))
 
         generador_excel.generar.assert_not_called()
+
+    def test_solo_pasa_las_unidades_no_descartadas_al_excel(self):
+        desglose = CalculadoraDesgloseReconstruccion.calcular(4760.0, [
+            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
+            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3, descartada=True),
+        ])
+        uc, generador_excel = _use_case_excel(calcular=_mock_calcular(desglose=desglose, total=200.0))
+
+        uc.ejecutar(42, MagicMock(rut='1'))
+
+        _, desglose_enviado, encabezado = generador_excel.generar.call_args.args
+
+        assert [u.identificador_unidad for u in desglose_enviado] == ['Depto 1']
+        assert encabezado['cantidad_unidades'] == 1
+        assert 'cantidad_unidades_descartadas' not in encabezado

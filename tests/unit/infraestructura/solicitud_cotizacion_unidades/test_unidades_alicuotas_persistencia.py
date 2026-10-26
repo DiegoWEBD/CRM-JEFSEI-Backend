@@ -114,7 +114,36 @@ class TestGuardarOReemplazar:
             'identificador_unidad': 'Depto 1',
             'prorrateo': 0.025,
             'fila_origen': 2,
+            'descartada': False,
+            'monto_asegurado_personalizado': None,
         }
+
+    def test_preserva_la_configuracion_de_las_unidades_repetidas(self, obtener_conexion_mock):
+        # Al reemplazar la importación, las unidades que vuelven a aparecer
+        # conservan su descarte y su monto asegurado personalizado.
+        conexion, cursor = _conexion_mock(rows=[
+            {
+                'identificador_unidad': 'depto 1',
+                'descartada': True,
+                'monto_asegurado_personalizado': 1500.0,
+            },
+        ])
+        obtener_conexion_mock.return_value = conexion
+
+        RepositorioUnidadesAlicuotasPostgres().guardar_o_reemplazar(
+            42, 'alicuota.xlsx', _unidades()
+        )
+
+        parametros = [
+            accion.args[1]
+            for accion in cursor.execute.call_args_list
+            if 'insert into procesocomercialunidad' in str(accion.args[0]).lower()
+        ]
+
+        assert parametros[0]['descartada'] is True
+        assert parametros[0]['monto_asegurado_personalizado'] == 1500.0
+        assert parametros[1]['descartada'] is False
+        assert parametros[1]['monto_asegurado_personalizado'] is None
 
     def test_actualiza_el_nombre_del_archivo(self, obtener_conexion_mock):
         conexion, cursor = _conexion_mock()

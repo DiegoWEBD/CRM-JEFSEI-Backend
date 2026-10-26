@@ -23,7 +23,7 @@ class ObtenerAlicuotaOportunidadUseCase:
         self,
         id_proceso_comercial: int,
         usuario: Usuario,
-    ) -> tuple[str | None, list[UnidadAlicuota]]:
+    ) -> tuple[str | None, list[UnidadAlicuota], bool]:
         proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
 
         if not proceso or not proceso.id:
@@ -34,5 +34,8 @@ class ObtenerAlicuotaOportunidadUseCase:
 
         nombre_excel = self.repositorio_unidades.obtener_nombre_excel(proceso.id)
         unidades = self.repositorio_unidades.listar_por_oportunidad(proceso.id)
+        puede_administrar_alicuota = self.authorization_service.usuario_puede_administrar_alicuotas(
+            usuario, proceso.id
+        )
 
-        return nombre_excel, unidades
+        return nombre_excel, unidades, puede_administrar_alicuota

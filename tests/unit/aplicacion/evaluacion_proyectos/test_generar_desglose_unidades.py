@@ -289,3 +289,19 @@ class TestGenerarDesgloseUnidadesExcel:
         desglose_resultado = generador_excel.generar.call_args.args[1][0][2]
 
         assert [u.identificador_unidad for u in desglose_resultado] == ['Depto 1', 'Depto 2']
+
+    def test_las_unidades_descartadas_no_llegan_al_excel(self):
+        desglose = CalculadoraDesgloseReconstruccion.calcular(4760.0, [
+            UnidadAlicuota(identificador_unidad='Depto 1', prorrateo=0.030456521, fila_origen=2),
+            UnidadAlicuota(identificador_unidad='Depto 2', prorrateo=0.069543479, fila_origen=3, descartada=True),
+        ])
+        use_case, generador_excel = _use_case(desglose=desglose, total_sugerido=200.0)
+
+        use_case.ejecutar(id_solicitud=10, ids_cotizacion=[7], cantidad_cuotas=CANTIDAD_CUOTAS, valor_uf=VALOR_UF, rut_usuario='1-1')
+
+        _, datos, encabezado = generador_excel.generar.call_args.args
+        desglose_resultado = datos[0][2]
+
+        assert [u.identificador_unidad for u in desglose_resultado] == ['Depto 1']
+        assert encabezado['cantidad_unidades'] == 1
+        assert 'cantidad_unidades_descartadas' not in encabezado

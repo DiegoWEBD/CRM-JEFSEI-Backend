@@ -62,6 +62,7 @@ def _use_case_obtener(unidades=None, nombre_excel='alicuota.xlsx', autorizado=Tr
 
     authorization = MagicMock()
     authorization.usuario_puede_ver_solicitudes_cotizacion.return_value = autorizado
+    authorization.usuario_puede_administrar_alicuotas.return_value = True
 
     uc = ObtenerAlicuotaOportunidadUseCase(
         repositorio_procesos,
@@ -141,16 +142,17 @@ class TestObtenerAlicuotaOportunidad:
     def test_devuelve_nombre_excel_y_unidades(self):
         uc, repositorio_unidades = _use_case_obtener()
 
-        nombre_excel, unidades = uc.ejecutar(42, MagicMock(rut='1'))
+        nombre_excel, unidades, puede_administrar_alicuota = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert nombre_excel == 'alicuota.xlsx'
         assert [u.identificador_unidad for u in unidades] == ['Depto 1', 'Depto 2']
+        assert puede_administrar_alicuota is True
         repositorio_unidades.listar_por_oportunidad.assert_called_once_with(42)
 
     def test_sin_alicuota_devuelve_nombre_nulo(self):
         uc, _ = _use_case_obtener(unidades=[], nombre_excel=None)
 
-        nombre_excel, unidades = uc.ejecutar(42, MagicMock(rut='1'))
+        nombre_excel, unidades, _ = uc.ejecutar(42, MagicMock(rut='1'))
 
         assert nombre_excel is None
         assert unidades == []

@@ -16,6 +16,7 @@ class DesgloseUnidad:
         monto_asegurado_sugerido: float | None = None,
         valor_cuota_uf: float | None = None,
         valor_cuota_pesos: float | None = None,
+        descartada: bool = False,
     ) -> None:
         self.identificador_unidad = identificador_unidad
         self.prorrateo = prorrateo
@@ -30,3 +31,4 @@ class DesgloseUnidad:
         self.monto_asegurado_sugerido = monto_asegurado_sugerido
         self.valor_cuota_uf = valor_cuota_uf
         self.valor_cuota_pesos = valor_cuota_pesos
+        self.descartada = descartada

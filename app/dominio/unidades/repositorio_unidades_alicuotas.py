@@ -10,6 +10,10 @@ class RepositorioUnidadesAlicuotas(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_id(self, id_unidad: int, id_proceso_comercial: int) -> UnidadAlicuota | None:
+        pass
+
+    @abstractmethod
     def obtener_nombre_excel(self, id_proceso_comercial: int) -> str | None:
         pass
 
@@ -20,4 +24,9 @@ class RepositorioUnidadesAlicuotas(ABC):
         nombre_excel: str,
         unidades: list[UnidadAlicuota],
     ) -> None:
+        pass
+
+    @abstractmethod
+    def actualizar_unidades(self, unidades: list[UnidadAlicuota]) -> None:
+        """Actualiza la configuración de las unidades en una única transacción."""
         pass

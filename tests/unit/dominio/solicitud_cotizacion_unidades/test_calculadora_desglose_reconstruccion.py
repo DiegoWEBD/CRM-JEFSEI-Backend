@@ -101,10 +101,15 @@ class TestCalcularDesgloseReconstruccion:
         desglose = CalculadoraDesgloseReconstruccion.calcular(4760.0, [_unidad()])
 
         assert desglose[0].to_dict() == {
+            'id_unidad': None,
             'identificador_unidad': 'Depto 1',
             'prorrateo': 0.030456521,
             'fila_origen': 2,
             'monto_reconstruccion': 144.97303996,
             'monto_asegurado_sugerido': 200.0,
+            'monto_asegurado': 200.0,
+            'monto_asegurado_personalizado': None,
+            'tiene_monto_asegurado_personalizado': False,
             'prorrateo_pago': 1.0,
+            'descartada': False,
         }
