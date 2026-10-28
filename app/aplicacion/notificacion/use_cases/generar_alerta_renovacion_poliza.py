@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from dateutil.relativedelta import relativedelta
 
@@ -9,6 +10,8 @@ from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotif
 from app.dominio.notificacion.tipos_alerta import ROL_EJECUTIVO_RENOVACION
 
 DIAS_ANTICIPACION_GESTION = 20
+
+ZONA_NEGOCIO = ZoneInfo('America/Santiago')
 
 
 class GenerarAlertaRenovacionPolizaUseCase:
@@ -40,13 +43,20 @@ class GenerarAlertaRenovacionPolizaUseCase:
         if not destinatarios:
             return []
 
-        fecha_cotizacion = poliza.fin_vigencia - relativedelta(months=2)
-        fecha_gestion = poliza.fin_vigencia - timedelta(days=DIAS_ANTICIPACION_GESTION)
-        fecha_vencimiento = poliza.fin_vigencia.strftime('%d-%m-%Y')
+        # Compara y formatea por día de calendario en la zona de negocio: el
+        # fin de vigencia es una fecha (medianoche en America/Santiago), pero
+        # el instante guardado puede caer en el día siguiente en UTC (p. ej.
+        # 2026-08-30 00:00+00 es el 29-08 en Santiago).
+        fin_santiago = poliza.fin_vigencia.astimezone(ZONA_NEGOCIO)
+        ahora_santiago = ahora.astimezone(ZONA_NEGOCIO)
+
+        fecha_cotizacion = fin_santiago - relativedelta(months=2)
+        fecha_gestion = fin_santiago - timedelta(days=DIAS_ANTICIPACION_GESTION)
+        fecha_vencimiento = fin_santiago.strftime('%d-%m-%Y')
 
         alertas: list[Notificacion] = []
 
-        if ahora >= fecha_cotizacion:
+        if ahora_santiago >= fecha_cotizacion:
             alertas.extend(self._crear_alertas(
                 poliza=poliza,
                 destinatarios=destinatarios,
@@ -60,7 +70,7 @@ class GenerarAlertaRenovacionPolizaUseCase:
                 ahora=ahora,
             ))
 
-        if ahora >= fecha_gestion:
+        if ahora_santiago >= fecha_gestion:
             alertas.extend(self._crear_alertas(
                 poliza=poliza,
                 destinatarios=destinatarios,
@@ -74,7 +84,7 @@ class GenerarAlertaRenovacionPolizaUseCase:
                 ahora=ahora,
             ))
 
-        if ahora >= poliza.fin_vigencia:
+        if ahora_santiago >= fin_santiago:
             alertas.extend(self._crear_alertas(
                 poliza=poliza,
                 destinatarios=destinatarios,

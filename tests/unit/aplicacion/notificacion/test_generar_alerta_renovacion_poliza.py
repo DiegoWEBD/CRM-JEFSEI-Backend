@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -13,6 +14,8 @@ from tests.factories.notificacion_factory import (
 )
 
 FIN_VIGENCIA = AHORA_REF + timedelta(days=10)
+
+ZONA_NEGOCIO = ZoneInfo('America/Santiago')
 
 
 def _use_case(ruts_por_rol: dict | None = None):
@@ -157,3 +160,39 @@ class TestEvaluarAlertasRenovacion:
             assert alerta.dedupe_key.endswith(f':{FIN_VIGENCIA.isoformat()}:11111111-1')
             assert alerta.leible is False
             assert alerta.leida is False
+
+
+@pytest.mark.unit
+class TestDiasDeCalendarioEnZonaDeNegocio:
+
+    def test_mensaje_muestra_el_dia_de_santiago_no_el_dia_utc(self):
+        """Regresión: el instante 2026-08-30 00:00+00 es el 29-08 en Santiago.
+
+        El mensaje formateaba el día UTC (30-08) mientras la UI mostraba el
+        día de Santiago (29-08)."""
+        uc, _ = _use_case()
+        fin_vigencia = datetime(2026, 8, 30, 0, 0, tzinfo=timezone.utc)
+        ahora = datetime(2026, 8, 30, 12, 0, tzinfo=timezone.utc)
+
+        alertas = uc.evaluar(_poliza(fin_vigencia=fin_vigencia), ahora)
+
+        assert alertas
+        for alerta in alertas:
+            assert '29-08-2026' in alerta.mensaje
+            assert '30-08-2026' not in alerta.mensaje
+
+    def test_hitos_por_calendario_de_santiago_a_traves_del_cambio_de_horario(self):
+        """El hito de cotización se calcula por día calendario de Santiago.
+
+        El fin de vigencia está en horario de verano (-03) y el hito a 2 meses
+        cae en horario de invierno (-04): restar instantes adelantaba el hito
+        una hora (al día calendario anterior)."""
+        uc, _ = _use_case()
+        fin_vigencia = datetime(2026, 11, 5, 0, 0, tzinfo=ZONA_NEGOCIO)
+        # 04-09 23:30 en Santiago: todavía NO son los 2 meses de calendario.
+        antes_del_hito = datetime(2026, 9, 5, 3, 30, tzinfo=timezone.utc)
+        # 05-09 00:30 en Santiago: sí se cumple el hito.
+        tras_el_hito = datetime(2026, 9, 5, 4, 30, tzinfo=timezone.utc)
+
+        assert uc.evaluar(_poliza(fin_vigencia=fin_vigencia), antes_del_hito) == []
+        assert len(uc.evaluar(_poliza(fin_vigencia=fin_vigencia), tras_el_hito)) == 1
