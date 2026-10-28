@@ -16,6 +16,7 @@ from app.aplicacion.prospecto.use_cases.obtener_prospecto import ObtenerProspect
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_condominio import ObtenerProspectoCondominioUseCase
 from app.aplicacion.prospecto.use_cases.obtener_prospecto_lineas_comerciales import ObtenerProspectoLineasPersonalesUseCase
 from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarProspectoUseCase
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.linea_negocio.repositorio_lineas_negocio_postgres import RepositorioLineasNegocioPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
@@ -133,8 +134,14 @@ def get_actualizar_prospecto_condominio_use_case():
     return ActualizarProspectoCondominioUseCase(repositorio_prospectos)
 
 def get_actualizar_linea_negocio_prospecto_use_case():
-    repositorio_prospectos = RepositorioProspectosPostgres()
-    return CambiarLineaNegocioProspectoUseCase(repositorio_prospectos)
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+    return CambiarLineaNegocioProspectoUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
+        repositorio_lineas_negocio=RepositorioLineasNegocioPostgres(),
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+    )
 
 
 def get_actualizar_valor_uf_m2_personalizado_use_case():
