@@ -85,7 +85,7 @@ class TestObtenerPolizasAlertablesRenovacion:
         assert repo.obtener_polizas_alertables_renovacion(id_cliente=5) == []
 
         query, params = cursor.execute.call_args.args
-        assert 'and P.id_cliente = %(id_cliente)s' in str(query)
+        assert 'P.id_cliente = %(id_cliente)s' in str(query)
         assert params == {'id_cliente': 5}
 
 

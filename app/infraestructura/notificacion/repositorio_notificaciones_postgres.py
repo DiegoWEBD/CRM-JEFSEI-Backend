@@ -71,14 +71,18 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
     ) -> list[PolizaAlertableRenovacion]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                filtro_cliente = ''
+                condiciones: list[sql.Composable] = [
+                    sql.SQL('P.cancelada = false'),
+                    sql.SQL('P.fin_vigencia is not null'),
+                    sql.SQL("(P.fin_vigencia - interval '2 months') <= now()"),
+                ]
                 params: dict = {}
 
                 if id_cliente is not None:
-                    filtro_cliente = 'and P.id_cliente = %(id_cliente)s'
+                    condiciones.append(sql.SQL('P.id_cliente = %(id_cliente)s'))
                     params['id_cliente'] = id_cliente
 
-                query = f'''
+                query = sql.SQL('''
                     select P.numero_poliza,
                     P.fin_vigencia,
                     PRO.id as id_prospecto,
@@ -97,11 +101,8 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     on P.id_cliente = C.id
                     inner join Prospecto PRO
                     on C.id_prospecto = PRO.id
-                    where P.cancelada = false
-                    and P.fin_vigencia is not null
-                    and (P.fin_vigencia - interval '2 months') <= now()
-                    {filtro_cliente}
-                '''
+                    where {condiciones}
+                ''').format(condiciones=sql.SQL(' and ').join(condiciones))
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
