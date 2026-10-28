@@ -38,7 +38,7 @@ class GenerarAlertaRenovacionPolizaUseCase:
         if poliza.tiene_proceso_renovacion:
             return []
 
-        destinatarios = self._resolver_destinatarios(poliza)
+        destinatarios = self.resolver_destinatarios(poliza)
 
         if not destinatarios:
             return []
@@ -125,11 +125,13 @@ class GenerarAlertaRenovacionPolizaUseCase:
             for rut in destinatarios
         ]
 
-    def _resolver_destinatarios(self, poliza: PolizaAlertableRenovacion) -> list[str]:
+    def resolver_destinatarios(self, poliza: PolizaAlertableRenovacion) -> list[str]:
         """Ejecutivo y asistente de renovación asignados al cliente.
 
         Si el cliente no tiene ninguno asignado, cae al fan-out por rol
         EJECUTIVO_RENOVACION: una póliza vencida no puede quedar sin alertar.
+        Es público porque el refresco de alertas al cambiar responsables
+        necesita saber quiénes son los destinatarios actuales de la póliza.
         """
         asignados = {
             rut for rut in (poliza.rut_ej_renovacion, poliza.rut_as_renovacion) if rut

@@ -60,7 +60,7 @@ class TestObtenerPolizasAlertablesRenovacion:
         repo = RepositorioNotificacionesPostgres()
         polizas = repo.obtener_polizas_alertables_renovacion()
 
-        query, *resto = cursor.execute.call_args.args
+        query, params = cursor.execute.call_args.args
         query_str = str(query)
         assert 'P.cancelada = false' in query_str
         assert 'P.fin_vigencia is not null' in query_str
@@ -68,13 +68,25 @@ class TestObtenerPolizasAlertablesRenovacion:
         assert 'ProcesoComercialRenovacion' in query_str
         assert 'C.rut_ej_renovacion_asignado' in query_str
         assert 'C.rut_as_renovacion_asignado' in query_str
-        assert resto == []
+        assert params == {}
         assert len(polizas) == 1
         assert polizas[0].numero_poliza == 'POL-001'
         assert polizas[0].id_prospecto == 7
         assert polizas[0].rut_ej_renovacion == '11111111-1'
         assert polizas[0].rut_as_renovacion is None
         assert polizas[0].tiene_proceso_renovacion is False
+
+    def test_filtra_por_cliente(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchall.return_value = []
+
+        repo = RepositorioNotificacionesPostgres()
+        assert repo.obtener_polizas_alertables_renovacion(id_cliente=5) == []
+
+        query, params = cursor.execute.call_args.args
+        assert 'and P.id_cliente = %(id_cliente)s' in str(query)
+        assert params == {'id_cliente': 5}
 
     def test_sin_resultados_devuelve_vacio(self, mock_conexion):
         conexion, cursor = _conexion_mock()

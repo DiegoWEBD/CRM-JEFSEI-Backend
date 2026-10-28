@@ -43,6 +43,35 @@ class ServicioAlertasProceso:
 
         return destinatarios
 
+    """Marca leídas todas las alertas no leídas del proceso, sin importar su tipo.
+
+    Se invoca al descartar la oportunidad: al dejar de estar activa, todas
+    sus alertas dejan de ser relevantes. Devuelve los RUTs cuyas alertas
+    fueron marcadas (alertas huérfanas sin destinatario quedan fuera), para
+    que el caso de uso publique el refresco correspondiente por socket.
+    """
+    def marcar_todas_leidas(
+        self,
+        id_proceso_comercial: int,
+        ahora: datetime,
+    ) -> list[str]:
+        destinatarios: list[str] = []
+
+        for notificacion in self.repositorio_notificaciones.buscar_notificaciones_proceso_comercial(
+            id_proceso_comercial
+        ):
+            if notificacion.leida:
+                continue
+
+            notificacion.leida = True
+            notificacion.fecha_leida = ahora
+            self.repositorio_notificaciones.actualizar(notificacion)
+
+            if notificacion.rut_usuario:
+                destinatarios.append(notificacion.rut_usuario)
+
+        return destinatarios
+
     """Marca leídas las alertas de renovación no leídas de la póliza.
 
     Se invoca cuando los hitos dejan de aplicar: al cambiar el fin de

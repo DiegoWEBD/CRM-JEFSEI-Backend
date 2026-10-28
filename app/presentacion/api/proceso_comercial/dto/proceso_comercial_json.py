@@ -19,6 +19,9 @@ class ProcesoComercialJson(BaseModel):
     estado_actual: EstadoInformativoJson
     etapa_actual: EtapaProcesoComercialJson
     cerrado: bool
+    descartado: bool = False
+    motivo_cierre: str | None = None
+    fecha_cierre: datetime | None = None
     prima_cotizada: float | None = None
     prima_potencial_estimada: float | None = None
     prima_esperada: float | None = None

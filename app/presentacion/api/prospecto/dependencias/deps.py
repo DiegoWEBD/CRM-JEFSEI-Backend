@@ -4,6 +4,7 @@ from app.aplicacion.authorization.authorization_service_factory import Authoriza
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
@@ -89,15 +90,24 @@ def get_asignar_ejecutivo_comercial_use_case():
             repositorio_notificaciones,
         ),
         ServicioAlertasProceso(repositorio_notificaciones),
+        GenerarAlertasSlaUseCase(
+            repositorio_notificaciones,
+            ServicioAlertasProceso(repositorio_notificaciones),
+        ),
     )
 
 def get_asignar_ejecutivo_evaluacion_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
     return AsignarEjecutivoEvaluacionUseCase(
         repositorio_prospectos,
         repositorio_usuarios,
-        RepositorioNotificacionesPostgres(),
+        repositorio_notificaciones,
+        GenerarAlertasSlaUseCase(
+            repositorio_notificaciones,
+            ServicioAlertasProceso(repositorio_notificaciones),
+        ),
     )
 
 def get_obtener_linea_negocio_prospecto_use_case():

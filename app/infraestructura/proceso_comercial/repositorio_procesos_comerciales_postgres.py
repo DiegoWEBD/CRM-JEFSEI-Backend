@@ -36,6 +36,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     P.codigo as codigo_producto,
                     PC.fecha_estimada_cierre,
                     PC.probabilidad_cierre_ejecutivo,
+                    PC.descartado,
+                    PC.motivo_cierre,
+                    PC.fecha_cierre,
+                    PC.fecha_apertura,
+                    PC.monto_asegurado_actual,
+                    PC.nombre_excel_alicuota,
                     EI.probabilidad_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
@@ -94,6 +100,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     P.codigo as codigo_producto,
                     PC.fecha_estimada_cierre,
                     PC.probabilidad_cierre_ejecutivo,
+                    PC.descartado,
+                    PC.motivo_cierre,
+                    PC.fecha_cierre,
+                    PC.fecha_apertura,
+                    PC.monto_asegurado_actual,
+                    PC.nombre_excel_alicuota,
                     EI.probabilidad_cierre
                     from ProcesoComercial PC
                     inner join SolicitudCotizacion SC
@@ -154,6 +166,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     P.codigo as codigo_producto,
                     PC.fecha_estimada_cierre,
                     PC.probabilidad_cierre_ejecutivo,
+                    PC.descartado,
+                    PC.motivo_cierre,
+                    PC.fecha_cierre,
+                    PC.fecha_apertura,
+                    PC.monto_asegurado_actual,
+                    PC.nombre_excel_alicuota,
                     EI.probabilidad_cierre
                     from ProcesoComercial PC
                     inner join Prospecto PR
@@ -856,6 +874,9 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     rut_ej_comercial = %(rut_ej_comercial)s,
                     id_producto = %(id_producto)s,
                     cerrado = %(cerrado)s,
+                    descartado = %(descartado)s,
+                    motivo_cierre = %(motivo_cierre)s,
+                    fecha_cierre = %(fecha_cierre)s,
                     codigo_estado_actual = %(codigo_estado_actual)s,
                     rut_ej_renovacion = %(rut_ej_renovacion)s,
                     rut_ej_evaluacion = %(rut_ej_evaluacion)s,
@@ -872,6 +893,9 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     'rut_ej_renovacion': proceso.ejecutivo_renovacion.rut if proceso.ejecutivo_renovacion else None,
                     'id_producto': proceso.producto.id,
                     'cerrado': proceso.cerrado,
+                    'descartado': proceso.descartado,
+                    'motivo_cierre': proceso.motivo_cierre,
+                    'fecha_cierre': proceso.fecha_cierre,
                     'codigo_estado_actual': proceso.estado_actual.codigo,
                     'fecha_estimada_cierre': proceso.fecha_estimada_cierre,
                     'probabilidad_cierre_ejecutivo': proceso.probabilidad_cierre_ejecutivo,

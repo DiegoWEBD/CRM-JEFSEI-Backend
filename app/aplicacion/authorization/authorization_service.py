@@ -1,5 +1,6 @@
 from app.dominio.authorization.authorizacion_repository import AuthorizationRepository
 from app.dominio.cuota.cuota import Cuota
+from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -109,3 +110,11 @@ class AuthorizationService:
             return False
 
         return self.authorization_repository.usuario_puede_marcar_pago_cuota(usuario, cuota)
+
+    def usuario_puede_descartar_proceso_comercial(self, prospecto: Prospecto, usuario: Usuario) -> bool:
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'DESCARTAR_PROCESO_COMERCIAL'):
+            return False
+
+        return (prospecto.ejecutivo_comercial_asignado is not None
+                and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut)

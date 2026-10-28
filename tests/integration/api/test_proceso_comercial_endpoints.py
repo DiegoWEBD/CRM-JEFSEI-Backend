@@ -9,10 +9,11 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
-from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case
+from app.presentacion.api.proceso_comercial.dependencias.deps import get_actualizar_fecha_estimada_cierre_use_case, get_actualizar_probabilidad_cierre_ejecutivo_use_case, get_descartar_proceso_comercial_use_case
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_obtener_procesos_comerciales_use_case
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
+from app.aplicacion.proceso_comercial.use_cases.descartar_proceso_comercial import DescartarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
 from tests.integration.api.conftest_api import *  # noqa: F401,F403
 from tests.factories.proceso_comercial_factory import crear_proceso_comercial_mock
@@ -408,3 +409,154 @@ class TestObtenerProcesosComercialesSerializacion:
         oportunidad = response.json()["oportunidades"][0]
         assert oportunidad["probabilidad_cierre_sistema"] == 0.45
         assert oportunidad["probabilidad_cierre_ejecutivo"] is None
+
+
+@pytest.fixture
+def usuario_descartar():
+    return _usuario_con_permisos("DESCARTAR_PROCESO_COMERCIAL")
+
+
+@pytest.fixture
+def use_case_descartar_mock():
+    return MagicMock(spec=DescartarProcesoComercialUseCase)
+
+
+@pytest.fixture
+def client_descartar(usuario_descartar, use_case_descartar_mock):
+    def override_get_current_user():
+        return usuario_descartar
+
+    def override_use_case():
+        return use_case_descartar_mock
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_descartar_proceso_comercial_use_case] = override_use_case
+
+    from starlette.testclient import TestClient
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client_sin_permiso_descartar(usuario_solo_global, use_case_descartar_mock):
+    def override_get_current_user():
+        return usuario_solo_global
+
+    def override_use_case():
+        return use_case_descartar_mock
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_descartar_proceso_comercial_use_case] = override_use_case
+
+    from starlette.testclient import TestClient
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.integration
+class TestDescartarProcesoComercialEndpoints:
+
+    def test_descarte_exitoso_retorna_200(
+        self, client_descartar, use_case_descartar_mock, usuario_descartar, headers_auth_validos
+    ):
+        response = client_descartar.post(
+            "/procesos-comerciales/1/descartar",
+            json={"observacion": "Cliente no interesado"},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["message"] == "Oportunidad descartada"
+        use_case_descartar_mock.ejecutar.assert_called_once()
+        kwargs = use_case_descartar_mock.ejecutar.call_args.kwargs
+        assert kwargs["id"] == 1
+        assert kwargs["observacion"] == "Cliente no interesado"
+        assert kwargs["usuario"] is usuario_descartar
+
+    def test_descarte_sin_observacion_retorna_200(
+        self, client_descartar, use_case_descartar_mock, headers_auth_validos
+    ):
+        response = client_descartar.post(
+            "/procesos-comerciales/1/descartar",
+            json={"observacion": None},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 200
+        assert use_case_descartar_mock.ejecutar.call_args.kwargs["observacion"] is None
+
+    def test_sin_permiso_descartar_retorna_403(
+        self, client_sin_permiso_descartar, use_case_descartar_mock, headers_auth_validos
+    ):
+        response = client_sin_permiso_descartar.post(
+            "/procesos-comerciales/1/descartar",
+            json={"observacion": None},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+        use_case_descartar_mock.ejecutar.assert_not_called()
+
+    @pytest.mark.auth
+    def test_no_autenticado_retorna_401(self, use_case_descartar_mock):
+        from starlette.testclient import TestClient
+        app.dependency_overrides[get_descartar_proceso_comercial_use_case] = lambda: use_case_descartar_mock
+        try:
+            with TestClient(app) as c:
+                response = c.post(
+                    "/procesos-comerciales/1/descartar",
+                    json={"observacion": None},
+                )
+            assert response.status_code == 401
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.auth
+    def test_no_es_el_ejecutivo_asignado_retorna_403(
+        self, client_descartar, use_case_descartar_mock, headers_auth_validos
+    ):
+        use_case_descartar_mock.ejecutar.side_effect = UsuarioNoAutorizadoException(
+            "No autorizado"
+        )
+
+        response = client_descartar.post(
+            "/procesos-comerciales/1/descartar",
+            json={"observacion": None},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+
+    def test_proceso_no_encontrado_retorna_404(
+        self, client_descartar, use_case_descartar_mock, headers_auth_validos
+    ):
+        use_case_descartar_mock.ejecutar.side_effect = RecursoNoEncontradoException(
+            "No encontrada"
+        )
+
+        response = client_descartar.post(
+            "/procesos-comerciales/999/descartar",
+            json={"observacion": None},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 404
+
+    def test_proceso_cerrado_retorna_409(
+        self, client_descartar, use_case_descartar_mock, headers_auth_validos
+    ):
+        use_case_descartar_mock.ejecutar.side_effect = ConflictoEnAccionException(
+            "Solo se puede descartar una oportunidad abierta"
+        )
+
+        response = client_descartar.post(
+            "/procesos-comerciales/1/descartar",
+            json={"observacion": None},
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 409

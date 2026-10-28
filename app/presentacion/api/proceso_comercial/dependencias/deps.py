@@ -10,11 +10,13 @@ from app.aplicacion.proceso_comercial.use_cases.cambiar_estado_manual import Cam
 from app.aplicacion.proceso_comercial.use_cases.cerrar_proceso_comercial import CerrarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.calcular_desglose_reconstruccion_unidades import CalcularDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.crear_proceso_comercial import CrearProcesoComercialUseCase
+from app.aplicacion.proceso_comercial.use_cases.descartar_proceso_comercial import DescartarProcesoComercialUseCase
 from app.aplicacion.proceso_comercial.use_cases.generar_excel_desglose_reconstruccion_unidades import GenerarExcelDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad import ImportarAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_unidades import ObtenerDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
@@ -64,6 +66,22 @@ def get_cerrar_proceso_comercial_use_case():
         repositorio_polizas=repositorio_polizas,
         repositorio_notificaciones=repositorio_notificaciones,
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+    )
+
+def get_descartar_proceso_comercial_use_case():
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
+    repositorio_procesos = RepositorioProcesosComercialesPostgres()
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    repositorio_historial = RepositorioHistorialEstadoProcesosComercialesPostgres()
+    repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
+    return DescartarProcesoComercialUseCase(
+        authorization_service=authorization_service,
+        repositorio_procesos_comerciales=repositorio_procesos,
+        repositorio_prospectos=repositorio_prospectos,
+        repositorio_historial=repositorio_historial,
+        repositorio_notificaciones=repositorio_notificaciones,
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
     )
 
 def get_crear_proceso_comercial_use_case():

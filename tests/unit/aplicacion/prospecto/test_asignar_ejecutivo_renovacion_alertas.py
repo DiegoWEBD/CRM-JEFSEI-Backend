@@ -2,6 +2,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
+    RefrescarAlertasRenovacionUseCase,
+)
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_renovacion import (
     AsignarEjecutivoRenovacionUseCase,
 )
@@ -28,8 +31,11 @@ def _use_case(prospecto, rut_nuevo=None):
     if rut_nuevo is not None:
         repo_usuarios.buscar.return_value = MagicMock(rut=rut_nuevo)
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
-    uc = AsignarEjecutivoRenovacionUseCase(repo_prospectos, repo_usuarios, repo_notificaciones)
-    return uc, repo_prospectos, repo_notificaciones
+    refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
+    uc = AsignarEjecutivoRenovacionUseCase(
+        repo_prospectos, repo_usuarios, repo_notificaciones, refrescar
+    )
+    return uc, repo_prospectos, repo_notificaciones, refrescar
 
 
 @pytest.mark.unit
@@ -38,19 +44,20 @@ class TestAsignarEjecutivoRenovacion:
     def test_cliente_no_encontrado_lanza_excepcion(self):
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = None
-        uc = AsignarEjecutivoRenovacionUseCase(repo_prospectos, MagicMock(), MagicMock())
+        uc = AsignarEjecutivoRenovacionUseCase(repo_prospectos, MagicMock(), MagicMock(), MagicMock())
 
         with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar(id_cliente=99, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
     def test_sin_cliente_asociado_no_llama_al_repo_ni_notifica(self):
         prospecto = _prospecto_mock(id_cliente=None)
-        uc, repo_prospectos, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, repo_prospectos, repo_notificaciones, refrescar = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
         repo_prospectos.asignar_ejecutivo_renovacion.assert_not_called()
         repo_notificaciones.registrar.assert_not_called()
+        refrescar.ejecutar.assert_not_called()
 
 
 @pytest.mark.unit
@@ -59,7 +66,7 @@ class TestAsignarEjecutivoRenovacionNotificaciones:
 
     def test_crea_notificacion_asignacion_cliente(self, mock_hub):
         prospecto = _prospecto_mock(renovacion_previa=None)
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -80,7 +87,7 @@ class TestAsignarEjecutivoRenovacionNotificaciones:
 
     def test_crea_desasignacion_solo_si_cambio(self, mock_hub):
         prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -92,7 +99,7 @@ class TestAsignarEjecutivoRenovacionNotificaciones:
 
     def test_asignacion_repite_en_invocacion_sin_cambio_de_rut(self, mock_hub):
         prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -101,10 +108,41 @@ class TestAsignarEjecutivoRenovacionNotificaciones:
 
     def test_sigue_notificando_asignacion_y_desasignacion(self, mock_hub):
         prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
-        uc, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
         motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
         assert 'asignacion_ejecutivo' in motivos
         assert 'desasignacion_ejecutivo' in motivos
+
+
+@pytest.mark.unit
+class TestAsignarEjecutivoRenovacionRefrescoAlertas:
+
+    def test_con_cambio_de_rut_refresca_alertas_de_renovacion(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
+        uc, repo_prospectos, _, refrescar = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
+
+        # Tras guardar la asignación, se eliminan las alertas del anterior y se
+        # re-evalúan al tiro para crear las del nuevo destinatario.
+        repo_prospectos.asignar_ejecutivo_renovacion.assert_called_once()
+        refrescar.ejecutar.assert_called_once_with(5)
+
+    def test_sin_cambio_de_rut_no_refresca(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='11111111-1'))
+        uc, _, _, refrescar = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
+
+        refrescar.ejecutar.assert_not_called()
+
+    def test_desasignacion_tambien_refresca(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
+        uc, _, _, refrescar = _use_case(prospecto, rut_nuevo=None)
+
+        uc.ejecutar(id_cliente=5, rut_ej_renovacion=None, asignado_por=MagicMock())
+
+        refrescar.ejecutar.assert_called_once_with(5)

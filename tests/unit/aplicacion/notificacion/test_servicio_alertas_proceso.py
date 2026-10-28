@@ -100,6 +100,61 @@ class TestServicioAlertasProceso:
 
 
 @pytest.mark.unit
+class TestMarcarTodasLeidas:
+
+    def test_marca_todos_los_tipos_sin_importar_el_tipo(self, servicio, repositorio_mock):
+        sla = crear_notificacion_mock(id=1, codigo_tipo='SLA_POR_VENCER')
+        fecha = crear_notificacion_mock(id=2, codigo_tipo='FECHA_CIERRE_VENCIDA')
+        otro = crear_notificacion_mock(id=3, codigo_tipo='CIERRE_ESTIMADO_PROXIMO')
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [
+            sla,
+            fecha,
+            otro,
+        ]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.buscar_notificaciones_proceso_comercial.assert_called_once_with(42)
+        assert repositorio_mock.actualizar.call_count == 3
+        assert sla.leida is True
+        assert fecha.leida is True
+        assert otro.leida is True
+        assert all(n.fecha_leida == AHORA for n in (sla, fecha, otro))
+        assert destinatarios == ['12345678-9', '12345678-9', '12345678-9']
+
+    def test_no_remarca_notificaciones_ya_leidas(self, servicio, repositorio_mock):
+        leida = crear_notificacion_mock(
+            id=1, codigo_tipo='SLA_VENCIDO', leida=True, fecha_leida=AHORA_REF
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [leida]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert leida.fecha_leida == AHORA_REF
+        assert destinatarios == []
+
+    def test_excluye_alertas_sin_destinatario(self, servicio, repositorio_mock):
+        sin_rut = crear_notificacion_mock(id=1, codigo_tipo='SLA_VENCIDO', rut_usuario=None)
+        con_rut = crear_notificacion_mock(id=2, codigo_tipo='SLA_POR_VENCER', rut_usuario='99999999-9')
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [sin_rut, con_rut]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        assert sin_rut.leida is True
+        assert con_rut.leida is True
+        assert destinatarios == ['99999999-9']
+
+    def test_sin_notificaciones_devuelve_vacio(self, servicio, repositorio_mock):
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = []
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert destinatarios == []
+
+
+@pytest.mark.unit
 class TestMarcarLeidasRenovacion:
 
     def test_marca_solo_alertas_de_renovacion_de_la_poliza(self, servicio, repositorio_mock):

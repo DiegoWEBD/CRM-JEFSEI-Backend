@@ -66,10 +66,19 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowProcesoAlertableSlaAdapter(row).to_proceso_alertable_sla() for row in rows]
 
-    def obtener_polizas_alertables_renovacion(self) -> list[PolizaAlertableRenovacion]:
+    def obtener_polizas_alertables_renovacion(
+        self, id_cliente: int | None = None
+    ) -> list[PolizaAlertableRenovacion]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                query = '''
+                filtro_cliente = ''
+                params: dict = {}
+
+                if id_cliente is not None:
+                    filtro_cliente = 'and P.id_cliente = %(id_cliente)s'
+                    params['id_cliente'] = id_cliente
+
+                query = f'''
                     select P.numero_poliza,
                     P.fin_vigencia,
                     PRO.id as id_prospecto,
@@ -88,9 +97,10 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     where P.cancelada = false
                     and P.fin_vigencia is not null
                     and (P.fin_vigencia - interval '2 months') <= now()
+                    {filtro_cliente}
                 '''
 
-                cur.execute(query)
+                cur.execute(query, params)
                 rows = cur.fetchall()
 
                 return [
