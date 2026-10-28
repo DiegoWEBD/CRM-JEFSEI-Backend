@@ -30,7 +30,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.renovacion_cotizada,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
                         where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
                     ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
@@ -88,7 +91,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.renovacion_cotizada,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
                         where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
                     ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
@@ -146,7 +152,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.renovacion_cotizada,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
                         where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
                     ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
@@ -205,7 +214,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.renovacion_cotizada,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
                         where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
                     ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
@@ -471,7 +483,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                             P.renovacion_cotizada,
                             exists (
                                 select 1 from ProcesoComercialRenovacion PCR
+                                inner join ProcesoComercial PC
+                                on PCR.id = PC.id
                                 where PCR.numero_poliza_base = P.numero_poliza
+                                and PC.descartado = false
                             ) as tiene_proceso_renovacion,
                             CASE
                                 WHEN P.cancelada = true THEN 'CANCELADA'

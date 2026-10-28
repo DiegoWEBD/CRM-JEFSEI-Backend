@@ -743,9 +743,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
-                    select id
-                    from ProcesoComercialRenovacion
-                    where numero_poliza_base = %(numero_poliza_base)s
+                    select PCR.id
+                    from ProcesoComercialRenovacion PCR
+                    inner join ProcesoComercial PC
+                    on PCR.id = PC.id
+                    where PCR.numero_poliza_base = %(numero_poliza_base)s
+                    and PC.descartado = false
                 '''
 
                 cur.execute(query, {'numero_poliza_base': numero_poliza_base})
