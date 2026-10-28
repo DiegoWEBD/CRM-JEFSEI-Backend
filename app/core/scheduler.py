@@ -54,7 +54,9 @@ def generar_alertas_cierre_estimado_job() -> None:
 
 def generar_alertas_renovacion_job() -> None:
     try:
-        generar_alerta_renovacion = GenerarAlertaRenovacionPolizaUseCase()
+        generar_alerta_renovacion = GenerarAlertaRenovacionPolizaUseCase(
+            RepositorioNotificacionesPostgres(),
+        )
         use_case = GenerarAlertasRenovacionUseCase(
             RepositorioNotificacionesPostgres(),
             generar_alerta_renovacion,

@@ -106,3 +106,28 @@ class ServicioAlertasProceso:
                 destinatarios.append(notificacion.rut_usuario)
 
         return destinatarios
+
+    """Elimina las alertas de renovación de la póliza y devuelve los RUTs
+    afectados.
+
+    Se invoca cuando las alertas se reemplazan por otras nuevas (al cambiar el
+    fin de vigencia) o dejan de corresponder del todo (al cancelar la póliza).
+    Se eliminan también las leídas: una fila con la misma dedupe_key, aunque
+    esté leída, bloquearía la re-creación si el hito vuelve a aplicar (p. ej.
+    al cambiar el fin de vigencia a una fecha y luego volver a la anterior).
+    """
+    def eliminar_renovacion(self, numero_poliza: str) -> list[str]:
+        destinatarios: list[str] = []
+
+        for notificacion in self.repositorio_notificaciones.buscar_notificaciones_por_poliza(
+            numero_poliza
+        ):
+            if notificacion.codigo_tipo not in TIPOS_ALERTA_RENOVACION:
+                continue
+
+            self.repositorio_notificaciones.eliminar(notificacion)
+
+            if notificacion.rut_usuario:
+                destinatarios.append(notificacion.rut_usuario)
+
+        return destinatarios

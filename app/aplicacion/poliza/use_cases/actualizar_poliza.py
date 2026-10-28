@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
@@ -33,10 +34,12 @@ class ActualizarPolizaUseCase:
         repositorio_polizas: RepositorioPolizas,
         authorization_service: AuthorizationService,
         servicio_alertas: ServicioAlertasProceso,
+        generar_alerta_renovacion: GenerarAlertaRenovacionPolizaUseCase,
     ):
         self.repositorio_polizas = repositorio_polizas
         self.authorization_service = authorization_service
         self.servicio_alertas = servicio_alertas
+        self.generar_alerta_renovacion = generar_alerta_renovacion
 
     def ejecutar(
         self,
@@ -70,16 +73,23 @@ class ActualizarPolizaUseCase:
         )
 
         # El fin de vigencia determina los hitos de las alertas de renovación:
-        # al cambiarlo, las alertas pendientes dejan de aplicar. Si la nueva
-        # fecha sigue en ventana, el scheduler genera las de la vigencia nueva.
+        # al cambiarlo, las de la vigencia anterior dejan de aplicar. Se
+        # eliminan (no solo se marcan leídas: una fila leída con la misma
+        # dedupe_key bloquearía la re-creación si la fecha vuelve a un valor
+        # anterior) y se re-evalúa al tiro para crear las de la vigencia nueva,
+        # sin esperar al scheduler.
         if _es_mismo_momento(poliza.fin_vigencia, fin_vigencia):
             return
 
         ahora = datetime.now(tz=timezone.utc)
-        destinatarios = self.servicio_alertas.marcar_leidas_renovacion(numero_poliza, ahora)
+        destinatarios = self.servicio_alertas.eliminar_renovacion(numero_poliza)
+
+        for notificacion in self.generar_alerta_renovacion.ejecutar(numero_poliza, ahora):
+            if notificacion.rut_usuario:
+                destinatarios.append(notificacion.rut_usuario)
 
         if destinatarios:
             hub.publicar_desde_hilo(
                 destinatarios,
-                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_renovacion_resueltas'},
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_renovacion_actualizadas'},
             )

@@ -24,6 +24,16 @@ class RepositorioNotificaciones(ABC):
         pass
 
     @abstractmethod
+    def obtener_poliza_alertable_renovacion(
+        self, numero_poliza: str
+    ) -> PolizaAlertableRenovacion | None:
+        """Póliza alertable de renovación por número, o None si no aplica
+        (no existe, está cancelada o su fin de vigencia está fuera del
+        horizonte de renovación). Se usa para re-evaluar sus alertas al tiro
+        al cambiar su fin de vigencia o al reactivarla."""
+        pass
+
+    @abstractmethod
     def registrar(self, notificacion: Notificacion) -> bool:
         """Inserta la notificación. Retorna False si su dedupe_key ya existía."""
         pass

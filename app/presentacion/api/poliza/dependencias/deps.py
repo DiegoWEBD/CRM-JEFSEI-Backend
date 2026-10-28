@@ -9,6 +9,7 @@ from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCas
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import RegistrarPolizaAProcesoComercialUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
@@ -64,7 +65,8 @@ def get_cancelar_poliza_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
 
     return CancelarPolizaUseCase(
-        repositorio_polizas=repositorio_polizas
+        repositorio_polizas=repositorio_polizas,
+        servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
     )
 
 
@@ -72,7 +74,10 @@ def get_reactivar_poliza_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
 
     return ReactivarPolizaUseCase(
-        repositorio_polizas=repositorio_polizas
+        repositorio_polizas=repositorio_polizas,
+        generar_alerta_renovacion=GenerarAlertaRenovacionPolizaUseCase(
+            RepositorioNotificacionesPostgres()
+        ),
     )
 
 
@@ -84,6 +89,9 @@ def get_actualizar_poliza_use_case():
         repositorio_polizas=repositorio_polizas,
         authorization_service=authorization_service,
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
+        generar_alerta_renovacion=GenerarAlertaRenovacionPolizaUseCase(
+            RepositorioNotificacionesPostgres()
+        ),
     )
 
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import (
     GenerarAlertaRenovacionPolizaUseCase,
 )
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from tests.factories.notificacion_factory import (
     AHORA_REF,
     crear_poliza_alertable_renovacion_mock,
@@ -16,8 +18,10 @@ FIN_VIGENCIA = AHORA_REF + timedelta(days=10)
 ZONA_NEGOCIO = ZoneInfo('America/Santiago')
 
 
-def _use_case():
-    return GenerarAlertaRenovacionPolizaUseCase()
+def _use_case(repo=None):
+    return GenerarAlertaRenovacionPolizaUseCase(
+        repo or MagicMock(spec=RepositorioNotificaciones)
+    )
 
 
 def _poliza(**kwargs):
@@ -160,6 +164,60 @@ class TestEvaluarAlertasRenovacion:
             assert alerta.dedupe_key.endswith(f':{FIN_VIGENCIA.isoformat()}:11111111-1')
             assert alerta.leible is False
             assert alerta.leida is False
+
+
+@pytest.mark.unit
+class TestEjecutarAlertasRenovacion:
+    """ejecutar: trae la póliza por número, evalúa y registra (espejo del
+    generar_alerta_cierre.ejecutar usado por _refrescar_alertas_de_cierre)."""
+
+    def test_trae_la_poliza_evalua_y_registra(self):
+        repo = MagicMock(spec=RepositorioNotificaciones)
+        repo.registrar.return_value = True
+        uc = _use_case(repo)
+        # A 45 días del fin de vigencia aplica solo el hito de cotización.
+        poliza = _poliza(
+            fin_vigencia=AHORA_REF + timedelta(days=45), rut_ej_renovacion='11111111-1'
+        )
+        repo.obtener_poliza_alertable_renovacion.return_value = poliza
+
+        creadas = uc.ejecutar('POL-001', AHORA_REF)
+
+        repo.obtener_poliza_alertable_renovacion.assert_called_once_with('POL-001')
+        assert len(creadas) == 1
+        repo.registrar.assert_called_once_with(creadas[0])
+        assert creadas[0].rut_usuario == '11111111-1'
+
+    def test_sin_poliza_alertable_no_genera(self):
+        repo = MagicMock(spec=RepositorioNotificaciones)
+        uc = _use_case(repo)
+        repo.obtener_poliza_alertable_renovacion.return_value = None
+
+        assert uc.ejecutar('POL-404', AHORA_REF) == []
+        repo.registrar.assert_not_called()
+
+    def test_solo_devuelve_las_efectivamente_creadas(self):
+        repo = MagicMock(spec=RepositorioNotificaciones)
+        repo.registrar.return_value = False
+        uc = _use_case(repo)
+        repo.obtener_poliza_alertable_renovacion.return_value = _poliza()
+
+        assert uc.ejecutar('POL-001', AHORA_REF) == []
+
+    def test_sin_ahora_usa_el_momento_actual(self):
+        repo = MagicMock(spec=RepositorioNotificaciones)
+        repo.registrar.return_value = True
+        uc = _use_case(repo)
+        # Vigencia futura relativa al momento real: solo aplica el hito de
+        # cotización, con created_at del momento actual (sin `ahora` explícito).
+        repo.obtener_poliza_alertable_renovacion.return_value = _poliza(
+            fin_vigencia=datetime.now(tz=timezone.utc) + timedelta(days=45)
+        )
+
+        creadas = uc.ejecutar('POL-001')
+
+        assert len(creadas) == 1
+        assert isinstance(creadas[0].created_at, datetime)
 
 
 @pytest.mark.unit

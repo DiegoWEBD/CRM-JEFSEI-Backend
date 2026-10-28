@@ -87,7 +87,10 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     C.rut_as_renovacion_asignado,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
                         where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
                     ) as tiene_proceso_renovacion
                     from Poliza P
                     inner join Cliente C
@@ -107,6 +110,44 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     DictRowPolizaAlertableRenovacionAdapter(row).to_poliza_alertable_renovacion()
                     for row in rows
                 ]
+
+    def obtener_poliza_alertable_renovacion(
+        self, numero_poliza: str
+    ) -> PolizaAlertableRenovacion | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select P.numero_poliza,
+                    P.fin_vigencia,
+                    PRO.id as id_prospecto,
+                    PRO.nombre_riesgo as nombre_cliente,
+                    C.rut_ej_renovacion_asignado,
+                    C.rut_as_renovacion_asignado,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        inner join ProcesoComercial PC
+                        on PCR.id = PC.id
+                        where PCR.numero_poliza_base = P.numero_poliza
+                        and PC.descartado = false
+                    ) as tiene_proceso_renovacion
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
+                    where P.cancelada = false
+                    and P.fin_vigencia is not null
+                    and (P.fin_vigencia - interval '2 months') <= now()
+                    and P.numero_poliza = %(numero_poliza)s
+                '''
+
+                cur.execute(query, {'numero_poliza': numero_poliza})
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                return DictRowPolizaAlertableRenovacionAdapter(row).to_poliza_alertable_renovacion()
 
     def obtener_ruts_por_roles(self, roles: list[str]) -> dict[str, list[str]]:
         """Devuelve {rol: [rut1, rut2, ...]} para los roles dados.

@@ -88,6 +88,38 @@ class TestObtenerPolizasAlertablesRenovacion:
         assert 'and P.id_cliente = %(id_cliente)s' in str(query)
         assert params == {'id_cliente': 5}
 
+
+@pytest.mark.unit
+@patch(f'{MODULO}.obtener_conexion')
+class TestObtenerPolizaAlertableRenovacion:
+
+    def test_trae_la_poliza_por_numero(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = FILA_POLIZA
+
+        repo = RepositorioNotificacionesPostgres()
+        poliza = repo.obtener_poliza_alertable_renovacion('POL-001')
+
+        query, params = cursor.execute.call_args.args
+        query_str = str(query)
+        assert 'P.numero_poliza = %(numero_poliza)s' in query_str
+        assert 'P.cancelada = false' in query_str
+        assert "(P.fin_vigencia - interval '2 months') <= now()" in query_str
+        assert params == {'numero_poliza': 'POL-001'}
+        assert poliza is not None
+        assert poliza.numero_poliza == 'POL-001'
+        assert poliza.rut_ej_renovacion == '11111111-1'
+
+    def test_sin_resultado_devuelve_none(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = None
+
+        repo = RepositorioNotificacionesPostgres()
+
+        assert repo.obtener_poliza_alertable_renovacion('POL-404') is None
+
     def test_sin_resultados_devuelve_vacio(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion

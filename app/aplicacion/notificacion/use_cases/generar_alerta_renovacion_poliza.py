@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from dateutil.relativedelta import relativedelta
@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 
 DIAS_ANTICIPACION_GESTION = 20
 
@@ -18,14 +19,35 @@ class GenerarAlertaRenovacionPolizaUseCase:
     Evalúa el fin de vigencia de la póliza y construye las alertas que
     correspondan para los responsables de renovación del cliente. Es la única
     dueña de la lógica de alertas de renovación (hitos, niveles,
-    destinatarios, mensajes y dedupe_key); el barrido del scheduler y el
-    refresco al cambiar responsables delegan aquí.
+    destinatarios, mensajes y dedupe_key); el barrido del scheduler y los
+    casos de uso de asignación / fecha de vigencia delegan aquí.
 
-    No registra ni publica: solo construye las alertas. El registro es
-    idempotente gracias a la dedupe_key estable y la publicación en el hub la
-    hace el caso de uso llamante, que conoce el conjunto completo de
-    destinatarios a refrescar.
+    `evaluar` no registra ni publica: solo construye las alertas (el registro
+    es idempotente gracias a la dedupe_key estable). `ejecutar` trae la póliza
+    por número, evalúa y registra. La publicación en el hub siempre es
+    responsabilidad del caso de uso llamante, que conoce el conjunto completo
+    de destinatarios a refrescar.
     """
+
+    def __init__(self, repositorio_notificaciones: RepositorioNotificaciones) -> None:
+        self.repositorio_notificaciones = repositorio_notificaciones
+
+    def ejecutar(self, numero_poliza: str, ahora: datetime | None = None) -> list[Notificacion]:
+        """Genera las alertas de la póliza, o [] si no corresponde / no se crearon."""
+        if ahora is None:
+            ahora = datetime.now(tz=timezone.utc)
+
+        poliza = self.repositorio_notificaciones.obtener_poliza_alertable_renovacion(numero_poliza)
+        if poliza is None:
+            return []
+
+        creadas: list[Notificacion] = []
+
+        for notificacion in self.evaluar(poliza, ahora):
+            if self.repositorio_notificaciones.registrar(notificacion):
+                creadas.append(notificacion)
+
+        return creadas
 
     def evaluar(self, poliza: PolizaAlertableRenovacion, ahora: datetime) -> list[Notificacion]:
         """Construye las alertas de renovación que corresponden a la póliza."""
