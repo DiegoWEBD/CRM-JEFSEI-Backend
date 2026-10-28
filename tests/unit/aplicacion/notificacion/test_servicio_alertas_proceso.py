@@ -159,3 +159,29 @@ class TestMarcarLeidasRenovacion:
         assert repositorio_mock.actualizar.call_count == 3
         assert all(alerta.leida for alerta in alertas)
         assert destinatarios == ['11111111-1', '11111111-2', '11111111-3']
+
+    def test_con_tipos_marca_solo_los_elegidos(self, servicio, repositorio_mock):
+        cotizacion = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='RENOVACION_COTIZACION_PENDIENTE',
+            numero_poliza='POL-001',
+        )
+        gestion = crear_notificacion_mock(
+            id=2,
+            codigo_tipo='RENOVACION_GESTION_PENDIENTE',
+            numero_poliza='POL-001',
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [
+            cotizacion,
+            gestion,
+        ]
+
+        destinatarios = servicio.marcar_leidas_renovacion(
+            'POL-001', AHORA, tipos=('RENOVACION_COTIZACION_PENDIENTE',)
+        )
+
+        repositorio_mock.actualizar.assert_called_once_with(cotizacion)
+        assert cotizacion.leida is True
+        assert gestion.leida is False
+        assert gestion.fecha_leida is None
+        assert destinatarios == ['12345678-9']

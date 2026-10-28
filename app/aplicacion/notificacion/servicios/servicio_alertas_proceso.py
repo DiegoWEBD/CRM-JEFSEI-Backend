@@ -45,17 +45,25 @@ class ServicioAlertasProceso:
 
     """Marca leídas las alertas de renovación no leídas de la póliza.
 
-    Se invoca cuando los hitos dejan de aplicar: al cambiar el fin de vigencia
-    de la póliza y al iniciar su proceso de renovación. Devuelve los RUTs
-    cuyas alertas fueron marcadas para publicar el refresco por socket.
+    Se invoca cuando los hitos dejan de aplicar: al cambiar el fin de
+    vigencia de la póliza, al iniciar su proceso de renovación y al
+    escalonar (un hito superior deja obsoletos a los anteriores). Con
+    `tipos` se acota a esos tipos de alerta; por defecto, todas las de
+    renovación. Devuelve los RUTs cuyas alertas fueron marcadas para
+    publicar el refresco por socket.
     """
-    def marcar_leidas_renovacion(self, numero_poliza: str, ahora: datetime) -> list[str]:
+    def marcar_leidas_renovacion(
+        self,
+        numero_poliza: str,
+        ahora: datetime,
+        tipos: tuple[str, ...] = TIPOS_ALERTA_RENOVACION,
+    ) -> list[str]:
         destinatarios: list[str] = []
 
         for notificacion in self.repositorio_notificaciones.buscar_notificaciones_por_poliza(
             numero_poliza
         ):
-            if notificacion.codigo_tipo not in TIPOS_ALERTA_RENOVACION:
+            if notificacion.codigo_tipo not in tipos:
                 continue
 
             if notificacion.leida:

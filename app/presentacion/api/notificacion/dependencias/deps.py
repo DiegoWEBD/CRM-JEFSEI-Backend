@@ -1,3 +1,4 @@
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
@@ -8,7 +9,7 @@ from app.infraestructura.notificacion.repositorio_notificaciones_postgres import
 
 def get_generar_alertas_sla_use_case():
     repositorio = RepositorioNotificacionesPostgres()
-    return GenerarAlertasSlaUseCase(repositorio)
+    return GenerarAlertasSlaUseCase(repositorio, ServicioAlertasProceso(repositorio))
 
 
 def get_obtener_notificaciones_use_case():
