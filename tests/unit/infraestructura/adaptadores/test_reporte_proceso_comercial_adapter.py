@@ -33,6 +33,7 @@ def _make_row(
         "codigo_etapa": "ETAPA_1",
         "nombre_etapa": "Evaluación",
         "cerrado": cerrado,
+        "descartado": False,
         "rut_ej_comercial": "12345678-9",
         "nombre_ej_comercial": "Juan Pérez",
         "rut_ej_evaluacion": None,

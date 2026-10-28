@@ -9,10 +9,9 @@ from app.infraestructura.usuario.repositorio_usuarios_postgres import Repositori
 
 
 def _crear_refrescar_alertas_renovacion() -> RefrescarAlertasRenovacionUseCase:
-    repositorio_notificaciones = RepositorioNotificacionesPostgres()
     return RefrescarAlertasRenovacionUseCase(
-        repositorio_notificaciones,
-        GenerarAlertaRenovacionPolizaUseCase(repositorio_notificaciones),
+        RepositorioNotificacionesPostgres(),
+        GenerarAlertaRenovacionPolizaUseCase(),
     )
 
 

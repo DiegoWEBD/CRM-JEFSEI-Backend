@@ -441,6 +441,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     HI.fecha_registro AS fecha_ingreso_estado,
                     T.dias_limite AS dias_limite_transicion,
                     PC.cerrado,
+                    PC.descartado,
                     PC.renovacion,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre AS nombre_ej_comercial,

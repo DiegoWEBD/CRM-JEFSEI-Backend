@@ -116,20 +116,31 @@ class TestRefrescarAlertasRenovacion:
 
         repo.eliminar.assert_called_once_with(alerta_obsoleta)
 
-    def test_sin_asignados_conserva_las_del_fan_out_por_rol(self, hub_mock):
+    def test_sin_asignados_elimina_todas_y_no_crea(self, hub_mock):
+        """Al quedar sin responsable (desasignación), la alerta del saliente se
+        elimina y no se crea ninguna nueva para nadie (sin fan-out por rol)."""
         poliza = crear_poliza_alertable_renovacion_mock(
             rut_ej_renovacion=None, rut_as_renovacion=None
         )
-        alerta_rol = _alerta_poliza('44444444-4', codigo_tipo='RENOVACION_GESTION_PENDIENTE')
-        alerta_viejo = _alerta_poliza(
-            '11111111-1', id=2, codigo_tipo='RENOVACION_GESTION_PENDIENTE'
+        alerta_antonio = _alerta_poliza('11111111-1', codigo_tipo='RENOVACION_GESTION_PENDIENTE')
+        alerta_diego = _alerta_poliza(
+            '22222222-2', id=2, codigo_tipo='RENOVACION_GESTION_PENDIENTE'
         )
-        uc, repo, _ = _use_case([poliza], destinatarios=['44444444-4', '55555555-5'])
-        repo.buscar_notificaciones_por_poliza.return_value = [alerta_rol, alerta_viejo]
+        uc, repo, generar = _use_case([poliza], destinatarios=[])
+        repo.buscar_notificaciones_por_poliza.return_value = [alerta_antonio, alerta_diego]
 
         uc.ejecutar(5, AHORA_REF)
 
-        repo.eliminar.assert_called_once_with(alerta_viejo)
+        assert repo.eliminar.call_count == 2
+        repo.eliminar.assert_any_call(alerta_antonio)
+        repo.eliminar.assert_any_call(alerta_diego)
+        generar.evaluar.assert_called_once_with(poliza, AHORA_REF)
+        repo.registrar.assert_not_called()
+        hub_mock.publicar_desde_hilo.assert_called_once()
+        assert set(hub_mock.publicar_desde_hilo.call_args.args[0]) == {
+            '11111111-1',
+            '22222222-2',
+        }
 
     def test_publica_el_refresco_a_eliminados_y_creados(self, hub_mock):
         poliza = crear_poliza_alertable_renovacion_mock()

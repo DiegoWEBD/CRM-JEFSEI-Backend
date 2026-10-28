@@ -51,8 +51,8 @@ class AsignarEjecutivoRenovacionUseCase:
             # Con cambio de ejecutivo, las alertas de renovación del anterior
             # dejan de ser suyas: se eliminan y se re-evalúan en este momento
             # para crear las del nuevo responsable (creadas ahora, no
-            # transferidas). En desasignación el refresco vuelve a dejarlas en
-            # el fan-out por rol (una póliza vencida no puede quedar sin alertar).
+            # transferidas). En desasignación se eliminan las previas y no se
+            # crea nada (sin destinatario), igual que en cierre y SLA.
             self.refrescar_alertas_renovacion.ejecutar(prospecto.id_cliente)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT

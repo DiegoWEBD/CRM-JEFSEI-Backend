@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -7,7 +6,6 @@ import pytest
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import (
     GenerarAlertaRenovacionPolizaUseCase,
 )
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from tests.factories.notificacion_factory import (
     AHORA_REF,
     crear_poliza_alertable_renovacion_mock,
@@ -18,10 +16,8 @@ FIN_VIGENCIA = AHORA_REF + timedelta(days=10)
 ZONA_NEGOCIO = ZoneInfo('America/Santiago')
 
 
-def _use_case(ruts_por_rol: dict | None = None):
-    repo = MagicMock(spec=RepositorioNotificaciones)
-    repo.obtener_ruts_por_roles.return_value = ruts_por_rol or {}
-    return GenerarAlertaRenovacionPolizaUseCase(repo), repo
+def _use_case():
+    return GenerarAlertaRenovacionPolizaUseCase()
 
 
 def _poliza(**kwargs):
@@ -34,7 +30,7 @@ def _poliza(**kwargs):
 class TestEvaluarAlertasRenovacion:
 
     def test_lejos_del_fin_de_vigencia_no_genera(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(
             _poliza(fin_vigencia=AHORA_REF + timedelta(days=100)), AHORA_REF
@@ -43,7 +39,7 @@ class TestEvaluarAlertasRenovacion:
         assert alertas == []
 
     def test_con_proceso_renovacion_no_genera(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(
             _poliza(tiene_proceso_renovacion=True), FIN_VIGENCIA + timedelta(days=30)
@@ -52,7 +48,9 @@ class TestEvaluarAlertasRenovacion:
         assert alertas == []
 
     def test_sin_destinatarios_asignados_no_genera(self):
-        uc, _ = _use_case(ruts_por_rol={'EJECUTIVO_RENOVACION': []})
+        """Sin ejecutivo ni asistente de renovación no hay destinatario: la
+        salvaguarda es asignar un responsable (no hay fan-out por rol)."""
+        uc = _use_case()
 
         alertas = uc.evaluar(
             _poliza(rut_ej_renovacion=None, rut_as_renovacion=None), AHORA_REF
@@ -61,7 +59,7 @@ class TestEvaluarAlertasRenovacion:
         assert alertas == []
 
     def test_a_2_meses_genera_solo_la_cotizacion(self):
-        uc, _ = _use_case()
+        uc = _use_case()
         ahora = FIN_VIGENCIA - timedelta(days=60)
 
         alertas = uc.evaluar(_poliza(), ahora)
@@ -73,7 +71,7 @@ class TestEvaluarAlertasRenovacion:
         assert alertas[0].numero_poliza == 'POL-001'
 
     def test_a_20_dias_genera_cotizacion_y_gestion(self):
-        uc, _ = _use_case()
+        uc = _use_case()
         ahora = FIN_VIGENCIA - timedelta(days=20)
 
         alertas = uc.evaluar(_poliza(), ahora)
@@ -85,7 +83,7 @@ class TestEvaluarAlertasRenovacion:
         ]
 
     def test_vencida_agrega_la_critica(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(_poliza(), FIN_VIGENCIA)
 
@@ -97,7 +95,7 @@ class TestEvaluarAlertasRenovacion:
         ]
 
     def test_critica_es_de_nivel_critico_y_menciona_vencimiento(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(_poliza(), FIN_VIGENCIA + timedelta(days=3))
 
@@ -108,7 +106,7 @@ class TestEvaluarAlertasRenovacion:
         assert 'no tiene un proceso de renovación iniciado' in critica.mensaje
 
     def test_mensajes_de_los_avisos_mencionan_poliza_y_fecha(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(_poliza(), FIN_VIGENCIA - timedelta(days=10))
 
@@ -117,7 +115,7 @@ class TestEvaluarAlertasRenovacion:
             assert FIN_VIGENCIA.strftime('%d-%m-%Y') in alerta.mensaje
 
     def test_genera_una_alerta_por_destinatario_asignado(self):
-        uc, _ = _use_case()
+        uc = _use_case()
 
         alertas = uc.evaluar(
             _poliza(rut_ej_renovacion='11111111-1', rut_as_renovacion='22222222-2'),
@@ -129,29 +127,31 @@ class TestEvaluarAlertasRenovacion:
         # 2 hitos x 2 destinatarios
         assert len(alertas) == 4
 
-    def test_sin_asignados_hace_fan_out_al_rol_ejecutivo_renovacion(self):
-        uc, repo = _use_case(ruts_por_rol={'EJECUTIVO_RENOVACION': ['33333333-3']})
+    def test_sin_asignados_no_genera_ni_aunque_haya_ejecutivos_de_renovacion(self):
+        """Ya no hay fan-out por rol: sin asignados no se genera ninguna alerta."""
+        uc = _use_case()
 
         alertas = uc.evaluar(
             _poliza(rut_ej_renovacion=None, rut_as_renovacion=None),
             FIN_VIGENCIA - timedelta(days=20),
         )
 
-        repo.obtener_ruts_por_roles.assert_called_once_with(['EJECUTIVO_RENOVACION'])
-        assert {alerta.rut_usuario for alerta in alertas} == {'33333333-3'}
+        assert alertas == []
 
-    def test_con_asignados_no_consulta_el_rol(self):
-        uc, repo = _use_case()
+    def test_mismo_rut_como_ejecutivo_y_asistente_no_se_duplica(self):
+        uc = _use_case()
 
-        uc.evaluar(
-            _poliza(rut_ej_renovacion='11111111-1', rut_as_renovacion=None),
+        alertas = uc.evaluar(
+            _poliza(rut_ej_renovacion='11111111-1', rut_as_renovacion='11111111-1'),
             FIN_VIGENCIA - timedelta(days=20),
         )
 
-        repo.obtener_ruts_por_roles.assert_not_called()
+        # 2 hitos x 1 destinatario (el set de destinatarios no duplica el RUT)
+        assert len(alertas) == 2
+        assert {alerta.rut_usuario for alerta in alertas} == {'11111111-1'}
 
     def test_dedupe_key_por_destinatario_y_vigencia(self):
-        uc, _ = _use_case()
+        uc = _use_case()
         ahora = FIN_VIGENCIA - timedelta(days=10)
 
         alertas = uc.evaluar(_poliza(), ahora)
@@ -170,7 +170,7 @@ class TestDiasDeCalendarioEnZonaDeNegocio:
 
         El mensaje formateaba el día UTC (30-08) mientras la UI mostraba el
         día de Santiago (29-08)."""
-        uc, _ = _use_case()
+        uc = _use_case()
         fin_vigencia = datetime(2026, 8, 30, 0, 0, tzinfo=timezone.utc)
         ahora = datetime(2026, 8, 30, 12, 0, tzinfo=timezone.utc)
 
@@ -187,7 +187,7 @@ class TestDiasDeCalendarioEnZonaDeNegocio:
         El fin de vigencia está en horario de verano (-03) y el hito a 2 meses
         cae en horario de invierno (-04): restar instantes adelantaba el hito
         una hora (al día calendario anterior)."""
-        uc, _ = _use_case()
+        uc = _use_case()
         fin_vigencia = datetime(2026, 11, 5, 0, 0, tzinfo=ZONA_NEGOCIO)
         # 04-09 23:30 en Santiago: todavía NO son los 2 meses de calendario.
         antes_del_hito = datetime(2026, 9, 5, 3, 30, tzinfo=timezone.utc)

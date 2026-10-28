@@ -6,8 +6,6 @@ from dateutil.relativedelta import relativedelta
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
-from app.dominio.notificacion.tipos_alerta import ROL_EJECUTIVO_RENOVACION
 
 DIAS_ANTICIPACION_GESTION = 20
 
@@ -20,18 +18,14 @@ class GenerarAlertaRenovacionPolizaUseCase:
     Evalúa el fin de vigencia de la póliza y construye las alertas que
     correspondan para los responsables de renovación del cliente. Es la única
     dueña de la lógica de alertas de renovación (hitos, niveles,
-    destinatarios, mensajes y dedupe_key); el barrido del scheduler delega
-    aquí.
+    destinatarios, mensajes y dedupe_key); el barrido del scheduler y el
+    refresco al cambiar responsables delegan aquí.
 
     No registra ni publica: solo construye las alertas. El registro es
     idempotente gracias a la dedupe_key estable y la publicación en el hub la
     hace el caso de uso llamante, que conoce el conjunto completo de
     destinatarios a refrescar.
     """
-
-    def __init__(self, repositorio_notificaciones: RepositorioNotificaciones) -> None:
-        self.repositorio_notificaciones = repositorio_notificaciones
-        self._cache_ruts_renovacion: list[str] | None = None
 
     def evaluar(self, poliza: PolizaAlertableRenovacion, ahora: datetime) -> list[Notificacion]:
         """Construye las alertas de renovación que corresponden a la póliza."""
@@ -128,21 +122,12 @@ class GenerarAlertaRenovacionPolizaUseCase:
     def resolver_destinatarios(self, poliza: PolizaAlertableRenovacion) -> list[str]:
         """Ejecutivo y asistente de renovación asignados al cliente.
 
-        Si el cliente no tiene ninguno asignado, cae al fan-out por rol
-        EJECUTIVO_RENOVACION: una póliza vencida no puede quedar sin alertar.
-        Es público porque el refresco de alertas al cambiar responsables
-        necesita saber quiénes son los destinatarios actuales de la póliza.
+        Sin asignados no hay destinatario y no se genera ninguna alerta: la
+        salvaguarda es que se asigne un responsable (igual que en las alertas
+        de cierre y SLA). Es público porque el refresco de alertas al cambiar
+        responsables necesita saber quiénes son los destinatarios actuales de
+        la póliza.
         """
-        asignados = {
+        return sorted({
             rut for rut in (poliza.rut_ej_renovacion, poliza.rut_as_renovacion) if rut
-        }
-
-        if asignados:
-            return sorted(asignados)
-
-        if self._cache_ruts_renovacion is None:
-            self._cache_ruts_renovacion = self.repositorio_notificaciones.obtener_ruts_por_roles(
-                [ROL_EJECUTIVO_RENOVACION]
-            ).get(ROL_EJECUTIVO_RENOVACION, [])
-
-        return list(self._cache_ruts_renovacion)
+        })
