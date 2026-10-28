@@ -26,6 +26,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
+                    PC.renovacion,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
@@ -83,6 +84,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
+                    PC.renovacion,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
@@ -142,6 +144,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
+                    PC.renovacion,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
@@ -420,6 +423,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     HI.fecha_registro AS fecha_ingreso_estado,
                     T.dias_limite AS dias_limite_transicion,
                     PC.cerrado,
+                    PC.renovacion,
                     PC.rut_ej_comercial,
                     EJ_COM.nombre AS nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
@@ -625,6 +629,110 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
         return id_proceso_comercial
             
+
+    def nuevo_renovacion(self, numero_poliza_base: str, rut_usuario: str) -> int | None:
+        ESTADO_OPORTUNIDAD_CREADA = 'OPORTUNIDAD_CREADA'
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Creación del proceso comercial de renovación: mismo
+                # prospecto y producto que la póliza base. El ejecutivo de
+                # renovación del cliente pasa a ser el ejecutivo comercial del
+                # proceso (sin asignación, queda el usuario que lo crea).
+
+                query = '''
+                    insert into ProcesoComercial (id_prospecto, rut_ej_comercial, id_producto, codigo_estado_actual, renovacion)
+                    select C.id_prospecto,
+                    coalesce(C.rut_ej_renovacion_asignado, %(rut_usuario)s),
+                    PC.id_producto,
+                    %(codigo_estado_actual)s,
+                    true
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join ProcesoComercial PC
+                    on P.id_proceso_comercial = PC.id
+                    where P.numero_poliza = %(numero_poliza_base)s
+                    returning id
+                '''
+
+                params = {
+                    'numero_poliza_base': numero_poliza_base,
+                    'rut_usuario': rut_usuario,
+                    'codigo_estado_actual': ESTADO_OPORTUNIDAD_CREADA,
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                id_proceso_comercial: int = row['id']
+                fecha = datetime.now(tz=timezone.utc)
+
+                # Registro de historial
+
+                query = '''
+                    insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
+                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_OPORTUNIDAD_CREADA,
+                    'fecha_registro': fecha,
+                    'rut_registrado_por': rut_usuario
+                }
+
+                cur.execute(query, params)
+
+                # Cambio de estado de proceso comercial
+
+                query = '''
+                    update ProcesoComercial
+                    set codigo_estado_actual = %(codigo_estado)s
+                    where id = %(id_proceso_comercial)s
+                '''
+
+                params = {
+                    'id_proceso_comercial': id_proceso_comercial,
+                    'codigo_estado': ESTADO_OPORTUNIDAD_CREADA,
+                }
+
+                cur.execute(query, params)
+
+                # Enlace con la póliza base
+
+                query = '''
+                    insert into ProcesoComercialRenovacion (id, numero_poliza_base)
+                    values (%(id)s, %(numero_poliza_base)s)
+                '''
+
+                params = {
+                    'id': id_proceso_comercial,
+                    'numero_poliza_base': numero_poliza_base,
+                }
+
+                cur.execute(query, params)
+
+        return id_proceso_comercial
+
+
+    def buscar_renovacion_por_poliza_base(self, numero_poliza_base: str) -> int | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select id
+                    from ProcesoComercialRenovacion
+                    where numero_poliza_base = %(numero_poliza_base)s
+                '''
+
+                cur.execute(query, {'numero_poliza_base': numero_poliza_base})
+                row = cur.fetchone()
+
+                return row['id'] if row else None
 
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         with obtener_conexion() as conn:

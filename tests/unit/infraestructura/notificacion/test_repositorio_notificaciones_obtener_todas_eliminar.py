@@ -19,6 +19,7 @@ FILA = {
     'entidad_tipo': 'PROCESO_COMERCIAL',
     'entidad_id': 42,
     'id_prospecto': 7,
+    'numero_poliza': None,
     'dedupe_key': 'SLA_VENCIDO:42:CONTACTO_INICIAL:11111111-1',
     'leida': False,
     'fecha_leida': None,

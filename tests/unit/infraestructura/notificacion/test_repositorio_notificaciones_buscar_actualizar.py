@@ -19,6 +19,7 @@ FILA = {
     'entidad_tipo': 'PROCESO_COMERCIAL',
     'entidad_id': 42,
     'id_prospecto': 7,
+    'numero_poliza': None,
     'dedupe_key': 'FECHA_CIERRE_VENCIDA:42:11111111-1:2026-10-07T12:00:00+00:00',
     'leida': False,
     'fecha_leida': None,

@@ -40,6 +40,7 @@ def _make_row(
         "id_producto": 1,
         "codigo_producto": "VIDA-001",
         "nombre_producto": "Seguro de Vida",
+        "renovacion": False,
         "fecha_ingreso_estado": fecha_ingreso_estado,
         "dias_transcurridos": dias_transcurridos,
         "porcentaje_sla_consumido": porcentaje_sla_consumido,

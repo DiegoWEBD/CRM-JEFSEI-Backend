@@ -97,3 +97,65 @@ class TestServicioAlertasProceso:
         assert por_vencer.fecha_leida == AHORA
         assert vencida.fecha_leida == AHORA
         assert destinatarios == ['11111111-1', '22222222-2']
+
+
+@pytest.mark.unit
+class TestMarcarLeidasRenovacion:
+
+    def test_marca_solo_alertas_de_renovacion_de_la_poliza(self, servicio, repositorio_mock):
+        renovacion = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_GESTION_PENDIENTE', numero_poliza='POL-001'
+        )
+        otro_tipo = crear_notificacion_mock(
+            id=2, codigo_tipo='SLA_POR_VENCER', numero_poliza='POL-001'
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [
+            renovacion,
+            otro_tipo,
+        ]
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        repositorio_mock.buscar_notificaciones_por_poliza.assert_called_once_with('POL-001')
+        repositorio_mock.actualizar.assert_called_once_with(renovacion)
+        assert renovacion.leida is True
+        assert renovacion.fecha_leida == AHORA
+        assert otro_tipo.leida is False
+        assert destinatarios == ['12345678-9']
+
+    def test_no_remarca_las_ya_leidas(self, servicio, repositorio_mock):
+        leida = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_POLIZA_VENCIDA', leida=True, fecha_leida=AHORA_REF
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [leida]
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert leida.fecha_leida == AHORA_REF
+        assert destinatarios == []
+
+    def test_marca_las_tres_alertas_de_renovacion(self, servicio, repositorio_mock):
+        alertas = [
+            crear_notificacion_mock(
+                id=i,
+                codigo_tipo=codigo_tipo,
+                rut_usuario=f'11111111-{i}',
+                numero_poliza='POL-001',
+            )
+            for i, codigo_tipo in enumerate(
+                (
+                    'RENOVACION_COTIZACION_PENDIENTE',
+                    'RENOVACION_GESTION_PENDIENTE',
+                    'RENOVACION_POLIZA_VENCIDA',
+                ),
+                start=1,
+            )
+        ]
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = alertas
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        assert repositorio_mock.actualizar.call_count == 3
+        assert all(alerta.leida for alerta in alertas)
+        assert destinatarios == ['11111111-1', '11111111-2', '11111111-3']

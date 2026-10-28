@@ -21,7 +21,8 @@ class ProcesoComercial:
         probabilidad_cierre_ejecutivo: float | None = None,
         prima_cotizada: float | None = None,
         prima_potencial_estimada: float | None = None,
-        prima_esperada: float | None = None
+        prima_esperada: float | None = None,
+        renovacion: bool = False,
     ):
         self.id = id
         self.ejecutivo_comercial = ejecutivo_comercial
@@ -38,3 +39,4 @@ class ProcesoComercial:
         self.prima_cotizada = prima_cotizada
         self.prima_potencial_estimada = prima_potencial_estimada
         self.prima_esperada = prima_esperada
+        self.renovacion = renovacion

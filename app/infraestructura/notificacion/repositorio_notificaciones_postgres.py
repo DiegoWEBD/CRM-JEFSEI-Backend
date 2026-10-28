@@ -4,10 +4,12 @@ from psycopg import sql
 
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.notificacion import Notificacion
+from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.notificacion.adaptadores.dictrow_notificacion_adapter import DictRowNotificacionAdapter
+from app.infraestructura.notificacion.adaptadores.dictrow_poliza_alertable_renovacion_adapter import DictRowPolizaAlertableRenovacionAdapter
 from app.infraestructura.notificacion.adaptadores.dictrow_proceso_alertable_sla_adapter import DictRowProcesoAlertableSlaAdapter
 
 
@@ -64,6 +66,38 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowProcesoAlertableSlaAdapter(row).to_proceso_alertable_sla() for row in rows]
 
+    def obtener_polizas_alertables_renovacion(self) -> list[PolizaAlertableRenovacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select P.numero_poliza,
+                    P.fin_vigencia,
+                    PRO.id as id_prospecto,
+                    PRO.nombre_riesgo as nombre_cliente,
+                    C.rut_ej_renovacion_asignado,
+                    C.rut_as_renovacion_asignado,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        where PCR.numero_poliza_base = P.numero_poliza
+                    ) as tiene_proceso_renovacion
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PRO
+                    on C.id_prospecto = PRO.id
+                    where P.cancelada = false
+                    and P.fin_vigencia is not null
+                    and (P.fin_vigencia - interval '2 months') <= now()
+                '''
+
+                cur.execute(query)
+                rows = cur.fetchall()
+
+                return [
+                    DictRowPolizaAlertableRenovacionAdapter(row).to_poliza_alertable_renovacion()
+                    for row in rows
+                ]
+
     def obtener_ruts_por_roles(self, roles: list[str]) -> dict[str, list[str]]:
         """Devuelve {rol: [rut1, rut2, ...]} para los roles dados.
 
@@ -105,6 +139,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                         entidad_tipo,
                         entidad_id,
                         id_prospecto,
+                        numero_poliza,
                         dedupe_key,
                         leida,
                         fecha_leida,
@@ -120,6 +155,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                         %(entidad_tipo)s,
                         %(entidad_id)s,
                         %(id_prospecto)s,
+                        %(numero_poliza)s,
                         %(dedupe_key)s,
                         false,
                         null,
@@ -138,6 +174,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     'entidad_tipo': notificacion.entidad_tipo,
                     'entidad_id': notificacion.entidad_id,
                     'id_prospecto': notificacion.id_prospecto,
+                    'numero_poliza': notificacion.numero_poliza,
                     'dedupe_key': notificacion.dedupe_key,
                     'created_at': notificacion.created_at or datetime.now(tz=timezone.utc),
                     'leible': notificacion.leible,
@@ -188,6 +225,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.entidad_tipo,
                     N.entidad_id,
                     N.id_prospecto,
+                    N.numero_poliza,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,
@@ -218,6 +256,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.entidad_tipo,
                     N.entidad_id,
                     N.id_prospecto,
+                    N.numero_poliza,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,
@@ -244,6 +283,34 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
 
                 return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
 
+    def buscar_notificaciones_por_poliza(self, numero_poliza: str) -> list[Notificacion]:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select N.id,
+                    N.rut_usuario,
+                    N.codigo_tipo,
+                    N.nivel,
+                    N.titulo,
+                    N.mensaje,
+                    N.entidad_tipo,
+                    N.entidad_id,
+                    N.id_prospecto,
+                    N.numero_poliza,
+                    N.dedupe_key,
+                    N.leida,
+                    N.fecha_leida,
+                    N.created_at,
+                    N.leible
+                    from Notificacion N
+                    where N.numero_poliza = %(numero_poliza)s
+                    order by N.created_at desc
+                '''
+                cur.execute(query, {'numero_poliza': numero_poliza})
+                rows = cur.fetchall()
+
+                return [DictRowNotificacionAdapter(row).to_notificacion() for row in rows]
+
     def actualizar(self, notificacion: Notificacion) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -257,6 +324,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     entidad_tipo = %(entidad_tipo)s,
                     entidad_id = %(entidad_id)s,
                     id_prospecto = %(id_prospecto)s,
+                    numero_poliza = %(numero_poliza)s,
                     dedupe_key = %(dedupe_key)s,
                     leida = %(leida)s,
                     fecha_leida = %(fecha_leida)s,
@@ -273,6 +341,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     'entidad_tipo': notificacion.entidad_tipo,
                     'entidad_id': notificacion.entidad_id,
                     'id_prospecto': notificacion.id_prospecto,
+                    'numero_poliza': notificacion.numero_poliza,
                     'dedupe_key': notificacion.dedupe_key,
                     'leida': notificacion.leida,
                     'fecha_leida': notificacion.fecha_leida,
@@ -342,6 +411,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.entidad_tipo,
                     N.entidad_id,
                     N.id_prospecto,
+                    N.numero_poliza,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,
@@ -409,6 +479,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.entidad_tipo,
                     N.entidad_id,
                     N.id_prospecto,
+                    N.numero_poliza,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,
@@ -444,6 +515,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     N.entidad_tipo,
                     N.entidad_id,
                     N.id_prospecto,
+                    N.numero_poliza,
                     N.dedupe_key,
                     N.leida,
                     N.fecha_leida,

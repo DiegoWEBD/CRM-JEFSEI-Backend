@@ -41,6 +41,7 @@ class DictRowReporteProcesoComercialAdapter:
                 nombre=r['nombre_etapa'],
             ),
             cerrado=r['cerrado'],
+            renovacion=r['renovacion'],
         )
 
     def to_reporte(self) -> ReportesProcesoComercialDTO | ReportesProcesoComercialCerradoDTO:

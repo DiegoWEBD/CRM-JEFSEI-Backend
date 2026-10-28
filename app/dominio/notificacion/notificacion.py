@@ -19,6 +19,7 @@ class Notificacion:
         fecha_leida: datetime | None,
         created_at: datetime | None,
         leible: bool = True,
+        numero_poliza: str | None = None,
     ):
         self.id = id
         self.rut_usuario = rut_usuario
@@ -34,3 +35,4 @@ class Notificacion:
         self.fecha_leida = fecha_leida
         self.created_at = created_at
         self.leible = leible
+        self.numero_poliza = numero_poliza

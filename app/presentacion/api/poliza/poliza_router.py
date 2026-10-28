@@ -8,6 +8,7 @@ from app.aplicacion.plan_pago.use_cases.crear_plan_pago import CrearPlanPagoUseC
 from app.aplicacion.plan_pago.use_cases.obtener_plan_pago_poliza import ObtenerPlanPagoPolizaUseCase
 from app.aplicacion.poliza.use_cases.cancelar_poliza import CancelarPolizaUseCase
 from app.aplicacion.poliza.use_cases.actualizar_poliza import ActualizarPolizaUseCase
+from app.aplicacion.poliza.use_cases.iniciar_renovacion_poliza import IniciarRenovacionPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_poliza import ObtenerPolizaUseCase
 from app.aplicacion.poliza.use_cases.obtener_polizas import ObtenerPolizasUseCase
 from app.aplicacion.poliza.use_cases.reactivar_poliza import ReactivarPolizaUseCase
@@ -17,7 +18,7 @@ from app.infraestructura.poliza.adapadores.poliza_json_adapter import PolizaJson
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 from app.presentacion.api.plan_pago.dependencias.deps import get_crear_plan_pago_use_case, get_obtener_plan_pago_poliza_use_case
-from app.presentacion.api.poliza.dependencias.deps import get_actualizar_poliza_use_case, get_cancelar_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
+from app.presentacion.api.poliza.dependencias.deps import get_actualizar_poliza_use_case, get_cancelar_poliza_use_case, get_iniciar_renovacion_poliza_use_case, get_obtener_poliza_use_case, get_obtener_polizas_use_case, get_reactivar_poliza_use_case, get_registrar_renovacion_cotizada_use_case
 from app.presentacion.api.poliza.dto.requests.actualizar_poliza_request import ActualizarPolizaRequest
 from app.presentacion.api.poliza.dto.requests.crear_plan_pago_request import CrearPlanPagoRequest
 
@@ -85,6 +86,20 @@ def registrar_renovacion_cotizada(
 
     return {
         'message': 'Cotización para renovación de póliza registrada'
+    }
+
+
+@router.post('/{numero_poliza}/iniciar-renovacion', status_code=status.HTTP_201_CREATED)
+def iniciar_renovacion_poliza(
+    numero_poliza: str,
+    usuario: Usuario = Depends(permisos_requeridos('INICIAR_RENOVACION')),
+    use_case: IniciarRenovacionPolizaUseCase = Depends(get_iniciar_renovacion_poliza_use_case)
+):
+    id_proceso_comercial = use_case.ejecutar(numero_poliza, usuario)
+
+    return {
+        'message': 'Proceso de renovación iniciado',
+        'id_proceso_comercial': id_proceso_comercial
     }
 
 

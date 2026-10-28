@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-from dateutil.relativedelta import relativedelta
 from psycopg import sql
 
 from app.dominio.poliza.poliza import Poliza
@@ -29,6 +28,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.fin_vigencia,
                     P.id_company,
                     P.renovacion_cotizada,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        where PCR.numero_poliza_base = P.numero_poliza
+                    ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
                         WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
@@ -83,6 +86,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.fin_vigencia,
                     P.id_company,
                     P.renovacion_cotizada,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        where PCR.numero_poliza_base = P.numero_poliza
+                    ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
                         WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
@@ -137,6 +144,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.fin_vigencia,
                     P.id_company,
                     P.renovacion_cotizada,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        where PCR.numero_poliza_base = P.numero_poliza
+                    ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
                         WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
@@ -192,6 +203,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                     P.fin_vigencia,
                     P.id_company,
                     P.renovacion_cotizada,
+                    exists (
+                        select 1 from ProcesoComercialRenovacion PCR
+                        where PCR.numero_poliza_base = P.numero_poliza
+                    ) as tiene_proceso_renovacion,
                     CASE
                         WHEN P.cancelada = true THEN 'CANCELADA'
                         WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'
@@ -331,118 +346,6 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 cur.execute(query, params)
 
-                if not poliza.fin_vigencia:
-                    return
-                
-                fecha_recordatorio_cotizacion = poliza.fin_vigencia - relativedelta(months=2)
-                fecha_recordatorio_contacto = poliza.fin_vigencia - relativedelta(days=20)
-
-                # Registrar recordatorio para comenzar a cotizar renovación
-
-                query = '''
-                    insert into Recordatorio (
-                        titulo,
-                        detalle,
-                        prioridad,
-                        completado,
-                        tipo_gestion,
-                        fecha_recordatorio
-                    )
-                    values (
-                        %(titulo)s,
-                        %(detalle)s,
-                        %(prioridad)s,
-                        %(completado)s,
-                        %(tipo_gestion)s,
-                        %(fecha_recordatorio)s
-                    )
-                    returning id
-                '''
-
-                params = {
-                    'titulo': 'Iniciar cotización para renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe comenzar a cotizar para su renovación',
-                    'prioridad': 'alta',
-                    'completado': False,
-                    'tipo_gestion': 'renovacion_cotizacion',
-                    'fecha_recordatorio': fecha_recordatorio_cotizacion
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-                id_recordatorio = row['id'] # type: ignore
-
-                query = '''
-                    insert into RecordatorioRenovacionPoliza (
-                        id,
-                        numero_poliza
-                    )
-                    values (
-                        %(id)s,
-                        %(numero_poliza)s
-                    )
-                '''
-
-                params = {
-                    'id': id_recordatorio,
-                    'numero_poliza': poliza.numero_poliza
-                }
-
-                cur.execute(query, params)
-
-                # Registrar recordatorio para comenzar la gestión de la renovación
-
-                query = '''
-                    insert into Recordatorio (
-                        titulo,
-                        detalle,
-                        prioridad,
-                        completado,
-                        tipo_gestion,
-                        fecha_recordatorio
-                    )
-                    values (
-                        %(titulo)s,
-                        %(detalle)s,
-                        %(prioridad)s,
-                        %(completado)s,
-                        %(tipo_gestion)s,
-                        %(fecha_recordatorio)s
-                    )
-                    returning id
-                '''
-
-                params = {
-                    'titulo': 'Gestionar renovación',
-                    'detalle': f'El día {poliza.fin_vigencia.strftime("%d-%m-%Y")} vence la póliza {poliza.numero_poliza}, por lo que debe gestionar su renovación',
-                    'prioridad': 'alta',
-                    'completado': False,
-                    'tipo_gestion': 'renovacion',
-                    'fecha_recordatorio': fecha_recordatorio_contacto
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-                id_recordatorio = row['id'] # type: ignore
-
-                query = '''
-                    insert into RecordatorioRenovacionPoliza (
-                        id,
-                        numero_poliza
-                    )
-                    values (
-                        %(id)s,
-                        %(numero_poliza)s
-                    )
-                '''
-
-                params = {
-                    'id': id_recordatorio,
-                    'numero_poliza': poliza.numero_poliza
-                }
-
-                cur.execute(query, params)
-
                 # Registro de historial
 
                 query = '''
@@ -566,6 +469,10 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                             P.fin_vigencia,
                             P.id_company,
                             P.renovacion_cotizada,
+                            exists (
+                                select 1 from ProcesoComercialRenovacion PCR
+                                where PCR.numero_poliza_base = P.numero_poliza
+                            ) as tiene_proceso_renovacion,
                             CASE
                                 WHEN P.cancelada = true THEN 'CANCELADA'
                                 WHEN P.fin_vigencia IS NULL OR P.inicio_vigencia > now() THEN 'REGISTRADA'

@@ -15,6 +15,7 @@ class ProcesoComercialJson(BaseModel):
     nombre_cliente: str
     producto: str
     tipo_producto: str
+    renovacion: bool = False
     estado_actual: EstadoInformativoJson
     etapa_actual: EtapaProcesoComercialJson
     cerrado: bool

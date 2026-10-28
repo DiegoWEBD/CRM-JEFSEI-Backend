@@ -19,6 +19,7 @@ class PolizaJson(BaseModel):
     fin_vigencia: str | None
     estado: EstadoPoliza
     renovacion_cotizada: bool
+    tiene_proceso_renovacion: bool = False
 
 
 class KpisPoliza(BaseModel):

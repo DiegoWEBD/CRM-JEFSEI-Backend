@@ -3,6 +3,7 @@ from datetime import datetime
 from app.dominio.notificacion.repositorio_notificaciones import (
     RepositorioNotificaciones,
 )
+from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_RENOVACION
 
 
 class ServicioAlertasProceso:
@@ -28,6 +29,33 @@ class ServicioAlertasProceso:
             id_proceso_comercial
         ):
             if notificacion.codigo_tipo not in tipos:
+                continue
+
+            if notificacion.leida:
+                continue
+
+            notificacion.leida = True
+            notificacion.fecha_leida = ahora
+            self.repositorio_notificaciones.actualizar(notificacion)
+
+            if notificacion.rut_usuario:
+                destinatarios.append(notificacion.rut_usuario)
+
+        return destinatarios
+
+    """Marca leídas las alertas de renovación no leídas de la póliza.
+
+    Se invoca cuando los hitos dejan de aplicar: al cambiar el fin de vigencia
+    de la póliza y al iniciar su proceso de renovación. Devuelve los RUTs
+    cuyas alertas fueron marcadas para publicar el refresco por socket.
+    """
+    def marcar_leidas_renovacion(self, numero_poliza: str, ahora: datetime) -> list[str]:
+        destinatarios: list[str] = []
+
+        for notificacion in self.repositorio_notificaciones.buscar_notificaciones_por_poliza(
+            numero_poliza
+        ):
+            if notificacion.codigo_tipo not in TIPOS_ALERTA_RENOVACION:
                 continue
 
             if notificacion.leida:

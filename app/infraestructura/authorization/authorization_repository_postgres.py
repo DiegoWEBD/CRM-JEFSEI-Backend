@@ -1,4 +1,6 @@
 from app.dominio.authorization.authorizacion_repository import AuthorizationRepository
+from app.dominio.cuota.cuota import Cuota
+from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
 
 
@@ -1037,3 +1039,32 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     row['rut_ej_comercial_asignado'] == rut_usuario,
                     row['rut_ej_evaluacion_asignado'] == rut_usuario
                 ])
+
+
+    def usuario_puede_marcar_pago_cuota(self, usuario: Usuario, cuota: Cuota) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select CL.rut_ej_cobranza_asignado
+                    from Cuota C
+                    inner join PlanPago PP
+                    on C.id_plan_pago = PP.id
+                    inner join Poliza P
+                    on PP.numero_poliza = P.numero_poliza
+                    inner join Cliente CL
+                    on P.id_cliente = CL.id
+                    where C.id = %(id_cuota)s
+                '''
+
+                params = {
+                    'id_cuota': cuota.id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return row['rut_ej_cobranza_asignado'] == usuario.rut

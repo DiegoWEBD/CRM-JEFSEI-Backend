@@ -111,13 +111,6 @@ def eliminar_recordatorio(
     return {'message': 'Recordatorio eliminado correctamente'}
 
 
-@router.get('/renovacion', status_code=status.HTTP_200_OK)
-def obtener_recordatorios_renovacion(
-
-):
-    pass
-
-    
 @router.get('/cobranza', status_code=status.HTTP_200_OK)
 def obtener_recordatorios_cobranza(
 

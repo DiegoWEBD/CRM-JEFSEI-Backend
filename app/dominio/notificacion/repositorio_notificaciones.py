@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.dominio.notificacion.notificacion import Notificacion
+from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 
 
@@ -8,6 +9,13 @@ class RepositorioNotificaciones(ABC):
 
     @abstractmethod
     def obtener_procesos_alertables(self) -> list[ProcesoAlertableSla]:
+        pass
+
+    @abstractmethod
+    def obtener_polizas_alertables_renovacion(self) -> list[PolizaAlertableRenovacion]:
+        """Pólizas no canceladas con fin de vigencia dentro del horizonte de
+        renovación (a 2 meses de vencer o ya vencidas), con los datos
+        necesarios para evaluar sus alertas de renovación."""
         pass
 
     @abstractmethod
@@ -34,6 +42,11 @@ class RepositorioNotificaciones(ABC):
     def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
         """Alertas SLA no leídas de procesos abiertos del prospecto cuyo estado
         siguiente tenga `rol` como responsable."""
+        pass
+
+    @abstractmethod
+    def buscar_notificaciones_por_poliza(self, numero_poliza: str) -> list[Notificacion]:
+        """Todas las notificaciones ligadas a la póliza (leídas o no)."""
         pass
 
     @abstractmethod

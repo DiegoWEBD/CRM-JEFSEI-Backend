@@ -38,6 +38,7 @@ def _fila() -> dict:
         "id_producto": 1,
         "codigo_producto": "VIDA-001",
         "nombre_producto": "Seguro de Vida",
+        "renovacion": False,
         "fecha_estimada_cierre": None,
         "probabilidad_cierre_ejecutivo": None,
         "probabilidad_cierre": 0.05,

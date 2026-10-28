@@ -24,5 +24,6 @@ class PolizaJsonAdapter:
             inicio_vigencia=self.poliza.inicio_vigencia.isoformat() if self.poliza.inicio_vigencia else None,
             fin_vigencia=self.poliza.fin_vigencia.isoformat() if self.poliza.fin_vigencia else None,
             estado=self.poliza.estado,
-            renovacion_cotizada=self.poliza.renovacion_cotizada
+            renovacion_cotizada=self.poliza.renovacion_cotizada,
+            tiene_proceso_renovacion=self.poliza.tiene_proceso_renovacion
         )

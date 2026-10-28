@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 from app.dominio.recordatorio.recordatorio_cobranza_cuota_poliza.recordatorio_cobranza_cuota_poliza import RecordatorioCobranzaCuotaPoliza
-from app.dominio.recordatorio.recordatorio_renovacion_poliza.recordatorio_renovacion_poliza import RecordatorioRenovacionPoliza
 from app.dominio.recordatorio.recordatorio_usuario.recordatorio_usuario import RecordatorioUsuario
 
 
@@ -9,10 +8,6 @@ class RepositorioRecordatorios(ABC):
     
     @abstractmethod
     def obtener_recordatorios_usuario(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioUsuario], int]:
-        pass
-
-    @abstractmethod
-    def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioRenovacionPoliza], int]:
         pass
 
     @abstractmethod

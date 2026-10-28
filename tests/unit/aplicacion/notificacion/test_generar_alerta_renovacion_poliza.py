@@ -1,0 +1,159 @@
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
+
+import pytest
+
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import (
+    GenerarAlertaRenovacionPolizaUseCase,
+)
+from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from tests.factories.notificacion_factory import (
+    AHORA_REF,
+    crear_poliza_alertable_renovacion_mock,
+)
+
+FIN_VIGENCIA = AHORA_REF + timedelta(days=10)
+
+
+def _use_case(ruts_por_rol: dict | None = None):
+    repo = MagicMock(spec=RepositorioNotificaciones)
+    repo.obtener_ruts_por_roles.return_value = ruts_por_rol or {}
+    return GenerarAlertaRenovacionPolizaUseCase(repo), repo
+
+
+def _poliza(**kwargs):
+    defaults = {'fin_vigencia': FIN_VIGENCIA}
+    defaults.update(kwargs)
+    return crear_poliza_alertable_renovacion_mock(**defaults)
+
+
+@pytest.mark.unit
+class TestEvaluarAlertasRenovacion:
+
+    def test_lejos_del_fin_de_vigencia_no_genera(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(fin_vigencia=AHORA_REF + timedelta(days=100)), AHORA_REF
+        )
+
+        assert alertas == []
+
+    def test_con_proceso_renovacion_no_genera(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(tiene_proceso_renovacion=True), FIN_VIGENCIA + timedelta(days=30)
+        )
+
+        assert alertas == []
+
+    def test_sin_destinatarios_asignados_no_genera(self):
+        uc, _ = _use_case(ruts_por_rol={'EJECUTIVO_RENOVACION': []})
+
+        alertas = uc.evaluar(
+            _poliza(rut_ej_renovacion=None, rut_as_renovacion=None), AHORA_REF
+        )
+
+        assert alertas == []
+
+    def test_a_2_meses_genera_solo_la_cotizacion(self):
+        uc, _ = _use_case()
+        ahora = FIN_VIGENCIA - timedelta(days=60)
+
+        alertas = uc.evaluar(_poliza(), ahora)
+
+        assert len(alertas) == 1
+        assert alertas[0].codigo_tipo == 'RENOVACION_COTIZACION_PENDIENTE'
+        assert alertas[0].nivel == 'AVISO'
+        assert alertas[0].titulo == 'Iniciar cotización de renovación'
+        assert alertas[0].numero_poliza == 'POL-001'
+
+    def test_a_20_dias_genera_cotizacion_y_gestion(self):
+        uc, _ = _use_case()
+        ahora = FIN_VIGENCIA - timedelta(days=20)
+
+        alertas = uc.evaluar(_poliza(), ahora)
+
+        tipos = [alerta.codigo_tipo for alerta in alertas]
+        assert sorted(tipos) == [
+            'RENOVACION_COTIZACION_PENDIENTE',
+            'RENOVACION_GESTION_PENDIENTE',
+        ]
+
+    def test_vencida_agrega_la_critica(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(_poliza(), FIN_VIGENCIA)
+
+        tipos = sorted(alerta.codigo_tipo for alerta in alertas)
+        assert tipos == [
+            'RENOVACION_COTIZACION_PENDIENTE',
+            'RENOVACION_GESTION_PENDIENTE',
+            'RENOVACION_POLIZA_VENCIDA',
+        ]
+
+    def test_critica_es_de_nivel_critico_y_menciona_vencimiento(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(_poliza(), FIN_VIGENCIA + timedelta(days=3))
+
+        critica = [a for a in alertas if a.codigo_tipo == 'RENOVACION_POLIZA_VENCIDA'][0]
+        assert critica.nivel == 'CRITICO'
+        assert critica.titulo == 'Póliza vencida sin renovación'
+        assert 'venció' in critica.mensaje
+        assert 'no tiene un proceso de renovación iniciado' in critica.mensaje
+
+    def test_mensajes_de_los_avisos_mencionan_poliza_y_fecha(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(_poliza(), FIN_VIGENCIA - timedelta(days=10))
+
+        for alerta in alertas:
+            assert 'POL-001' in alerta.mensaje
+            assert FIN_VIGENCIA.strftime('%d-%m-%Y') in alerta.mensaje
+
+    def test_genera_una_alerta_por_destinatario_asignado(self):
+        uc, _ = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(rut_ej_renovacion='11111111-1', rut_as_renovacion='22222222-2'),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        ruts = {alerta.rut_usuario for alerta in alertas}
+        assert ruts == {'11111111-1', '22222222-2'}
+        # 2 hitos x 2 destinatarios
+        assert len(alertas) == 4
+
+    def test_sin_asignados_hace_fan_out_al_rol_ejecutivo_renovacion(self):
+        uc, repo = _use_case(ruts_por_rol={'EJECUTIVO_RENOVACION': ['33333333-3']})
+
+        alertas = uc.evaluar(
+            _poliza(rut_ej_renovacion=None, rut_as_renovacion=None),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        repo.obtener_ruts_por_roles.assert_called_once_with(['EJECUTIVO_RENOVACION'])
+        assert {alerta.rut_usuario for alerta in alertas} == {'33333333-3'}
+
+    def test_con_asignados_no_consulta_el_rol(self):
+        uc, repo = _use_case()
+
+        uc.evaluar(
+            _poliza(rut_ej_renovacion='11111111-1', rut_as_renovacion=None),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        repo.obtener_ruts_por_roles.assert_not_called()
+
+    def test_dedupe_key_por_destinatario_y_vigencia(self):
+        uc, _ = _use_case()
+        ahora = FIN_VIGENCIA - timedelta(days=10)
+
+        alertas = uc.evaluar(_poliza(), ahora)
+
+        for alerta in alertas:
+            assert alerta.dedupe_key.endswith(f':{FIN_VIGENCIA.isoformat()}:11111111-1')
+            assert alerta.leible is False
+            assert alerta.leida is False

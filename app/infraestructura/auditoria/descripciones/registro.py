@@ -390,6 +390,14 @@ def _registrar_renovacion_cotizada(params: dict, body: dict, resolvedor: Resolve
     )
 
 
+def _iniciar_renovacion_poliza(params: dict, body: dict, resolvedor: ResolvedorNombres) -> AccionDescrita:
+    return AccionDescrita(
+        evento=EventoAuditoria.EJECUTAR_ACCION,
+        verbo='iniciado el proceso de renovación',
+        fragmentos=[FragmentoFrase(preposicion='de', entidad=_poliza(params['numero'], resolvedor))],
+    )
+
+
 def _crear_plan_pago(params: dict, body: dict, resolvedor: ResolvedorNombres) -> AccionDescrita:
     numero_cuotas = body.get('numero_cuotas')
     return AccionDescrita(
@@ -780,6 +788,7 @@ REGISTRO = [
     EntradaAccion('POST', re.compile(r'^/procesos-comerciales/(?P<id>\d+)/polizas$'), EventoAuditoria.CREAR, _registrar_poliza_en_oportunidad),
     # Pólizas y cuotas
     EntradaAccion('POST', re.compile(r'^/polizas/(?P<numero>[^/]+)/registrar-renovacion-cotizada$'), EventoAuditoria.EJECUTAR_ACCION, _registrar_renovacion_cotizada),
+    EntradaAccion('POST', re.compile(r'^/polizas/(?P<numero>[^/]+)/iniciar-renovacion$'), EventoAuditoria.EJECUTAR_ACCION, _iniciar_renovacion_poliza),
     EntradaAccion('POST', re.compile(r'^/polizas/(?P<numero>[^/]+)/plan-pago$'), EventoAuditoria.CREAR, _crear_plan_pago),
     EntradaAccion('POST', re.compile(r'^/polizas/(?P<numero>[^/]+)/cancelar$'), EventoAuditoria.EJECUTAR_ACCION, _cancelar_poliza),
     EntradaAccion('POST', re.compile(r'^/polizas/(?P<numero>[^/]+)/reactivar$'), EventoAuditoria.EJECUTAR_ACCION, _reactivar_poliza),

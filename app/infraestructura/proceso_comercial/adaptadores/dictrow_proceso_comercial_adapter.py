@@ -32,6 +32,7 @@ class DictRowProcesoComercialAdapter:
         fecha_estimada_cierre = self.row['fecha_estimada_cierre']
         probabilidad_cierre_ejecutivo = self.row['probabilidad_cierre_ejecutivo']
         probabilidad_cierre = self.row['probabilidad_cierre']
+        renovacion = self.row['renovacion']
 
         ejecutivo_comercial = None
         ejecutivo_evaluacion = None
@@ -78,5 +79,6 @@ class DictRowProcesoComercialAdapter:
             id_prospecto=id_prospecto,
             nombre_cliente=nombre_cliente,
             fecha_estimada_cierre=fecha_estimada_cierre,
-            probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo
+            probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo,
+            renovacion=renovacion,
         )

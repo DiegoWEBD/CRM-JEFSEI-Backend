@@ -27,6 +27,7 @@ def _make_row(
         "id_producto": 1,
         "codigo_producto": "VIDA-001",
         "nombre_producto": "Seguro de Vida",
+        "renovacion": False,
         "fecha_estimada_cierre": fecha_estimada_cierre,
         "probabilidad_cierre_ejecutivo": probabilidad_cierre_ejecutivo,
         "probabilidad_cierre": probabilidad_cierre,
