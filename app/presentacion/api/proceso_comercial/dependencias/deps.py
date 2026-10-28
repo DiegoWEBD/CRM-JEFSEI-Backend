@@ -81,7 +81,7 @@ def get_descartar_proceso_comercial_use_case():
         repositorio_prospectos=repositorio_prospectos,
         repositorio_historial=repositorio_historial,
         repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 
 def get_crear_proceso_comercial_use_case():
