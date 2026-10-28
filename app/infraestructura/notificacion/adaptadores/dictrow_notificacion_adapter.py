@@ -25,4 +25,5 @@ class DictRowNotificacionAdapter:
             fecha_leida=r['fecha_leida'],
             created_at=r['created_at'],
             leible=r['leible'],
+            numero_poliza=r['numero_poliza'],
         )

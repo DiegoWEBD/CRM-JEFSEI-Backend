@@ -202,3 +202,65 @@ class TestCrearAlertaCierre:
         assert notificacion.dedupe_key == (
             f'CIERRE_ESTIMADO_PROXIMO:42:11111111-1:{AHORA.isoformat()}'
         )
+
+
+@pytest.mark.unit
+class TestCrearAlertaRenovacion:
+
+    def test_campos_y_dedupe_key_estable_con_fin_vigencia(self):
+        fin_vigencia = datetime(2026, 12, 31, 0, 0, 0, tzinfo=timezone.utc)
+
+        notificacion = NotificacionFactory.crear_alerta_renovacion(
+            rut_usuario='11111111-1',
+            codigo_tipo='RENOVACION_COTIZACION_PENDIENTE',
+            nivel='AVISO',
+            titulo='Iniciar cotización de renovación',
+            mensaje='mensaje',
+            numero_poliza='POL-001',
+            fin_vigencia=fin_vigencia,
+            id_prospecto=7,
+            ahora=AHORA,
+        )
+
+        assert notificacion.id is None
+        assert notificacion.rut_usuario == '11111111-1'
+        assert notificacion.codigo_tipo == 'RENOVACION_COTIZACION_PENDIENTE'
+        assert notificacion.nivel == 'AVISO'
+        assert notificacion.titulo == 'Iniciar cotización de renovación'
+        assert notificacion.mensaje == 'mensaje'
+        # El enlace a la póliza es la referencia para navegar a su página.
+        assert notificacion.numero_poliza == 'POL-001'
+        assert notificacion.entidad_tipo is None
+        assert notificacion.entidad_id is None
+        assert notificacion.id_prospecto == 7
+        assert notificacion.leible is False
+        assert notificacion.leida is False
+        assert notificacion.fecha_leida is None
+        assert notificacion.created_at == AHORA
+        # Dedupe estable: sin timestamp, el on conflict evita duplicados.
+        # Incluye el fin de vigencia para que un cambio de fecha genere
+        # alertas nuevas.
+        assert notificacion.dedupe_key == (
+            f'RENOVACION_COTIZACION_PENDIENTE:POL-001:{fin_vigencia.isoformat()}:11111111-1'
+        )
+
+    def test_dedupe_key_cambia_con_el_fin_de_vigencia(self):
+        kwargs = {
+            'rut_usuario': '11111111-1',
+            'codigo_tipo': 'RENOVACION_GESTION_PENDIENTE',
+            'nivel': 'AVISO',
+            'titulo': 'Gestionar renovación',
+            'mensaje': 'mensaje',
+            'numero_poliza': 'POL-001',
+            'id_prospecto': 7,
+            'ahora': AHORA,
+        }
+
+        original = NotificacionFactory.crear_alerta_renovacion(
+            fin_vigencia=datetime(2026, 12, 31, tzinfo=timezone.utc), **kwargs
+        )
+        cambiada = NotificacionFactory.crear_alerta_renovacion(
+            fin_vigencia=datetime(2027, 1, 31, tzinfo=timezone.utc), **kwargs
+        )
+
+        assert original.dedupe_key != cambiada.dedupe_key

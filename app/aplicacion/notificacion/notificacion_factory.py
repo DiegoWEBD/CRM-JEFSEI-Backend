@@ -113,6 +113,44 @@ class NotificacionFactory:
         )
 
     @staticmethod
+    def crear_alerta_renovacion(
+        *,
+        rut_usuario: str | None,
+        codigo_tipo: str,
+        nivel: str,
+        titulo: str,
+        mensaje: str,
+        numero_poliza: str,
+        fin_vigencia: datetime,
+        id_prospecto: int | None,
+        ahora: datetime | None = None,
+    ) -> Notificacion:
+        if ahora is None:
+            ahora = datetime.now(tz=timezone.utc)
+
+        return Notificacion(
+            id=None,
+            rut_usuario=rut_usuario,
+            codigo_tipo=codigo_tipo,
+            nivel=nivel,
+            titulo=titulo,
+            mensaje=mensaje,
+            entidad_tipo=None,
+            entidad_id=None,
+            id_prospecto=id_prospecto,
+            numero_poliza=numero_poliza,
+            # Dedupe estable (sin timestamp): el on conflict del repositorio
+            # evita duplicados entre corridas del scheduler. Incluye la fecha
+            # de fin de vigencia para que un cambio de vigencia genere alertas
+            # nuevas (las de la vigencia anterior quedan resueltas).
+            dedupe_key=f'{codigo_tipo}:{numero_poliza}:{fin_vigencia.isoformat()}:{rut_usuario}',
+            leida=False,
+            fecha_leida=None,
+            created_at=ahora,
+            leible=False,
+        )
+
+    @staticmethod
     def crear_alerta_cierre(
         *,
         rut_usuario: str | None,

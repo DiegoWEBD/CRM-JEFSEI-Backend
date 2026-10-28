@@ -20,7 +20,8 @@ class Poliza:
         inicio_vigencia: datetime | None,
         fin_vigencia: datetime | None,
         estado: EstadoPoliza,
-        renovacion_cotizada: bool
+        renovacion_cotizada: bool,
+        tiene_proceso_renovacion: bool = False,
     ):
         self.id_prospecto = id_prospecto
         self.nombre_cliente = nombre_cliente
@@ -36,3 +37,4 @@ class Poliza:
         self.nombre_producto = nombre_producto
         self.estado = estado
         self.renovacion_cotizada = renovacion_cotizada
+        self.tiene_proceso_renovacion = tiene_proceso_renovacion

@@ -32,6 +32,13 @@ class DictRowProcesoComercialAdapter:
         fecha_estimada_cierre = self.row['fecha_estimada_cierre']
         probabilidad_cierre_ejecutivo = self.row['probabilidad_cierre_ejecutivo']
         probabilidad_cierre = self.row['probabilidad_cierre']
+        renovacion = self.row['renovacion']
+        descartado = self.row['descartado']
+        motivo_cierre = self.row['motivo_cierre']
+        fecha_cierre = self.row['fecha_cierre']
+        fecha_apertura = self.row['fecha_apertura']
+        monto_asegurado_actual = self.row['monto_asegurado_actual']
+        nombre_excel_alicuota = self.row['nombre_excel_alicuota']
 
         ejecutivo_comercial = None
         ejecutivo_evaluacion = None
@@ -78,5 +85,12 @@ class DictRowProcesoComercialAdapter:
             id_prospecto=id_prospecto,
             nombre_cliente=nombre_cliente,
             fecha_estimada_cierre=fecha_estimada_cierre,
-            probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo
+            probabilidad_cierre_ejecutivo=probabilidad_cierre_ejecutivo,
+            renovacion=renovacion,
+            descartado=descartado,
+            motivo_cierre=motivo_cierre,
+            fecha_cierre=fecha_cierre,
+            fecha_apertura=fecha_apertura,
+            monto_asegurado_actual=monto_asegurado_actual,
+            nombre_excel_alicuota=nombre_excel_alicuota,
         )

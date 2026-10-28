@@ -12,10 +12,10 @@ router = APIRouter(prefix='/cuota', tags=['Cuotas'])
 @router.post('/{id_cuota}/pagar', status_code=status.HTTP_200_OK)
 def marcar_pago_cuota(
     id_cuota: int,
-    _: Usuario = Depends(permisos_requeridos('MARCAR_PAGO_CUOTA')),
+    usuario: Usuario = Depends(permisos_requeridos('MARCAR_PAGO_CUOTA')),
     use_case: MarcarPagoCuotaUseCase = Depends(get_marcar_pago_cuota_use_case)
 ):
-    use_case.ejecutar(id_cuota)
+    use_case.ejecutar(id_cuota, usuario)
 
     return {
         'message': 'Cuota marcada como pagada'

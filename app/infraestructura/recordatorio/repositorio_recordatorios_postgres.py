@@ -1,11 +1,9 @@
 from app.dominio.recordatorio.recordatorio_cobranza_cuota_poliza.recordatorio_cobranza_cuota_poliza import RecordatorioCobranzaCuotaPoliza
-from app.dominio.recordatorio.recordatorio_renovacion_poliza.recordatorio_renovacion_poliza import RecordatorioRenovacionPoliza
 from app.dominio.recordatorio.recordatorio_usuario.recordatorio_usuario import RecordatorioUsuario
 from app.dominio.recordatorio.repositorio_recordatorios import RepositorioRecordatorios
 
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_cobranza_adapter import DictRowRecordatorioCobranzaAdapter
-from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_renovacion_poliza_adapter import DictRowRecordatorioRenovacionPolizaAdapter
 from app.infraestructura.recordatorio.adaptadores.dictrow_recordatorio_usuario_adapter import DictRowRecordatorioUsuarioAdapter
 
 
@@ -134,61 +132,7 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                     return None
 
                 return DictRowRecordatorioUsuarioAdapter(row).to_recordatorio()
-            
-    def obtener_recordatorios_renovacion(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioRenovacionPoliza], int]:
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
 
-                base_query = '''
-                    from RecordatorioRenovacionPoliza RR
-                    inner join Recordatorio R
-                    on RR.id = R.id
-                    inner join Poliza P
-                    on RR.numero_poliza = P.numero_poliza
-                    inner join Cliente C
-                    on P.id_cliente = C.id
-                    where R.completado = false
-                    and R.fecha_recordatorio < ((%(fecha)s::date + interval '1 day') AT TIME ZONE 'America/Santiago')
-                    and (
-                        C.rut_ej_renovacion_asignado = %(rut_usuario)s
-                        or C.rut_as_renovacion_asignado = %(rut_usuario)s
-                    )
-                '''
-
-                params = {
-                    'rut_usuario': rut_usuario,
-                    'fecha': fecha
-                }
-
-                where_extra = ''
-                if id_prospecto is not None:
-                    where_extra = ' and C.id_prospecto = %(id_prospecto)s'
-                    params['id_prospecto'] = str(id_prospecto)
-
-                count_query = 'SELECT COUNT(*) as total ' + base_query + where_extra
-                cur.execute(count_query, params)
-                total = cur.fetchone()['total'] # type: ignore
-
-                offset = (pagina - 1) * tamano_pagina
-
-                data_query = '''
-                    select R.id,
-                    RR.numero_poliza,
-                    R.titulo,
-                    R.detalle,
-                    R.completado,
-                    R.tipo_gestion,
-                    R.prioridad,
-                    R.fecha_recordatorio
-                ''' + base_query + where_extra + ' order by R.fecha_recordatorio'
-
-                page_params = {**params, "tamano_pagina": tamano_pagina, "offset": offset}
-                cur.execute(data_query + ' LIMIT %(tamano_pagina)s OFFSET %(offset)s', page_params)
-
-                rows = cur.fetchall()
-
-                return [DictRowRecordatorioRenovacionPolizaAdapter(row).to_recordatorio() for row in rows], total
-            
     def obtener_recordatorios_cobranza(self, rut_usuario: str, fecha: str, id_prospecto: int | None, pagina: int, tamano_pagina: int) -> tuple[list[RecordatorioCobranzaCuotaPoliza], int]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -289,6 +233,5 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 cur.execute('delete from RecordatorioUsuario where id = %(id)s', {'id': id})
-                cur.execute('delete from RecordatorioRenovacionPoliza where id = %(id)s', {'id': id})
                 cur.execute('delete from RecordatorioCobranzaCuotaPoliza where id = %(id)s', {'id': id})
                 cur.execute('delete from Recordatorio where id = %(id)s', {'id': id})

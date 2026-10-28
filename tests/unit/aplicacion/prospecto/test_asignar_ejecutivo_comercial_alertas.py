@@ -36,7 +36,7 @@ def _proceso_mock(id=42):
     return p
 
 
-def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None):
+def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None, generar_sla=None):
     repo_prospectos = MagicMock()
     repo_prospectos.buscar.return_value = prospecto
     repo_usuarios = MagicMock()
@@ -50,6 +50,8 @@ def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None):
     servicio_alertas = MagicMock(spec=ServicioAlertasProceso)
     servicio_alertas.marcar_leidas.return_value = []
     generar_alerta_cierre.ejecutar.return_value = None
+    if generar_sla is None:
+        generar_sla = MagicMock()
     uc = AsignarEjecutivoComercialUseCase(
         repo_prospectos,
         repo_usuarios,
@@ -57,6 +59,7 @@ def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None):
         repo_notificaciones,
         generar_alerta_cierre,
         servicio_alertas,
+        generar_sla,
     )
     return uc, repo_prospectos, repo_procesos, repo_notificaciones, servicio_alertas
 
@@ -180,12 +183,17 @@ class TestAsignarEjecutivoComercialFlujoFecha:
 
 @pytest.mark.unit
 @patch(f'{MODULO}.hub')
-class TestAsignarEjecutivoComercialReasignacionAlertasSla:
+class TestAsignarEjecutivoComercialRefrescoAlertasSla:
 
-    def test_reasigna_alertas_sla_y_publica_destinatarios(self, mock_hub):
+    def test_elimina_sla_de_otros_destinatarios_y_reevalua(self, mock_hub):
+        """No se reasignan (transferidas confundían al nuevo con antigüedad
+        vieja): se eliminan y se re-evalúan, creándose ahora para el nuevo."""
         prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
         generar = MagicMock()
-        uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo='22222222-2')
+        generar_sla = MagicMock()
+        uc, _, _, repo_notificaciones, _ = _use_case(
+            prospecto, generar, rut_nuevo='22222222-2', generar_sla=generar_sla
+        )
         alerta = crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO')
         alerta_sin_rut = crear_notificacion_mock(id=2, rut_usuario=None, codigo_tipo='SLA_POR_VENCER')
         repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta, alerta_sin_rut]
@@ -195,52 +203,69 @@ class TestAsignarEjecutivoComercialReasignacionAlertasSla:
         repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_called_once_with(
             1, ROL_EJECUTIVO_COMERCIAL
         )
-        assert alerta.rut_usuario == '22222222-2'
-        assert alerta_sin_rut.rut_usuario == '22222222-2'
-        assert repo_notificaciones.actualizar.call_count == 2
-        mock_hub.publicar_desde_hilo.assert_any_call(
-            {'11111111-1', '22222222-2'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
-        )
-
-    def test_no_reasigna_sla_si_el_rut_no_cambia(self, mock_hub):
-        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
-        generar = MagicMock()
-        uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo='11111111-1')
-
-        uc.ejecutar(id_prospecto=1, rut_ej_comercial='11111111-1', asignado_por=MagicMock())
-
-        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_not_called()
-        motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
-        assert 'destinatarios_reasignados' not in motivos
-
-    def test_desasignacion_sla_publica_solo_previos(self, mock_hub):
-        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
-        generar = MagicMock()
-        uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo=None)
-        alerta = crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO')
-        repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta]
-
-        uc.ejecutar(id_prospecto=1, rut_ej_comercial=None, asignado_por=MagicMock())
-
-        assert alerta.rut_usuario is None
+        repo_notificaciones.actualizar.assert_not_called()
+        assert repo_notificaciones.eliminar.call_count == 2
+        repo_notificaciones.eliminar.assert_any_call(alerta)
+        repo_notificaciones.eliminar.assert_any_call(alerta_sin_rut)
+        generar_sla.ejecutar.assert_called_once()
         mock_hub.publicar_desde_hilo.assert_any_call(
             {'11111111-1'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
+            {'evento': 'notificaciones_actualizadas', 'motivo': 'sla_reevaluado'},
         )
 
-    def test_alertas_ya_asignadas_al_nuevo_rut_no_se_tocan(self, mock_hub):
+    def test_conserva_las_ya_dirigidas_al_nuevo_rut(self, mock_hub):
         prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
         generar = MagicMock()
-        uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo='22222222-2')
+        generar_sla = MagicMock()
+        uc, _, _, repo_notificaciones, _ = _use_case(
+            prospecto, generar, rut_nuevo='22222222-2', generar_sla=generar_sla
+        )
         alerta_propia = crear_notificacion_mock(id=1, rut_usuario='22222222-2', codigo_tipo='SLA_VENCIDO')
         repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta_propia]
 
         uc.ejecutar(id_prospecto=1, rut_ej_comercial='22222222-2', asignado_por=MagicMock())
 
-        repo_notificaciones.actualizar.assert_not_called()
+        repo_notificaciones.eliminar.assert_not_called()
+        generar_sla.ejecutar.assert_called_once()
         motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
-        assert 'destinatarios_reasignados' not in motivos
+        assert 'sla_reevaluado' not in motivos
+
+    def test_desasignacion_elimina_todas_y_no_recrea(self, mock_hub):
+        """Sin destinatario no se crea nada (pero las previas quedan eliminadas)."""
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        generar_sla = MagicMock()
+        uc, _, _, repo_notificaciones, _ = _use_case(
+            prospecto, generar, rut_nuevo=None, generar_sla=generar_sla
+        )
+        alerta = crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO')
+        alerta_propia = crear_notificacion_mock(id=3, rut_usuario='22222222-2', codigo_tipo='SLA_POR_VENCER')
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta, alerta_propia]
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial=None, asignado_por=MagicMock())
+
+        assert repo_notificaciones.eliminar.call_count == 2
+        generar_sla.ejecutar.assert_called_once()
+        mock_hub.publicar_desde_hilo.assert_any_call(
+            {'11111111-1', '22222222-2'},
+            {'evento': 'notificaciones_actualizadas', 'motivo': 'sla_reevaluado'},
+        )
+
+    def test_no_toca_sla_si_el_rut_no_cambia(self, mock_hub):
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        generar_sla = MagicMock()
+        uc, _, _, repo_notificaciones, _ = _use_case(
+            prospecto, generar, rut_nuevo='11111111-1', generar_sla=generar_sla
+        )
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial='11111111-1', asignado_por=MagicMock())
+
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_not_called()
+        repo_notificaciones.eliminar.assert_not_called()
+        generar_sla.ejecutar.assert_not_called()
+        motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
+        assert 'sla_reevaluado' not in motivos
 
 
 @pytest.mark.unit

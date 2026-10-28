@@ -11,6 +11,23 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
+    def nuevo_renovacion(self, numero_poliza_base: str, rut_usuario: str) -> int | None:
+        """Crea el proceso comercial de renovación de la póliza base.
+
+        Nace en OPORTUNIDAD_CREADA con el mismo prospecto y producto de la
+        póliza base, y registra la fila en ProcesoComercialRenovacion.
+        """
+        pass
+
+    @abstractmethod
+    def buscar_renovacion_por_poliza_base(self, numero_poliza_base: str) -> int | None:
+        """Id del proceso comercial de renovación de la póliza base.
+
+        None si la póliza no tiene proceso de renovación iniciado.
+        """
+        pass
+
+    @abstractmethod
     def buscar(self, id: int) -> ProcesoComercial | None:
         pass
 

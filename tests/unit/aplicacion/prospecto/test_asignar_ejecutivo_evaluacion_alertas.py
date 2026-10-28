@@ -23,7 +23,7 @@ def _prospecto_mock(id=1, evaluacion_previo=None, nombre_riesgo='Prospecto Test'
     return p
 
 
-def _use_case(prospecto, rut_nuevo=None):
+def _use_case(prospecto, rut_nuevo=None, generar_sla=None):
     repo_prospectos = MagicMock()
     repo_prospectos.buscar.return_value = prospecto
     repo_usuarios = MagicMock()
@@ -31,19 +31,28 @@ def _use_case(prospecto, rut_nuevo=None):
         repo_usuarios.buscar.return_value = MagicMock(rut=rut_nuevo)
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
     repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = []
-    uc = AsignarEjecutivoEvaluacionUseCase(repo_prospectos, repo_usuarios, repo_notificaciones)
+    if generar_sla is None:
+        generar_sla = MagicMock()
+    uc = AsignarEjecutivoEvaluacionUseCase(
+        repo_prospectos, repo_usuarios, repo_notificaciones, generar_sla
+    )
     return uc, repo_prospectos, repo_notificaciones
 
 
 @pytest.mark.unit
 @patch(f'{MODULO}.hub')
-class TestAsignarEjecutivoEvaluacionReasignacionAlertasSla:
+class TestAsignarEjecutivoEvaluacionRefrescoAlertasSla:
 
-    def test_reasigna_alertas_sla_del_rol_evaluacion(self, mock_hub):
+    def test_elimina_sla_del_rol_evaluacion_y_reevalua(self, mock_hub):
+        """No se reasignan (transferidas confundían al nuevo con antigüedad
+        vieja): se eliminan y se re-evalúan, creándose ahora para el nuevo."""
         from tests.factories.notificacion_factory import crear_notificacion_mock
 
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='22222222-2')
+        generar_sla = MagicMock()
+        uc, _, repo_notificaciones = _use_case(
+            prospecto, rut_nuevo='22222222-2', generar_sla=generar_sla
+        )
         alerta = crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO')
         repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta]
 
@@ -52,22 +61,28 @@ class TestAsignarEjecutivoEvaluacionReasignacionAlertasSla:
         repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_called_once_with(
             1, ROL_EJECUTIVO_EVALUACION_PROYECTOS
         )
-        assert alerta.rut_usuario == '22222222-2'
-        repo_notificaciones.actualizar.assert_called_once_with(alerta)
+        repo_notificaciones.actualizar.assert_not_called()
+        repo_notificaciones.eliminar.assert_called_once_with(alerta)
+        generar_sla.ejecutar.assert_called_once()
         mock_hub.publicar_desde_hilo.assert_any_call(
-            {'11111111-1', '22222222-2'},
-            {'evento': 'notificaciones_actualizadas', 'motivo': 'destinatarios_reasignados'},
+            {'11111111-1'},
+            {'evento': 'notificaciones_actualizadas', 'motivo': 'sla_reevaluado'},
         )
 
-    def test_no_reasigna_sla_si_el_rut_no_cambia(self, mock_hub):
+    def test_no_toca_sla_si_el_rut_no_cambia(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        generar_sla = MagicMock()
+        uc, _, repo_notificaciones = _use_case(
+            prospecto, rut_nuevo='11111111-1', generar_sla=generar_sla
+        )
 
         uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='11111111-1', asignado_por=MagicMock())
 
         repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_not_called()
+        repo_notificaciones.eliminar.assert_not_called()
+        generar_sla.ejecutar.assert_not_called()
         motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
-        assert 'destinatarios_reasignados' not in motivos
+        assert 'sla_reevaluado' not in motivos
 
 
 @pytest.mark.unit

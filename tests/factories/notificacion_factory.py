@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.dominio.notificacion.notificacion import Notificacion
+from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 
 
@@ -18,6 +19,7 @@ def crear_notificacion_mock(
     entidad_tipo: str | None = "PROCESO_COMERCIAL",
     entidad_id: int | None = 1,
     id_prospecto: int | None = 1,
+    numero_poliza: str | None = None,
     dedupe_key: str = "SLA_POR_VENCER:1:CONTACTO_INICIAL",
     leida: bool = False,
     fecha_leida: datetime | None = None,
@@ -42,6 +44,7 @@ def crear_notificacion_mock(
         fecha_leida=fecha_leida,
         created_at=created_at or AHORA_REF,
         leible=leible,
+        numero_poliza=numero_poliza,
     )
 
 
@@ -86,4 +89,27 @@ def crear_proceso_alertable_sla_mock(
         rol_responsable_siguiente=rol_responsable_siguiente,
         accion_requerida=accion_requerida,
         nombre_producto=nombre_producto,
+    )
+
+
+def crear_poliza_alertable_renovacion_mock(
+    numero_poliza: str = "POL-001",
+    fin_vigencia: datetime | None = None,
+    id_prospecto: int = 1,
+    nombre_cliente: str | None = "Cliente Test",
+    rut_ej_renovacion: str | None = "11111111-1",
+    rut_as_renovacion: str | None = None,
+    tiene_proceso_renovacion: bool = False,
+) -> PolizaAlertableRenovacion:
+    if fin_vigencia is None:
+        fin_vigencia = AHORA_REF + timedelta(days=10)
+
+    return PolizaAlertableRenovacion(
+        numero_poliza=numero_poliza,
+        fin_vigencia=fin_vigencia,
+        id_prospecto=id_prospecto,
+        nombre_cliente=nombre_cliente,
+        rut_ej_renovacion=rut_ej_renovacion,
+        rut_as_renovacion=rut_as_renovacion,
+        tiene_proceso_renovacion=tiene_proceso_renovacion,
     )

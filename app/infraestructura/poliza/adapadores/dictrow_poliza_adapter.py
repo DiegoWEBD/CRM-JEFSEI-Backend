@@ -33,5 +33,6 @@ class DictRowPolizaAdapter:
             inicio_vigencia=self.row['inicio_vigencia'],
             fin_vigencia=self.row['fin_vigencia'],
             estado=EstadoPoliza(self.row['estado']),
-            renovacion_cotizada=self.row['renovacion_cotizada']
+            renovacion_cotizada=self.row['renovacion_cotizada'],
+            tiene_proceso_renovacion=self.row['tiene_proceso_renovacion'],
         )

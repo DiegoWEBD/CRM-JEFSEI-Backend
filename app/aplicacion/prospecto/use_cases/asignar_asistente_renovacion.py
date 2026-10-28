@@ -1,4 +1,7 @@
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
+from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
+    RefrescarAlertasRenovacionUseCase,
+)
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
@@ -9,14 +12,16 @@ from app.dominio.usuario.usuario import Usuario
 
 class AsignarAsistenteRenovacionUseCase:
     def __init__(
-        self, 
+        self,
         repositorio_prospectos: RepositorioProspectos,
         repositorio_usuarios: RepositorioUsuarios,
-        repositorio_notificaciones: RepositorioNotificaciones
+        repositorio_notificaciones: RepositorioNotificaciones,
+        refrescar_alertas_renovacion: RefrescarAlertasRenovacionUseCase,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
         self.repositorio_notificaciones = repositorio_notificaciones
+        self.refrescar_alertas_renovacion = refrescar_alertas_renovacion
 
     def ejecutar(self, id_cliente: int, rut_as_renovacion: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
@@ -41,6 +46,13 @@ class AsignarAsistenteRenovacionUseCase:
             return
 
         self.repositorio_prospectos.asignar_asistente_renovacion(prospecto, asignado_por)
+
+        if rut_anterior != rut_as_renovacion:
+            # Con cambio de asistente, las alertas de renovación del anterior
+            # dejan de ser suyas: se eliminan y se re-evalúan en este momento
+            # para crear las del nuevo responsable (creadas ahora, no
+            # transferidas).
+            self.refrescar_alertas_renovacion.ejecutar(prospecto.id_cliente)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

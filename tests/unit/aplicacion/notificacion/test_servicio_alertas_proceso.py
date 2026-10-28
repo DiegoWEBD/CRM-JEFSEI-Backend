@@ -97,3 +97,207 @@ class TestServicioAlertasProceso:
         assert por_vencer.fecha_leida == AHORA
         assert vencida.fecha_leida == AHORA
         assert destinatarios == ['11111111-1', '22222222-2']
+
+
+@pytest.mark.unit
+class TestMarcarTodasLeidas:
+
+    def test_marca_todos_los_tipos_sin_importar_el_tipo(self, servicio, repositorio_mock):
+        sla = crear_notificacion_mock(id=1, codigo_tipo='SLA_POR_VENCER')
+        fecha = crear_notificacion_mock(id=2, codigo_tipo='FECHA_CIERRE_VENCIDA')
+        otro = crear_notificacion_mock(id=3, codigo_tipo='CIERRE_ESTIMADO_PROXIMO')
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [
+            sla,
+            fecha,
+            otro,
+        ]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.buscar_notificaciones_proceso_comercial.assert_called_once_with(42)
+        assert repositorio_mock.actualizar.call_count == 3
+        assert sla.leida is True
+        assert fecha.leida is True
+        assert otro.leida is True
+        assert all(n.fecha_leida == AHORA for n in (sla, fecha, otro))
+        assert destinatarios == ['12345678-9', '12345678-9', '12345678-9']
+
+    def test_no_remarca_notificaciones_ya_leidas(self, servicio, repositorio_mock):
+        leida = crear_notificacion_mock(
+            id=1, codigo_tipo='SLA_VENCIDO', leida=True, fecha_leida=AHORA_REF
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [leida]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert leida.fecha_leida == AHORA_REF
+        assert destinatarios == []
+
+    def test_excluye_alertas_sin_destinatario(self, servicio, repositorio_mock):
+        sin_rut = crear_notificacion_mock(id=1, codigo_tipo='SLA_VENCIDO', rut_usuario=None)
+        con_rut = crear_notificacion_mock(id=2, codigo_tipo='SLA_POR_VENCER', rut_usuario='99999999-9')
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [sin_rut, con_rut]
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        assert sin_rut.leida is True
+        assert con_rut.leida is True
+        assert destinatarios == ['99999999-9']
+
+    def test_sin_notificaciones_devuelve_vacio(self, servicio, repositorio_mock):
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = []
+
+        destinatarios = servicio.marcar_todas_leidas(42, AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert destinatarios == []
+
+
+@pytest.mark.unit
+class TestMarcarLeidasRenovacion:
+
+    def test_marca_solo_alertas_de_renovacion_de_la_poliza(self, servicio, repositorio_mock):
+        renovacion = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_GESTION_PENDIENTE', numero_poliza='POL-001'
+        )
+        otro_tipo = crear_notificacion_mock(
+            id=2, codigo_tipo='SLA_POR_VENCER', numero_poliza='POL-001'
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [
+            renovacion,
+            otro_tipo,
+        ]
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        repositorio_mock.buscar_notificaciones_por_poliza.assert_called_once_with('POL-001')
+        repositorio_mock.actualizar.assert_called_once_with(renovacion)
+        assert renovacion.leida is True
+        assert renovacion.fecha_leida == AHORA
+        assert otro_tipo.leida is False
+        assert destinatarios == ['12345678-9']
+
+    def test_no_remarca_las_ya_leidas(self, servicio, repositorio_mock):
+        leida = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_POLIZA_VENCIDA', leida=True, fecha_leida=AHORA_REF
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [leida]
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert leida.fecha_leida == AHORA_REF
+        assert destinatarios == []
+
+    def test_marca_las_tres_alertas_de_renovacion(self, servicio, repositorio_mock):
+        alertas = [
+            crear_notificacion_mock(
+                id=i,
+                codigo_tipo=codigo_tipo,
+                rut_usuario=f'11111111-{i}',
+                numero_poliza='POL-001',
+            )
+            for i, codigo_tipo in enumerate(
+                (
+                    'RENOVACION_COTIZACION_PENDIENTE',
+                    'RENOVACION_GESTION_PENDIENTE',
+                    'RENOVACION_POLIZA_VENCIDA',
+                ),
+                start=1,
+            )
+        ]
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = alertas
+
+        destinatarios = servicio.marcar_leidas_renovacion('POL-001', AHORA)
+
+        assert repositorio_mock.actualizar.call_count == 3
+        assert all(alerta.leida for alerta in alertas)
+        assert destinatarios == ['11111111-1', '11111111-2', '11111111-3']
+
+    def test_con_tipos_marca_solo_los_elegidos(self, servicio, repositorio_mock):
+        cotizacion = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='RENOVACION_COTIZACION_PENDIENTE',
+            numero_poliza='POL-001',
+        )
+        gestion = crear_notificacion_mock(
+            id=2,
+            codigo_tipo='RENOVACION_GESTION_PENDIENTE',
+            numero_poliza='POL-001',
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [
+            cotizacion,
+            gestion,
+        ]
+
+        destinatarios = servicio.marcar_leidas_renovacion(
+            'POL-001', AHORA, tipos=('RENOVACION_COTIZACION_PENDIENTE',)
+        )
+
+        repositorio_mock.actualizar.assert_called_once_with(cotizacion)
+        assert cotizacion.leida is True
+        assert gestion.leida is False
+        assert gestion.fecha_leida is None
+        assert destinatarios == ['12345678-9']
+
+
+@pytest.mark.unit
+class TestEliminarRenovacion:
+
+    def test_elimina_incluso_las_leidas(self, servicio, repositorio_mock):
+        """Una fila leída con la misma dedupe_key bloquearía la re-creación si
+        el hito vuelve a aplicar, así que se eliminan todas."""
+        no_leida = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_GESTION_PENDIENTE', numero_poliza='POL-001'
+        )
+        leida = crear_notificacion_mock(
+            id=2,
+            codigo_tipo='RENOVACION_COTIZACION_PENDIENTE',
+            numero_poliza='POL-001',
+            leida=True,
+            fecha_leida=AHORA_REF,
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [no_leida, leida]
+
+        destinatarios = servicio.eliminar_renovacion('POL-001')
+
+        repositorio_mock.buscar_notificaciones_por_poliza.assert_called_once_with('POL-001')
+        assert repositorio_mock.eliminar.call_count == 2
+        repositorio_mock.eliminar.assert_any_call(no_leida)
+        repositorio_mock.eliminar.assert_any_call(leida)
+        repositorio_mock.actualizar.assert_not_called()
+        assert sorted(destinatarios) == ['12345678-9', '12345678-9']
+
+    def test_no_elimina_otros_tipos(self, servicio, repositorio_mock):
+        renovacion = crear_notificacion_mock(
+            id=1, codigo_tipo='RENOVACION_POLIZA_VENCIDA', numero_poliza='POL-001'
+        )
+        asignacion = crear_notificacion_mock(
+            id=2, codigo_tipo='ASIGNACION_EJECUTIVO', numero_poliza='POL-001'
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [renovacion, asignacion]
+
+        servicio.eliminar_renovacion('POL-001')
+
+        repositorio_mock.eliminar.assert_called_once_with(renovacion)
+
+    def test_excluye_las_sin_destinatario_del_resultado(self, servicio, repositorio_mock):
+        huerfana = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='RENOVACION_GESTION_PENDIENTE',
+            numero_poliza='POL-001',
+            rut_usuario=None,
+        )
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = [huerfana]
+
+        destinatarios = servicio.eliminar_renovacion('POL-001')
+
+        repositorio_mock.eliminar.assert_called_once_with(huerfana)
+        assert destinatarios == []
+
+    def test_sin_alertas_devuelve_vacio(self, servicio, repositorio_mock):
+        repositorio_mock.buscar_notificaciones_por_poliza.return_value = []
+
+        assert servicio.eliminar_renovacion('POL-404') == []
+        repositorio_mock.eliminar.assert_not_called()

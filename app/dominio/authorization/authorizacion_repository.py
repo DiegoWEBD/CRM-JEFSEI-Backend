@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 
+from app.dominio.cuota.cuota import Cuota
+from app.dominio.usuario.usuario import Usuario
+
 
 class AuthorizationRepository(ABC):
     
@@ -77,4 +80,8 @@ class AuthorizationRepository(ABC):
 
     @abstractmethod
     def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
+        pass
+
+    @abstractmethod
+    def usuario_puede_marcar_pago_cuota(self, usuario: Usuario, cuota: Cuota) -> bool:
         pass

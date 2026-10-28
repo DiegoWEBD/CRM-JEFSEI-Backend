@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
@@ -8,6 +9,7 @@ from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotif
 from app.dominio.notificacion.tipos_alerta import (
     ROL_EJECUTIVO_COMERCIAL,
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
+    tipos_resueltos_por,
 )
 
 
@@ -24,8 +26,13 @@ CAMPO_POR_ROL: dict[str, str] = {
 
 class GenerarAlertasSlaUseCase:
 
-    def __init__(self, repositorio_notificaciones: RepositorioNotificaciones) -> None:
+    def __init__(
+        self,
+        repositorio_notificaciones: RepositorioNotificaciones,
+        servicio_alertas: ServicioAlertasProceso,
+    ) -> None:
         self.repositorio_notificaciones = repositorio_notificaciones
+        self.servicio_alertas = servicio_alertas
 
     def ejecutar(self, ahora: datetime | None = None) -> list[Notificacion]:
         if ahora is None:
@@ -35,11 +42,27 @@ class GenerarAlertasSlaUseCase:
         self._cache_ruts_por_rol: dict[str, list[str]] = {}
 
         creadas: list[Notificacion] = []
+        resueltas: list[str] = []
 
         for proceso in self.repositorio_notificaciones.obtener_procesos_alertables():
-            for notificacion in self._evaluar(proceso, ahora):
+            alertas = self._evaluar(proceso, ahora)
+
+            for notificacion in alertas:
                 if self.repositorio_notificaciones.registrar(notificacion):
                     creadas.append(notificacion)
+
+            # Escalonamiento: al superar el plazo (SLA_VENCIDO), el aviso de
+            # "próximo a vencer" (SLA_POR_VENCER) ya no aplica.
+            tipos_a_resolver = tipos_resueltos_por(
+                {notificacion.codigo_tipo for notificacion in alertas}
+            )
+
+            if tipos_a_resolver:
+                resueltas.extend(
+                    self.servicio_alertas.marcar_leidas(
+                        proceso.id_proceso_comercial, tipos_a_resolver, ahora
+                    )
+                )
 
         if creadas:
             for alerta in creadas:
@@ -50,6 +73,12 @@ class GenerarAlertasSlaUseCase:
                     [alerta.rut_usuario],
                     {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_generadas'},
                 )
+
+        if resueltas:
+            hub.publicar_desde_hilo(
+                resueltas,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
 
         return creadas
 

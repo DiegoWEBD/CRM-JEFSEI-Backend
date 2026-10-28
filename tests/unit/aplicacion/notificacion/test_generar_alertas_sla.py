@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
@@ -19,10 +20,18 @@ def _alertables(*procesos):
     return list(procesos)
 
 
-def _use_case(repositorio_mock, *procesos, registrar_retorno: bool = True):
+def _servicio_alertas(marcados=None):
+    servicio = MagicMock(spec=ServicioAlertasProceso)
+    servicio.marcar_leidas.return_value = marcados or []
+    return servicio
+
+
+def _use_case(repositorio_mock, *procesos, registrar_retorno: bool = True, servicio_alertas=None):
     repositorio_mock.obtener_procesos_alertables.return_value = _alertables(*procesos)
     repositorio_mock.registrar.return_value = registrar_retorno
-    return GenerarAlertasSlaUseCase(repositorio_mock)
+    return GenerarAlertasSlaUseCase(
+        repositorio_mock, servicio_alertas or _servicio_alertas()
+    )
 
 
 @pytest.mark.unit
@@ -269,7 +278,7 @@ class TestGenerarAlertasSlaCasosLimite:
                 ahora=AHORA_REF,
             )
         ]
-        uc = GenerarAlertasSlaUseCase(repositorio_mock)
+        uc = GenerarAlertasSlaUseCase(repositorio_mock, _servicio_alertas())
 
         uc.ejecutar(ahora=AHORA_REF)
         clave_primera = repositorio_mock.registrar.call_args.args[0].dedupe_key
@@ -307,7 +316,7 @@ class TestGenerarAlertasSlaCasosLimite:
 
     def test_sin_procesos_alertables_retorna_vacio(self, repositorio_mock):
         repositorio_mock.obtener_procesos_alertables.return_value = []
-        uc = GenerarAlertasSlaUseCase(repositorio_mock)
+        uc = GenerarAlertasSlaUseCase(repositorio_mock, _servicio_alertas())
 
         creadas = uc.ejecutar(ahora=AHORA_REF)
 
@@ -401,7 +410,7 @@ class TestGenerarAlertasSlaPublicacion:
     def test_no_publica_si_no_creo_nada(self, repositorio_mock):
         # Sin candidatos (o todas con dedupe ya existente) no hay nada que avisar.
         repositorio_mock.obtener_procesos_alertables.return_value = []
-        uc = GenerarAlertasSlaUseCase(repositorio_mock)
+        uc = GenerarAlertasSlaUseCase(repositorio_mock, _servicio_alertas())
 
         with patch.object(hub, 'publicar_desde_hilo') as publicar:
             uc.ejecutar(ahora=AHORA_REF)
@@ -418,4 +427,79 @@ class TestGenerarAlertasSlaPublicacion:
             creadas = uc.ejecutar(ahora=AHORA_REF)
 
         assert creadas == []
+        publicar.assert_not_called()
+
+
+@pytest.mark.unit
+class TestResolverEscalonesSla:
+
+    def test_vencido_resuelve_por_vencer_del_proceso(self, repositorio_mock):
+        # 11 de 10 días -> SLA_VENCIDO: el aviso de "próximo a vencer" ya no aplica.
+        proceso = crear_proceso_alertable_sla_mock(
+            id_proceso_comercial=42, dias_transcurridos=11, dias_limite=10, ahora=AHORA_REF
+        )
+        servicio = _servicio_alertas()
+        uc = _use_case(repositorio_mock, proceso, servicio_alertas=servicio)
+
+        uc.ejecutar(ahora=AHORA_REF)
+
+        servicio.marcar_leidas.assert_called_once_with(
+            42, ('SLA_POR_VENCER',), AHORA_REF
+        )
+
+    def test_por_vencer_no_resuelve_nada(self, repositorio_mock):
+        # 7 de 10 días -> SLA_POR_VENCER: no hay escalón inferior que resolver.
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=7, dias_limite=10, ahora=AHORA_REF
+        )
+        servicio = _servicio_alertas()
+        uc = _use_case(repositorio_mock, proceso, servicio_alertas=servicio)
+
+        uc.ejecutar(ahora=AHORA_REF)
+
+        servicio.marcar_leidas.assert_not_called()
+
+    def test_sin_alerta_no_resuelve_nada(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=6, dias_limite=10, ahora=AHORA_REF
+        )
+        servicio = _servicio_alertas()
+        uc = _use_case(repositorio_mock, proceso, servicio_alertas=servicio)
+
+        uc.ejecutar(ahora=AHORA_REF)
+
+        servicio.marcar_leidas.assert_not_called()
+
+    def test_publica_los_destinatarios_de_las_alertas_resueltas(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11, dias_limite=10, ahora=AHORA_REF
+        )
+        servicio = _servicio_alertas(marcados=['11111111-1', '22222222-2'])
+        uc = _use_case(
+            repositorio_mock, proceso, registrar_retorno=False, servicio_alertas=servicio
+        )
+
+        with patch.object(hub, 'publicar_desde_hilo') as publicar:
+            uc.ejecutar(ahora=AHORA_REF)
+
+        publicar.assert_called_once_with(
+            ['11111111-1', '22222222-2'],
+            {
+                'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS,
+                'motivo': 'alertas_leidas_cambio_estado',
+            },
+        )
+
+    def test_vencido_sin_alertas_resueltas_no_publica(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11, dias_limite=10, ahora=AHORA_REF
+        )
+        servicio = _servicio_alertas()
+        uc = _use_case(
+            repositorio_mock, proceso, registrar_retorno=False, servicio_alertas=servicio
+        )
+
+        with patch.object(hub, 'publicar_desde_hilo') as publicar:
+            uc.ejecutar(ahora=AHORA_REF)
+
         publicar.assert_not_called()

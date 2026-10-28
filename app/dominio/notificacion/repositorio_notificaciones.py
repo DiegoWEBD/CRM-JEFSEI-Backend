@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.dominio.notificacion.notificacion import Notificacion
+from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 
 
@@ -8,6 +9,28 @@ class RepositorioNotificaciones(ABC):
 
     @abstractmethod
     def obtener_procesos_alertables(self) -> list[ProcesoAlertableSla]:
+        pass
+
+    @abstractmethod
+    def obtener_polizas_alertables_renovacion(
+        self, id_cliente: int | None = None
+    ) -> list[PolizaAlertableRenovacion]:
+        """Pólizas no canceladas con fin de vigencia dentro del horizonte de
+        renovación (a 2 meses de vencer o ya vencidas), con los datos
+        necesarios para evaluar sus alertas de renovación.
+
+        Con `id_cliente` se acota a las pólizas de ese cliente (refresco de
+        alertas al cambiar sus responsables de renovación)."""
+        pass
+
+    @abstractmethod
+    def obtener_poliza_alertable_renovacion(
+        self, numero_poliza: str
+    ) -> PolizaAlertableRenovacion | None:
+        """Póliza alertable de renovación por número, o None si no aplica
+        (no existe, está cancelada o su fin de vigencia está fuera del
+        horizonte de renovación). Se usa para re-evaluar sus alertas al tiro
+        al cambiar su fin de vigencia o al reactivarla."""
         pass
 
     @abstractmethod
@@ -34,6 +57,11 @@ class RepositorioNotificaciones(ABC):
     def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
         """Alertas SLA no leídas de procesos abiertos del prospecto cuyo estado
         siguiente tenga `rol` como responsable."""
+        pass
+
+    @abstractmethod
+    def buscar_notificaciones_por_poliza(self, numero_poliza: str) -> list[Notificacion]:
+        """Todas las notificaciones ligadas a la póliza (leídas o no)."""
         pass
 
     @abstractmethod

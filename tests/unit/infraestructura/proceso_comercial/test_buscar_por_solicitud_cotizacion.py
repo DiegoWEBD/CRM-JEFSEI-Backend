@@ -38,9 +38,16 @@ def _fila() -> dict:
         "id_producto": 1,
         "codigo_producto": "VIDA-001",
         "nombre_producto": "Seguro de Vida",
+        "renovacion": False,
         "fecha_estimada_cierre": None,
         "probabilidad_cierre_ejecutivo": None,
         "probabilidad_cierre": 0.05,
+        "descartado": False,
+        "motivo_cierre": None,
+        "fecha_cierre": None,
+        "fecha_apertura": datetime(2026, 9, 1, 10, 0, 0),
+        "monto_asegurado_actual": None,
+        "nombre_excel_alicuota": None,
     }
 
 

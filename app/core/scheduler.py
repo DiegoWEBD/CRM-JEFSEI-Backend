@@ -3,8 +3,11 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_cierre_estimado import GenerarAlertasCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alertas_renovacion import GenerarAlertasRenovacionUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.core.config import settings
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
@@ -17,7 +20,10 @@ _scheduler: BackgroundScheduler | None = None
 
 def generar_alertas_sla_job() -> None:
     try:
-        use_case = GenerarAlertasSlaUseCase(RepositorioNotificacionesPostgres())
+        use_case = GenerarAlertasSlaUseCase(
+            RepositorioNotificacionesPostgres(),
+            ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
+        )
         creadas = use_case.ejecutar()
 
         if creadas:
@@ -36,6 +42,7 @@ def generar_alertas_cierre_estimado_job() -> None:
             RepositorioProcesosComercialesPostgres(),
             RepositorioNotificacionesPostgres(),
             generar_alerta_cierre,
+            ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
         )
         creadas = use_case.ejecutar()
 
@@ -43,6 +50,24 @@ def generar_alertas_cierre_estimado_job() -> None:
             logger.info('Generadas %s alertas de cierre estimado', len(creadas))
     except Exception:
         logger.exception('Error generando alertas de cierre estimado')
+
+
+def generar_alertas_renovacion_job() -> None:
+    try:
+        generar_alerta_renovacion = GenerarAlertaRenovacionPolizaUseCase(
+            RepositorioNotificacionesPostgres(),
+        )
+        use_case = GenerarAlertasRenovacionUseCase(
+            RepositorioNotificacionesPostgres(),
+            generar_alerta_renovacion,
+            ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
+        )
+        creadas = use_case.ejecutar()
+
+        if creadas:
+            logger.info('Generadas %s alertas de renovación', len(creadas))
+    except Exception:
+        logger.exception('Error generando alertas de renovación')
 
 
 def iniciar_scheduler() -> BackgroundScheduler | None:
@@ -67,6 +92,13 @@ def iniciar_scheduler() -> BackgroundScheduler | None:
         generar_alertas_cierre_estimado_job,
         trigger=IntervalTrigger(minutes=settings.CRM_SCHEDULER_INTERVALO_MINUTOS),
         id='generar_alertas_cierre_estimado',
+        replace_existing=True,
+        max_instances=1,
+    )
+    _scheduler.add_job(
+        generar_alertas_renovacion_job,
+        trigger=IntervalTrigger(minutes=settings.CRM_SCHEDULER_INTERVALO_MINUTOS),
+        id='generar_alertas_renovacion',
         replace_existing=True,
         max_instances=1,
     )

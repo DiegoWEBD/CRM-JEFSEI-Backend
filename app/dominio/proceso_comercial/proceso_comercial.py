@@ -21,7 +21,14 @@ class ProcesoComercial:
         probabilidad_cierre_ejecutivo: float | None = None,
         prima_cotizada: float | None = None,
         prima_potencial_estimada: float | None = None,
-        prima_esperada: float | None = None
+        prima_esperada: float | None = None,
+        renovacion: bool = False,
+        descartado: bool = False,
+        motivo_cierre: str | None = None,
+        fecha_cierre: datetime | None = None,
+        fecha_apertura: datetime | None = None,
+        monto_asegurado_actual: float | None = None,
+        nombre_excel_alicuota: str | None = None,
     ):
         self.id = id
         self.ejecutivo_comercial = ejecutivo_comercial
@@ -38,3 +45,10 @@ class ProcesoComercial:
         self.prima_cotizada = prima_cotizada
         self.prima_potencial_estimada = prima_potencial_estimada
         self.prima_esperada = prima_esperada
+        self.renovacion = renovacion
+        self.descartado = descartado
+        self.motivo_cierre = motivo_cierre
+        self.fecha_cierre = fecha_cierre
+        self.fecha_apertura = fecha_apertura
+        self.monto_asegurado_actual = monto_asegurado_actual
+        self.nombre_excel_alicuota = nombre_excel_alicuota
