@@ -3,6 +3,8 @@ from fastapi import Query
 from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import ReevaluarAlertasRenovacionDescarteUseCase
 from app.aplicacion.proceso_comercial.use_cases.administrar_unidades_alicuota import AdministrarUnidadesAlicuotaUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_fecha_estimada_cierre import ActualizarFechaEstimadaCierreUseCase
 from app.aplicacion.proceso_comercial.use_cases.actualizar_probabilidad_cierre_ejecutivo import ActualizarProbabilidadCierreEjecutivoUseCase
@@ -74,14 +76,19 @@ def get_descartar_proceso_comercial_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_historial = RepositorioHistorialEstadoProcesosComercialesPostgres()
     repositorio_notificaciones = RepositorioNotificacionesPostgres()
+    servicio_alertas = ServicioAlertasProceso(repositorio_notificaciones)
 
     return DescartarProcesoComercialUseCase(
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
         repositorio_prospectos=repositorio_prospectos,
         repositorio_historial=repositorio_historial,
-        repositorio_notificaciones=repositorio_notificaciones,
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
+        servicio_alertas=servicio_alertas,
+        reevaluar_alertas=ReevaluarAlertasRenovacionDescarteUseCase(
+            repositorio_procesos_comerciales=repositorio_procesos,
+            servicio_alertas=servicio_alertas,
+            generar_alerta_renovacion=GenerarAlertaRenovacionPolizaUseCase(repositorio_notificaciones),
+        )
     )
 
 def get_crear_proceso_comercial_use_case():

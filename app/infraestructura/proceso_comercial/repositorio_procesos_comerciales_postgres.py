@@ -756,6 +756,22 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return row['id'] if row else None
 
+    def obtener_poliza_base_renovacion(self, id_proceso: int) -> str | None:
+        # Sin filtro por descartado: el lookup se usa justamente al descartar
+        # el proceso de renovación, y la póliza base sigue vigente.
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select PCR.numero_poliza_base
+                    from ProcesoComercialRenovacion PCR
+                    where PCR.id = %(id_proceso)s
+                '''
+
+                cur.execute(query, {'id_proceso': id_proceso})
+                row = cur.fetchone()
+
+                return row['numero_poliza_base'] if row else None
+
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

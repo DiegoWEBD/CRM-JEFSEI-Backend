@@ -4,7 +4,9 @@ from app.aplicacion.authorization.authorization_service_factory import Authoriza
 from app.aplicacion.linea_negocio.use_cases.obtener_linea_negocio_prospecto import ObtenerLineaNegocioProspectoUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import GenerarAlertaCierreEstimadoUseCase
+from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import ReevaluarAlertasRenovacionDescarteUseCase
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
@@ -135,12 +137,19 @@ def get_actualizar_prospecto_condominio_use_case():
 
 def get_actualizar_linea_negocio_prospecto_use_case():
     repositorio_notificaciones = RepositorioNotificacionesPostgres()
+    repositorio_procesos = RepositorioProcesosComercialesPostgres()
+    servicio_alertas = ServicioAlertasProceso(repositorio_notificaciones)
     return CambiarLineaNegocioProspectoUseCase(
         repositorio_prospectos=RepositorioProspectosPostgres(),
         repositorio_lineas_negocio=RepositorioLineasNegocioPostgres(),
-        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_procesos_comerciales=repositorio_procesos,
         repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
-        servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        servicio_alertas=servicio_alertas,
+        reevaluar_alertas=ReevaluarAlertasRenovacionDescarteUseCase(
+            repositorio_procesos_comerciales=repositorio_procesos,
+            servicio_alertas=servicio_alertas,
+            generar_alerta_renovacion=GenerarAlertaRenovacionPolizaUseCase(repositorio_notificaciones),
+        ),
     )
 
 

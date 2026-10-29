@@ -6,6 +6,9 @@ import pytest
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import (
+    ReevaluarAlertasRenovacionDescarteUseCase,
+)
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import (
     MOTIVO_DESCARTE_CAMBIO_LINEA,
     CambiarLineaNegocioProspectoUseCase,
@@ -80,12 +83,20 @@ def servicio_alertas_mock():
 
 
 @pytest.fixture
+def reevaluar_alertas_mock():
+    mock = MagicMock(spec=ReevaluarAlertasRenovacionDescarteUseCase)
+    mock.ejecutar.return_value = []
+    return mock
+
+
+@pytest.fixture
 def use_case(
     repositorio_prospectos_mock,
     repositorio_lineas_negocio_mock,
     repositorio_procesos_mock,
     repositorio_historial_mock,
     servicio_alertas_mock,
+    reevaluar_alertas_mock,
 ):
     return CambiarLineaNegocioProspectoUseCase(
         repositorio_prospectos=repositorio_prospectos_mock,
@@ -93,6 +104,7 @@ def use_case(
         repositorio_procesos_comerciales=repositorio_procesos_mock,
         repositorio_historial=repositorio_historial_mock,
         servicio_alertas=servicio_alertas_mock,
+        reevaluar_alertas=reevaluar_alertas_mock,
     )
 
 
@@ -173,6 +185,47 @@ class TestCambiarLineaNegocioProspecto:
             for llamada in servicio_alertas_mock.marcar_todas_leidas.call_args_list
         ]
         assert ids == [10, 11]
+
+    def test_reevalua_alertas_de_renovacion_de_cada_oportunidad(self, mock_hub,
+            use_case, reevaluar_alertas_mock, usuario):
+        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+
+        assert reevaluar_alertas_mock.ejecutar.call_count == 2
+        ids = [
+            llamada.args[0]
+            for llamada in reevaluar_alertas_mock.ejecutar.call_args_list
+        ]
+        assert ids == [10, 11]
+        for llamada in reevaluar_alertas_mock.ejecutar.call_args_list:
+            assert isinstance(llamada.args[1], datetime)
+            assert llamada.args[1].tzinfo is not None
+
+    def test_reevalua_tras_persistir_cada_descarte(self, mock_hub, use_case,
+            repositorio_procesos_mock, reevaluar_alertas_mock, usuario):
+        orden = []
+        repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
+
+        def _reevaluar(id, ahora):
+            orden.append('reevaluar')
+            return []
+
+        reevaluar_alertas_mock.ejecutar.side_effect = _reevaluar
+
+        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+
+        assert orden == ['descarte', 'reevaluar', 'descarte', 'reevaluar']
+
+    def test_publica_alertas_renovacion_si_hay_destinatarios(self, mock_hub,
+            use_case, reevaluar_alertas_mock, usuario):
+        reevaluar_alertas_mock.ejecutar.side_effect = [['22222222-2'], ['22222222-2']]
+
+        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+
+        assert mock_hub.publicar_desde_hilo.call_count == 2
+        mock_hub.publicar_desde_hilo.assert_called_with(
+            ['22222222-2'],
+            {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_renovacion_actualizadas'},
+        )
 
     def test_publica_destinatarios_unicos_en_el_hub(self, mock_hub, use_case,
             servicio_alertas_mock, usuario):

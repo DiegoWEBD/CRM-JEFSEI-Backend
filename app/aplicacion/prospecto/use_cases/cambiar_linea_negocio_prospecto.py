@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import (
+    ReevaluarAlertasRenovacionDescarteUseCase,
+)
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.dato_invalido_exception import DatoInvalidoException
@@ -26,12 +29,14 @@ class CambiarLineaNegocioProspectoUseCase:
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_historial: RepositorioHistorialEstadoProcesosComerciales,
         servicio_alertas: ServicioAlertasProceso,
+        reevaluar_alertas: ReevaluarAlertasRenovacionDescarteUseCase,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_lineas_negocio = repositorio_lineas_negocio
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_historial = repositorio_historial
         self.servicio_alertas = servicio_alertas
+        self.reevaluar_alertas = reevaluar_alertas
 
     def ejecutar(
         self,
@@ -73,10 +78,16 @@ class CambiarLineaNegocioProspectoUseCase:
         # abiertas de la anterior si algo falla a mitad del proceso.
         ahora = datetime.now(tz=timezone.utc)
         destinatarios: list[str] = []
+        destinatarios_renovacion: list[str] = []
 
         for proceso in procesos_abiertos:
             self._descartar_proceso(proceso, ahora, usuario)
             destinatarios.extend(self.servicio_alertas.marcar_todas_leidas(proceso.id, ahora))
+
+            # Si la oportunidad descartada era de renovación, la póliza base
+            # vuelve a necesitar sus alertas: se re-evalúan de inmediato (los
+            # hitos que sigan aplicando se recrean), sin esperar al scheduler.
+            destinatarios_renovacion.extend(self.reevaluar_alertas.ejecutar(proceso.id, ahora))
 
         prospecto.linea_negocio = linea_negocio
         self.repositorio_prospectos.actualizar_prospecto(prospecto)
@@ -86,6 +97,13 @@ class CambiarLineaNegocioProspectoUseCase:
             hub.publicar_desde_hilo(
                 destinatarios_unicos,
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_descarte'},
+            )
+
+        destinatarios_renovacion_unicos = list(dict.fromkeys(destinatarios_renovacion))
+        if destinatarios_renovacion_unicos:
+            hub.publicar_desde_hilo(
+                destinatarios_renovacion_unicos,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_renovacion_actualizadas'},
             )
 
         return len(procesos_abiertos)

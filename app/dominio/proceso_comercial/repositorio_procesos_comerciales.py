@@ -28,6 +28,17 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
+    def obtener_poliza_base_renovacion(self, id_proceso: int) -> str | None:
+        """Número de la póliza base del proceso comercial de renovación.
+
+        None si el proceso no es de renovación (no tiene fila en
+        ProcesoComercialRenovacion). Es el lookup inverso de
+        buscar_renovacion_por_poliza_base: se usa al descartar una
+        oportunidad de renovación para re-evaluar las alertas de su póliza.
+        """
+        pass
+
+    @abstractmethod
     def buscar(self, id: int) -> ProcesoComercial | None:
         pass
 

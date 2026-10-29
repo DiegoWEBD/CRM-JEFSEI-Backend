@@ -2,15 +2,15 @@ from datetime import datetime, timezone
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
-from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import (
+    ReevaluarAlertasRenovacionDescarteUseCase,
+)
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
-from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
@@ -24,15 +24,15 @@ class DescartarProcesoComercialUseCase:
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_prospectos: RepositorioProspectos,
         repositorio_historial: RepositorioHistorialEstadoProcesosComerciales,
-        repositorio_notificaciones: RepositorioNotificaciones,
         servicio_alertas: ServicioAlertasProceso,
+        reevaluar_alertas: ReevaluarAlertasRenovacionDescarteUseCase,
     ):
         self.authorization_service = authorization_service
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_historial = repositorio_historial
-        self.repositorio_notificaciones = repositorio_notificaciones
         self.servicio_alertas = servicio_alertas
+        self.reevaluar_alertas = reevaluar_alertas
 
     def ejecutar(self, id: int, observacion: str | None, usuario: Usuario):
         proceso = self.repositorio_procesos_comerciales.buscar(id)
@@ -78,4 +78,15 @@ class DescartarProcesoComercialUseCase:
             hub.publicar_desde_hilo(
                 destinatarios,
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_descarte'},
+            )
+
+        # Si la oportunidad descartada era de renovación, la póliza base
+        # vuelve a necesitar sus alertas: se re-evalúan de inmediato (los
+        # hitos que sigan aplicando se recrean), sin esperar al scheduler.
+        destinatarios_renovacion = self.reevaluar_alertas.ejecutar(id, ahora)
+
+        if destinatarios_renovacion:
+            hub.publicar_desde_hilo(
+                destinatarios_renovacion,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_renovacion_actualizadas'},
             )
