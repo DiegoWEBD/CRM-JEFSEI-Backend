@@ -259,7 +259,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     region = %(region)s,
                     comuna = %(comuna)s,
                     observaciones = %(observaciones)s,
-                    id_linea_negocio = %(id_linea_negocio)s,
                     informacion_completa = %(informacion_completa)s
                     where id = %(id)s
                 '''
@@ -273,7 +272,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'region': prospecto.region,
                     'comuna': prospecto.comuna,
                     'observaciones': prospecto.observaciones,
-                    'id_linea_negocio': prospecto.linea_negocio.id,
                     'informacion_completa': informacion_completa_prospecto_condominio(prospecto),
                     'id': prospecto.id
                 }

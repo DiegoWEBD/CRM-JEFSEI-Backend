@@ -227,17 +227,18 @@ def actualizar_prospecto(
 def actualizar_linea_negocio_prospecto(
     id: int,
     request: CambiarLineaNegocioProspectoRequest,
-    usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
+    usuario = Depends(permisos_requeridos('CAMBIAR_LINEA_NEGOCIO_PROSPECTO')),
     use_case: CambiarLineaNegocioProspectoUseCase = Depends(get_actualizar_linea_negocio_prospecto_use_case)
 ):
-    use_case.ejecutar(
+    oportunidades_descartadas = use_case.ejecutar(
         id=id,
         usuario=usuario,
         id_linea_negocio=request.id_linea_negocio
     )
 
     return {
-        'message': 'Línea de negocio del prospecto actualizada correctamente'
+        'message': 'Línea de negocio del prospecto actualizada correctamente',
+        'oportunidades_descartadas': oportunidades_descartadas
     }
 
 
@@ -260,7 +261,6 @@ def actualizar_prospecto_condominio(
         region=request.region,
         comuna=request.comuna,
         observaciones=request.observaciones,
-        id_linea_negocio=request.id_linea_negocio,
         porcentaje_espacios_comunes=request.porcentaje_espacios_comunes,
         tiene_locales_comerciales=request.tiene_locales_comerciales,
         uso_del_condominio=request.uso_del_condominio,

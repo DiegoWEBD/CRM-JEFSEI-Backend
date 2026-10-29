@@ -179,7 +179,7 @@ def _cambiar_linea_negocio(params: dict, body: dict, resolvedor: ResolvedorNombr
         ))
     return AccionDescrita(
         evento=EventoAuditoria.ACTUALIZAR,
-        verbo='cambiado la línea de negocio',
+        verbo='cambiado la línea de negocio, descartando las oportunidades abiertas',
         fragmentos=fragmentos,
     )
 

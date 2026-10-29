@@ -7,6 +7,9 @@ from app.aplicacion.authorization.authorization_service import AuthorizationServ
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
+from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import (
+    ReevaluarAlertasRenovacionDescarteUseCase,
+)
 from app.aplicacion.proceso_comercial.use_cases.descartar_proceso_comercial import (
     DescartarProcesoComercialUseCase,
 )
@@ -20,9 +23,6 @@ from app.dominio.historial_estado.historial_estado_proceso_comercial import (
 )
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import (
     RepositorioHistorialEstadoProcesosComerciales,
-)
-from app.dominio.notificacion.repositorio_notificaciones import (
-    RepositorioNotificaciones,
 )
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
     RepositorioProcesosComerciales,
@@ -69,8 +69,10 @@ def repositorio_historial_mock():
 
 
 @pytest.fixture
-def repositorio_notificaciones_mock():
-    return MagicMock(spec=RepositorioNotificaciones)
+def reevaluar_alertas_mock():
+    mock = MagicMock(spec=ReevaluarAlertasRenovacionDescarteUseCase)
+    mock.ejecutar.return_value = []
+    return mock
 
 
 @pytest.fixture
@@ -86,16 +88,16 @@ def use_case(
     repositorio_procesos_mock,
     repositorio_prospectos_mock,
     repositorio_historial_mock,
-    repositorio_notificaciones_mock,
     servicio_alertas_mock,
+    reevaluar_alertas_mock,
 ):
     return DescartarProcesoComercialUseCase(
         authorization_service=authorization_service_mock,
         repositorio_procesos_comerciales=repositorio_procesos_mock,
         repositorio_prospectos=repositorio_prospectos_mock,
         repositorio_historial=repositorio_historial_mock,
-        repositorio_notificaciones=repositorio_notificaciones_mock,
         servicio_alertas=servicio_alertas_mock,
+        reevaluar_alertas=reevaluar_alertas_mock,
     )
 
 
@@ -154,6 +156,43 @@ class TestDescartarProcesoComercial:
             {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_leidas_descarte'},
         )
 
+    def test_reevalua_alertas_de_renovacion_de_la_poliza_base(self, mock_hub,
+            use_case, reevaluar_alertas_mock, usuario):
+        use_case.ejecutar(id=1, observacion=None, usuario=usuario)
+
+        reevaluar_alertas_mock.ejecutar.assert_called_once()
+        args = reevaluar_alertas_mock.ejecutar.call_args.args
+        assert args[0] == 1
+        assert isinstance(args[1], datetime)
+        assert args[1].tzinfo is not None
+
+    def test_reevalua_tras_persistir_el_descarte(self, mock_hub, use_case,
+            repositorio_procesos_mock, reevaluar_alertas_mock, usuario):
+        orden = []
+        repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
+
+        def _reevaluar(id, ahora):
+            orden.append('reevaluar')
+            return []
+
+        reevaluar_alertas_mock.ejecutar.side_effect = _reevaluar
+
+        use_case.ejecutar(id=1, observacion=None, usuario=usuario)
+
+        assert orden == ['descarte', 'reevaluar']
+
+    def test_publica_alertas_renovacion_si_hay_destinatarios(self, mock_hub,
+            use_case, reevaluar_alertas_mock, usuario):
+        reevaluar_alertas_mock.ejecutar.return_value = ['22222222-2']
+
+        use_case.ejecutar(id=1, observacion=None, usuario=usuario)
+
+        assert mock_hub.publicar_desde_hilo.call_count == 2
+        mock_hub.publicar_desde_hilo.assert_called_with(
+            ['22222222-2'],
+            {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_renovacion_actualizadas'},
+        )
+
     def test_sin_destinatarios_no_publica(self, mock_hub, use_case,
             servicio_alertas_mock, usuario):
         servicio_alertas_mock.marcar_todas_leidas.return_value = []
@@ -164,7 +203,7 @@ class TestDescartarProcesoComercial:
 
     def test_proceso_no_encontrado_no_descarta(self, mock_hub, use_case,
             repositorio_procesos_mock, repositorio_historial_mock,
-            servicio_alertas_mock, usuario):
+            servicio_alertas_mock, reevaluar_alertas_mock, usuario):
         repositorio_procesos_mock.buscar.return_value = None
 
         with pytest.raises(RecursoNoEncontradoException):
@@ -173,6 +212,7 @@ class TestDescartarProcesoComercial:
         repositorio_procesos_mock.actualizar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         servicio_alertas_mock.marcar_todas_leidas.assert_not_called()
+        reevaluar_alertas_mock.ejecutar.assert_not_called()
 
     def test_proceso_cerrado_no_descarta(self, mock_hub, use_case,
             repositorio_procesos_mock, repositorio_historial_mock, usuario):
@@ -206,7 +246,8 @@ class TestDescartarProcesoComercial:
 
     def test_no_autorizado_no_descarta(self, mock_hub, use_case,
             authorization_service_mock, repositorio_procesos_mock,
-            repositorio_historial_mock, servicio_alertas_mock, usuario):
+            repositorio_historial_mock, servicio_alertas_mock,
+            reevaluar_alertas_mock, usuario):
         authorization_service_mock.usuario_puede_descartar_proceso_comercial.return_value = False
 
         with pytest.raises(UsuarioNoAutorizadoException):
@@ -215,4 +256,5 @@ class TestDescartarProcesoComercial:
         repositorio_procesos_mock.actualizar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         servicio_alertas_mock.marcar_todas_leidas.assert_not_called()
+        reevaluar_alertas_mock.ejecutar.assert_not_called()
         mock_hub.publicar_desde_hilo.assert_not_called()

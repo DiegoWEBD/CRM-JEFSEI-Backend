@@ -2,7 +2,6 @@ from app.dominio.administrador_condominio.administrador_condominio import Admini
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.infraestructura.lib.normalizar_rut import normalizar_rut
 from app.infraestructura.lib.normalizar_texto import normalizar_texto
@@ -26,7 +25,6 @@ class ActualizarProspectoCondominioUseCase:
         region: str | None,
         comuna: str | None, 
         observaciones: str | None, 
-        id_linea_negocio: int,  
         porcentaje_espacios_comunes: float | None,
         tiene_locales_comerciales: bool | None,
         uso_del_condominio: str | None,
@@ -100,10 +98,5 @@ class ActualizarProspectoCondominioUseCase:
         prospecto.tiene_alarma_incendio = tiene_alarma_incendio
         prospecto.tiene_sprinklers = tiene_sprinklers
         prospecto.porcentaje_espacios_comunes = porcentaje_espacios_comunes
-
-        prospecto.linea_negocio = LineaNegocio(
-            id=id_linea_negocio,
-            nombre=''
-        )
 
         self.repositorio_prospectos.actualizar_prospecto_condominio(prospecto)
