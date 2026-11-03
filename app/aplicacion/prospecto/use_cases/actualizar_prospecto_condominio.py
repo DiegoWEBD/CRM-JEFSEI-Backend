@@ -40,7 +40,8 @@ class ActualizarProspectoCondominioUseCase:
         tiene_alarma_incendio: bool | None,
         tiene_sprinklers: bool | None,
         year_construccion: int | None,
-        metros_cuadrados: float | None
+        metros_cuadrados: float | None,
+        condominio_vertical: bool | None
     ):
         
         prospecto = self.repositorio_prospectos.buscar_prospecto_condominio(id)
@@ -98,5 +99,6 @@ class ActualizarProspectoCondominioUseCase:
         prospecto.tiene_alarma_incendio = tiene_alarma_incendio
         prospecto.tiene_sprinklers = tiene_sprinklers
         prospecto.porcentaje_espacios_comunes = porcentaje_espacios_comunes
+        prospecto.condominio_vertical = condominio_vertical
 
         self.repositorio_prospectos.actualizar_prospecto_condominio(prospecto)

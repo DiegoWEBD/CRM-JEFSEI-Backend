@@ -54,7 +54,8 @@ class RegistrarProspectoUseCase:
         tiene_alarma_incendio: bool | None = None,
         tiene_sprinklers: bool | None = None,
         year_construccion: int | None = None,
-        metros_cuadrados: float | None = None
+        metros_cuadrados: float | None = None,
+        condominio_vertical: bool | None = None
     ) -> int:
 
         nombre_existente = self.repositorio_prospectos.buscar_prospecto_por_nombre(nombre_riesgo)
@@ -111,7 +112,8 @@ class RegistrarProspectoUseCase:
             tiene_alarma_incendio=tiene_alarma_incendio,
             tiene_sprinklers=tiene_sprinklers,
             year_construccion=year_construccion,
-            metros_cuadrados=metros_cuadrados
+            metros_cuadrados=metros_cuadrados,
+            condominio_vertical=condominio_vertical
         )
 
     def _registrar_lineas_personales(
@@ -174,7 +176,8 @@ class RegistrarProspectoUseCase:
         tiene_alarma_incendio: bool | None,
         tiene_sprinklers: bool | None,
         year_construccion: int | None,
-        metros_cuadrados: float | None
+        metros_cuadrados: float | None,
+        condominio_vertical: bool | None
     ) -> int:
         registrado_por = self._buscar_registrado_por(rut_usuario)
 
@@ -220,7 +223,8 @@ class RegistrarProspectoUseCase:
             procesos_productivos=procesos_productivos,
             ubicacion_piscina=ubicacion_piscina,
             tiene_alarma_incendio=tiene_alarma_incendio,
-            tiene_sprinklers=tiene_sprinklers
+            tiene_sprinklers=tiene_sprinklers,
+            condominio_vertical=condominio_vertical
         )
         
         return self.repositorio_prospectos.registrar_prospecto_condominio(prospecto)

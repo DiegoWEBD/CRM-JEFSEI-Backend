@@ -22,7 +22,7 @@ class RepositorioSolicitudesCotizacion(ABC):
         pass
 
     @abstractmethod
-    def existe_solicitud(self, id) -> bool:
+    def existe_solicitud(self, id: int) -> bool:
         pass
 
     @abstractmethod

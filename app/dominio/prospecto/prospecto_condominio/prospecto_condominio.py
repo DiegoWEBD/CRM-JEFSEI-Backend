@@ -43,6 +43,8 @@ class ProspectoCondominio(Prospecto):
         year_construccion: int | None,
         metros_cuadrados: float | None,
         valor_uf_m2_personalizado: float | None = None,
+        porcentaje_depreciacion_personalizado: float | None = None,
+        condominio_vertical: bool | None = None,
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
         id: int | None = None,
@@ -90,6 +92,8 @@ class ProspectoCondominio(Prospecto):
         self.tiene_alarma_incendio = tiene_alarma_incendio
         self.tiene_sprinklers = tiene_sprinklers
         self.valor_uf_m2_personalizado = valor_uf_m2_personalizado
+        self.porcentaje_depreciacion_personalizado = porcentaje_depreciacion_personalizado
+        self.condominio_vertical = condominio_vertical
         self._uf_por_metro_cuadrado: float | None = None
         self._porcentaje_depreciacion: float | None = None
 

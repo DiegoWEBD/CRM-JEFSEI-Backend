@@ -2,6 +2,7 @@ from app.dominio.authorization.authorizacion_repository import AuthorizationRepo
 from app.dominio.cuota.cuota import Cuota
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
 
@@ -118,3 +119,14 @@ class AuthorizationService:
 
         return (prospecto.ejecutivo_comercial_asignado is not None
                 and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut)
+
+    def usuario_puede_establecer_depreciacion_personalizada(self, prospecto: Prospecto, usuario: Usuario) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ESTABLECER_DEPRECIACION_PERSONALIZADA_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ESTABLECER_DEPRECIACION_PERSONALIZADA_PROPIOS'):
+            return False
+
+        return (prospecto.ejecutivo_evaluacion_asignado is not None
+                and prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut)

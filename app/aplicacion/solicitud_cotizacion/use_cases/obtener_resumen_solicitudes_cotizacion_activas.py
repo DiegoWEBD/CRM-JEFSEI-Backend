@@ -76,6 +76,8 @@ class ObtenerResumenSolicitudesCotizacionActivasUseCase:
                     campos_faltantes.append('year_construccion')
                 if condominio.metros_cuadrados is None:
                     campos_faltantes.append('metros_cuadrados')
+                if condominio.condominio_vertical is None:
+                    campos_faltantes.append('condominio_vertical')
                     
 
             solicitud.campos_faltantes = campos_faltantes

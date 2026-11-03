@@ -27,3 +27,4 @@ class ActualizarProspectoCondominioRequest(BaseModel):
     tiene_sprinklers: bool | None
     year_construccion: int | None
     metros_cuadrados: float | None
+    condominio_vertical: bool | None

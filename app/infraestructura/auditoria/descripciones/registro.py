@@ -209,6 +209,20 @@ def _fijar_valor_uf_m2(params: dict, body: dict, resolvedor: ResolvedorNombres) 
     )
 
 
+def _fijar_porcentaje_depreciacion(params: dict, body: dict, resolvedor: ResolvedorNombres) -> AccionDescrita:
+    valor = body.get('porcentaje_depreciacion_personalizado')
+    verbo = (
+        'quitado el porcentaje de depreciación personalizado'
+        if valor is None
+        else f'fijado un porcentaje de depreciación personalizado de {float(valor) * 100:g}%'
+    )
+    return AccionDescrita(
+        evento=EventoAuditoria.EJECUTAR_ACCION,
+        verbo=verbo,
+        fragmentos=[FragmentoFrase(entidad=_prospecto(int(params['id']), resolvedor))],
+    )
+
+
 def _registrar_contacto(params: dict, body: dict, resolvedor: ResolvedorNombres) -> AccionDescrita:
     return AccionDescrita(
         evento=EventoAuditoria.CREAR,
@@ -768,6 +782,7 @@ REGISTRO = [
     EntradaAccion('PATCH', re.compile(r'^/prospectos/(?P<id>\d+)/linea-negocio$'), EventoAuditoria.ACTUALIZAR, _cambiar_linea_negocio),
     EntradaAccion('PUT', re.compile(r'^/prospectos/condominios/(?P<id>\d+)$'), EventoAuditoria.ACTUALIZAR, _actualizar_ficha_condominio),
     EntradaAccion('PATCH', re.compile(r'^/prospectos/condominios/(?P<id>\d+)/valor-uf-m2-personalizado$'), EventoAuditoria.EJECUTAR_ACCION, _fijar_valor_uf_m2),
+    EntradaAccion('PATCH', re.compile(r'^/prospectos/condominios/(?P<id>\d+)/porcentaje-depreciacion-personalizado$'), EventoAuditoria.EJECUTAR_ACCION, _fijar_porcentaje_depreciacion),
     EntradaAccion('POST', re.compile(r'^/prospectos/(?P<id>\d+)/contactos$'), EventoAuditoria.CREAR, _registrar_contacto),
     EntradaAccion('POST', re.compile(r'^/prospectos/(?P<id_prospecto>\d+)/archivos/?$'), EventoAuditoria.CREAR, _subir_archivo),
     EntradaAccion('DELETE', re.compile(r'^/prospectos/(?P<id_prospecto>\d+)/archivos/(?P<id_archivo>\d+)$'), EventoAuditoria.ELIMINAR, _eliminar_archivo),

@@ -10,6 +10,7 @@ from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.actualizar_porcentaje_depreciacion_personalizado import ActualizarPorcentajeDepreciacionPersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion import AsignarEjecutivoEvaluacionUseCase
@@ -156,3 +157,13 @@ def get_actualizar_linea_negocio_prospecto_use_case():
 def get_actualizar_valor_uf_m2_personalizado_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     return ActualizarValorUfM2PersonalizadoUseCase(repositorio_prospectos)
+
+
+def get_actualizar_porcentaje_depreciacion_personalizado_use_case():
+    repositorio_prospectos = RepositorioProspectosPostgres()
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
+
+    return ActualizarPorcentajeDepreciacionPersonalizadoUseCase(
+        repositorio_prospectos=repositorio_prospectos,
+        authorization_service=authorization_service,
+    )

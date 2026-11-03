@@ -94,7 +94,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         tiene_sprinklers,
                         year_construccion,
                         metros_cuadrados,
-                        porcentaje_espacios_comunes
+                        porcentaje_espacios_comunes,
+                        condominio_vertical
                     )
                     values(
                         %(id)s,
@@ -114,7 +115,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         %(tiene_sprinklers)s,
                         %(year_construccion)s,
                         %(metros_cuadrados)s,
-                        %(porcentaje_espacios_comunes)s
+                        %(porcentaje_espacios_comunes)s,
+                        %(condominio_vertical)s
                     )
                 '''
 
@@ -137,6 +139,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'year_construccion': prospecto.year_construccion,
                     'metros_cuadrados': prospecto.metros_cuadrados,
                     'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
+                    'condominio_vertical': prospecto.condominio_vertical,
                 }
 
                 cur.execute(query, params)
@@ -298,6 +301,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     metros_cuadrados = %(metros_cuadrados)s,
                     porcentaje_espacios_comunes = %(porcentaje_espacios_comunes)s,
                     valor_uf_m2_personalizado = %(valor_uf_m2_personalizado)s,
+                    porcentaje_depreciacion_personalizado = %(porcentaje_depreciacion_personalizado)s,
+                    condominio_vertical = %(condominio_vertical)s,
                     id_administrador = %(id_administrador)s
                     where id = %(id)s
                 '''
@@ -320,6 +325,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'metros_cuadrados': prospecto.metros_cuadrados,
                     'porcentaje_espacios_comunes': prospecto.porcentaje_espacios_comunes,
                     'valor_uf_m2_personalizado': prospecto.valor_uf_m2_personalizado,
+                    'porcentaje_depreciacion_personalizado': prospecto.porcentaje_depreciacion_personalizado,
+                    'condominio_vertical': prospecto.condominio_vertical,
                     'id_administrador': prospecto.administrador.id if prospecto.administrador else None,
                     'id': prospecto.id
                 }
@@ -734,6 +741,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PCO.tiene_sprinklers,
                     PCO.year_construccion, PCO.metros_cuadrados,
                     PCO.valor_uf_m2_personalizado,
+                    PCO.porcentaje_depreciacion_personalizado,
+                    PCO.condominio_vertical,
                     PCO.porcentaje_espacios_comunes,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
@@ -797,7 +806,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     valor_uf = config_repo.obtener_valor_uf_por_region(prospecto.region) if prospecto.region else None
                     prospecto.uf_por_metro_cuadrado = valor_uf
 
-                if prospecto.year_construccion:
+                if prospecto.porcentaje_depreciacion_personalizado is not None:
+                    prospecto.porcentaje_depreciacion = prospecto.porcentaje_depreciacion_personalizado
+                elif prospecto.year_construccion:
                     params_depreciacion = config_repo.obtener_parametros_depreciacion()
                     if params_depreciacion:
                         prospecto.porcentaje_depreciacion = ServicioCalculoDepreciacion.calcular(
