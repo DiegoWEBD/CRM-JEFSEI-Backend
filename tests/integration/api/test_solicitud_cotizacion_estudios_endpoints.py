@@ -3,16 +3,18 @@ from unittest.mock import MagicMock
 import pytest
 from app.main import app
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.evaluacion_proyectos.use_cases.listar_estudios_comerciales import ListarEstudiosComercialesUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
+from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
-from app.presentacion.api.cotizacion.dependencias.deps import get_subir_estudio_comercial_use_case
+from app.presentacion.api.cotizacion.dependencias.deps import get_listar_estudios_comerciales_use_case, get_subir_estudio_comercial_use_case
 from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_authorization_service
 from tests.integration.api.conftest_api import *  # noqa: F401,F403
 from tests.factories.usuario_factory import crear_permiso_mock, crear_rol_mock, crear_usuario_mock
-from tests.factories.auth_factory import crear_token_mock, headers_auth
 
 
 PDF_MOCK = b'%PDF-1.4\n%contenido de prueba\n'
@@ -64,6 +66,13 @@ def repositorio_estudios_mock():
 
 
 @pytest.fixture
+def repositorio_solicitudes_mock():
+    repositorio = MagicMock(spec=RepositorioSolicitudesCotizacion)
+    repositorio.buscar.return_value = MagicMock()  # la solicitud existe por defecto
+    return repositorio
+
+
+@pytest.fixture
 def client_subir(usuario_subir, use_case_subir_mock):
     def override_get_current_user():
         return usuario_subir
@@ -94,13 +103,18 @@ def client_subir_sin_permiso(usuario_sin_permisos, use_case_subir_mock):
 
 
 @pytest.fixture
-def client_ver_propios(usuario_ver_propios, authorization_service_mock, repositorio_estudios_mock):
+def client_ver_propios(usuario_ver_propios, authorization_service_mock, repositorio_estudios_mock, repositorio_solicitudes_mock):
     def override_get_current_user():
         return usuario_ver_propios
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_authorization_service] = lambda: authorization_service_mock
     app.dependency_overrides[get_repositorio_estudios] = lambda: repositorio_estudios_mock
+    app.dependency_overrides[get_listar_estudios_comerciales_use_case] = lambda: ListarEstudiosComercialesUseCase(
+        repositorio_solicitudes=repositorio_solicitudes_mock,
+        repositorio_estudios=repositorio_estudios_mock,
+        authorization_service=authorization_service_mock,
+    )
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:
@@ -110,13 +124,18 @@ def client_ver_propios(usuario_ver_propios, authorization_service_mock, reposito
 
 
 @pytest.fixture
-def client_ver_todos(usuario_ver_todos, authorization_service_mock, repositorio_estudios_mock):
+def client_ver_todos(usuario_ver_todos, authorization_service_mock, repositorio_estudios_mock, repositorio_solicitudes_mock):
     def override_get_current_user():
         return usuario_ver_todos
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_authorization_service] = lambda: authorization_service_mock
     app.dependency_overrides[get_repositorio_estudios] = lambda: repositorio_estudios_mock
+    app.dependency_overrides[get_listar_estudios_comerciales_use_case] = lambda: ListarEstudiosComercialesUseCase(
+        repositorio_solicitudes=repositorio_solicitudes_mock,
+        repositorio_estudios=repositorio_estudios_mock,
+        authorization_service=authorization_service_mock,
+    )
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:
@@ -126,13 +145,18 @@ def client_ver_todos(usuario_ver_todos, authorization_service_mock, repositorio_
 
 
 @pytest.fixture
-def client_ver_sin_permiso(usuario_sin_permisos, authorization_service_mock, repositorio_estudios_mock):
+def client_ver_sin_permiso(usuario_sin_permisos, authorization_service_mock, repositorio_estudios_mock, repositorio_solicitudes_mock):
     def override_get_current_user():
         return usuario_sin_permisos
 
     app.dependency_overrides[get_current_user] = override_get_current_user
     app.dependency_overrides[get_authorization_service] = lambda: authorization_service_mock
     app.dependency_overrides[get_repositorio_estudios] = lambda: repositorio_estudios_mock
+    app.dependency_overrides[get_listar_estudios_comerciales_use_case] = lambda: ListarEstudiosComercialesUseCase(
+        repositorio_solicitudes=repositorio_solicitudes_mock,
+        repositorio_estudios=repositorio_estudios_mock,
+        authorization_service=authorization_service_mock,
+    )
 
     from starlette.testclient import TestClient
     with TestClient(app) as c:
@@ -202,9 +226,7 @@ class TestListarEstudiosComercialesEndpoint:
         self, client_ver_propios, authorization_service_mock, repositorio_estudios_mock, headers_auth_validos
     ):
         authorization_service_mock.usuario_puede_ver_estudios_comerciales.return_value = True
-        estudio = MagicMock()
-        estudio.id = 5
-        estudio.nombre_archivo = 'estudio_comercial_1_123.pdf'
+        estudio = EstudioComercialCondominio(id=5, id_solicitud=1, nombre_archivo='estudio_comercial_1_123.pdf')
         repositorio_estudios_mock.listar_por_id_solicitud.return_value = [estudio]
 
         response = client_ver_propios.get(
@@ -213,7 +235,20 @@ class TestListarEstudiosComercialesEndpoint:
         )
 
         assert response.status_code == 200
-        assert response.json() == [{'id': 5, 'nombre_archivo': 'estudio_comercial_1_123.pdf'}]
+        assert response.json() == [{'id': 5, 'id_solicitud': 1, 'nombre_archivo': 'estudio_comercial_1_123.pdf'}]
+
+    def test_solicitud_inexistente_retorna_404(
+        self, client_ver_propios, repositorio_solicitudes_mock, repositorio_estudios_mock, headers_auth_validos
+    ):
+        repositorio_solicitudes_mock.buscar.return_value = None
+
+        response = client_ver_propios.get(
+            '/solicitudes-cotizacion/1/estudios-comerciales',
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 404
+        repositorio_estudios_mock.listar_por_id_solicitud.assert_not_called()
 
     @pytest.mark.auth
     def test_sin_permiso_retorna_403(self, client_ver_sin_permiso, repositorio_estudios_mock, headers_auth_validos):
