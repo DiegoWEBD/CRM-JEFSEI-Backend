@@ -4,6 +4,7 @@ from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import Actualizar
 from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCotizacionUseCase
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
+from app.aplicacion.evaluacion_proyectos.use_cases.listar_estudios_comerciales import ListarEstudiosComercialesUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
@@ -54,6 +55,14 @@ def get_subir_estudio_comercial_use_case():
         repositorio_notificaciones=repositorio_notificaciones,
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
         servicio_archivos=ServicioArchivos(),
+        authorization_service=AuthorizationServiceFactory.crear_authorization_service()
+    )
+
+
+def get_listar_estudios_comerciales_use_case():
+    return ListarEstudiosComercialesUseCase(
+        repositorio_solicitudes=RepositorioSolicitudesCotizacionPostgres(),
+        repositorio_estudios=RepositorioEstudiosComercialesPostgres(),
         authorization_service=AuthorizationServiceFactory.crear_authorization_service()
     )
 

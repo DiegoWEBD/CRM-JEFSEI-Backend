@@ -6,6 +6,7 @@ from app.aplicacion.cotizacion.use_cases.actualizar_cotizacion import Actualizar
 from app.aplicacion.cotizacion.use_cases.eliminar_cotizacion import EliminarCotizacionUseCase
 from app.aplicacion.cotizacion.use_cases.obtener_cotizaciones_por_solicitud import ObtenerCotizacionesPorSolicitudUseCase
 from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import RegistrarCotizacionASolicitudUseCase
+from app.aplicacion.evaluacion_proyectos.use_cases.listar_estudios_comerciales import ListarEstudiosComercialesUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
@@ -18,6 +19,7 @@ from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_
 from app.presentacion.api.cotizacion.dependencias.deps import (
     get_actualizar_cotizacion_use_case,
     get_eliminar_cotizacion_use_case,
+    get_listar_estudios_comerciales_use_case,
     get_obtener_cotizaciones_por_solicitud_use_case,
     get_registrar_cotizacion_a_solicitud_use_case,
     get_subir_estudio_comercial_use_case,
@@ -273,20 +275,11 @@ def subir_estudio_comercial(
 def listar_estudios_comerciales(
     id: int,
     usuario: Usuario = Depends(permisos_requeridos('VER_ESTUDIOS_COMERCIALES_PROPIOS', 'VER_ESTUDIOS_COMERCIALES_TODOS')),
-    authorization_service: AuthorizationService = Depends(get_authorization_service),
-    repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
+    use_case: ListarEstudiosComercialesUseCase = Depends(get_listar_estudios_comerciales_use_case),
 ):
-    if not authorization_service.usuario_puede_ver_estudios_comerciales(usuario.rut, id):
-        raise UsuarioNoAutorizadoException
+    estudios = use_case.ejecutar(id_solicitud=id, usuario=usuario)
 
-    estudios = repositorio.listar_por_id_solicitud(id)
-    return [
-        {
-            'id': e.id,
-            'nombre_archivo': e.nombre_archivo,
-        }
-        for e in estudios
-    ]
+    return estudios
 
 
 @router.get('/{id}/estudios-comerciales/{estudio_id}/archivo', status_code=status.HTTP_200_OK)
