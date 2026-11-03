@@ -56,7 +56,7 @@ def crear_proceso_alertable_sla_mock(
     nombre_etapa: str = "Prospección",
     nombre_prospecto: str | None = "Cliente Test",
     nombre_producto: str | None = "Producto Test",
-    dias_transcurridos: int = 7,
+    dias_transcurridos: float = 7,
     dias_limite: int | None = 10,
     rol_responsable: str | None = "EJECUTIVO_COMERCIAL",
     rut_ej_comercial: str | None = "11111111-1",

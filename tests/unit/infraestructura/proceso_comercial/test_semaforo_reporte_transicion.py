@@ -64,6 +64,40 @@ class TestSemaforoReporteUsaTransicionPrincipal:
         assert 'HI.fecha_registro AS fecha_ingreso_estado' in query_str
         assert 'fecha_ingreso_etapa' not in query_str
 
+    def test_el_transcurrido_se_calcula_como_dia_decimal(self, mock_conexion):
+        """El transcurrido es una fracción de día (segundos / 86400), no días enteros."""
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = CONTADORES
+        cursor.fetchall.return_value = []
+
+        repo = RepositorioProcesosComercialesPostgres()
+        repo.obtener_todos()
+
+        query_str = str(cursor.execute.call_args_list[0].args[0])
+        assert "EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - HI.fecha_registro)) / 86400.0" in query_str
+        assert 'transcurrido_dias' in query_str
+        # Sin truncar a días enteros.
+        assert 'EXTRACT(DAY FROM' not in query_str
+
+    def test_el_mensaje_semaforo_expresa_dias_y_horas(self, mock_conexion):
+        """El texto visible del semáforo muestra días y horas ('0 días 13 h')."""
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchone.return_value = CONTADORES
+        cursor.fetchall.return_value = []
+
+        repo = RepositorioProcesosComercialesPostgres()
+        repo.obtener_todos()
+
+        query_str = str(cursor.execute.call_args_list[0].args[0])
+        assert "'Dentro del plazo ('" in query_str
+        assert "'Próximo a vencer ('" in query_str
+        assert "'Fuera de plazo (+'" in query_str
+        # Formato 'X días Y h' con singular/plural y horas opcionales.
+        assert "THEN 'día' ELSE 'días' END" in query_str
+        assert "|| ' h' END)" in query_str
+
     def test_umbrales_y_guardia_de_sla_sin_limite(self, mock_conexion):
         """Mismos umbrales que las alertas: VERDE < 70%, AMARILLO <= 100%, ROJO > 100%.
 

@@ -11,6 +11,7 @@ from app.dominio.notificacion.tipos_alerta import (
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
     tipos_resueltos_por,
 )
+from app.dominio.sla.formato_sla import dias_decimales, formatear_dias_horas
 
 
 # Umbral de aviso: al consumir el 70% del plazo la oportunidad queda "próximo a vencer".
@@ -100,7 +101,9 @@ class GenerarAlertasSlaUseCase:
         if not destinatarios:
             return []
 
-        dias_transcurridos = (ahora - proceso.fecha_ingreso_estado).days
+        # Transcurrido con precisión de horas (días decimales, 24/7): el consumo
+        # del plazo se evalúa sobre la fracción real, sin truncar a días enteros.
+        dias_transcurridos = dias_decimales(proceso.fecha_ingreso_estado, ahora)
         consumido = dias_transcurridos / proceso.dias_limite
 
         if consumido < UMBRAL_POR_VENCER:
@@ -118,10 +121,11 @@ class GenerarAlertasSlaUseCase:
             nivel = 'AVISO'
             titulo = f'Oportunidad próximo al límite en {proceso.nombre_estado}'
             mensaje = (
-                f'{self._nombre_proceso(proceso)} lleva {dias_transcurridos} de '
-                f'{proceso.dias_limite} días en {proceso.nombre_estado}'
+                f'{self._nombre_proceso(proceso)} lleva '
+                f'{formatear_dias_horas(dias_transcurridos)} de '
+                f'{formatear_dias_horas(proceso.dias_limite)} en {proceso.nombre_estado}'
                 f'{desc_siguiente} '
-                f'(restan {proceso.dias_limite - dias_transcurridos} días).'
+                f'(restan {formatear_dias_horas(proceso.dias_limite - dias_transcurridos)}).'
             )
         else:
             codigo_tipo = 'SLA_VENCIDO'
@@ -129,10 +133,11 @@ class GenerarAlertasSlaUseCase:
             atraso = dias_transcurridos - proceso.dias_limite
             titulo = f'Oportunidad fuera de plazo en {proceso.nombre_estado}'
             mensaje = (
-                f'{self._nombre_proceso(proceso)} lleva {dias_transcurridos} de '
-                f'{proceso.dias_limite} días en {proceso.nombre_estado}'
+                f'{self._nombre_proceso(proceso)} lleva '
+                f'{formatear_dias_horas(dias_transcurridos)} de '
+                f'{formatear_dias_horas(proceso.dias_limite)} en {proceso.nombre_estado}'
                 f'{desc_siguiente} '
-                f'({atraso} días de atraso).'
+                f'(+{formatear_dias_horas(atraso)} de atraso).'
             )
 
         return [

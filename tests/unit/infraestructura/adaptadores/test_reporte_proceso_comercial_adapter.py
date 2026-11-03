@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -16,12 +17,12 @@ def _make_row(
     cerrado=False,
     dias_limite_transicion=10,
     fecha_ingreso_estado=datetime(2026, 9, 25, 10, 0, 0, tzinfo=timezone.utc),
-    dias_transcurridos=6,
-    porcentaje_sla_consumido=0.6,
+    dias_transcurridos=6.5,
+    porcentaje_sla_consumido=0.65,
     estado_semaforo="VERDE",
-    dias_restantes=4,
-    dias_atraso=-4,
-    mensaje_semaforo="Dentro del plazo (6 de 10 días)",
+    dias_restantes=3.5,
+    dias_atraso=-3.5,
+    mensaje_semaforo="Dentro del plazo (6 días 12 h de 10 días)",
 ) -> dict:
     return {
         "id": 1,
@@ -62,8 +63,25 @@ class TestDictRowReporteProcesoComercialAdapter:
         assert isinstance(reporte, ReportesProcesoComercialDTO)
         assert reporte.fecha_ingreso_estado == "2026-09-25T10:00:00+00:00"
         assert reporte.dias_limite == 10
-        assert reporte.dias_transcurridos == 6
+        assert reporte.dias_transcurridos == 6.5
+        assert reporte.dias_restantes == 3.5
+        assert reporte.dias_atraso == -3.5
         assert reporte.estado_semaforo == EstadoSemaforo.VERDE
+
+    def test_conserva_la_fraccion_de_dia_como_float(self):
+        """Los días llegan como decimal (numeric de Postgres): se exponen como float."""
+        row = _make_row(
+            dias_transcurridos=Decimal("0.5417"),
+            dias_restantes=Decimal("0.4583"),
+            dias_atraso=Decimal("-0.4583"),
+        )
+
+        reporte = DictRowReporteProcesoComercialAdapter(row).to_reporte()
+
+        assert isinstance(reporte.dias_transcurridos, float)
+        assert reporte.dias_transcurridos == pytest.approx(0.5417)
+        assert reporte.dias_restantes == pytest.approx(0.4583)
+        assert reporte.dias_atraso == pytest.approx(-0.4583)
 
     def test_mapea_dias_limite_null_cuando_no_hay_transicion_principal(self):
         reporte = DictRowReporteProcesoComercialAdapter(
