@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
@@ -9,12 +10,19 @@ from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotif
 from app.dominio.notificacion.tipos_alerta import (
     ROL_EJECUTIVO_COMERCIAL,
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
-    tipos_resueltos_por,
 )
+from app.dominio.sla.formato_sla import dias_decimales, formatear_dias_horas
 
 
 # Umbral de aviso: al consumir el 70% del plazo la oportunidad queda "próximo a vencer".
 UMBRAL_POR_VENCER = 0.7
+
+# Tramos de las alertas de permanencia en estado: 70 (aviso previo), 100 (al
+# vencer) y luego un recordatorio nuevo cada 30% de consumo adicional
+# (130, 160, 190, ...).
+TRAMO_POR_VENCER = 70
+TRAMO_VENCIDO = 100
+PASO_RECORDATORIO_PORCENTAJE = 30
 
 # Mapa rol_responsable -> campo del proceso que contiene al destinatario asignado.
 # Roles fuera de este mapa se resuelven vía fan-out (todos los usuarios activos con ese rol).
@@ -51,16 +59,16 @@ class GenerarAlertasSlaUseCase:
                 if self.repositorio_notificaciones.registrar(notificacion):
                     creadas.append(notificacion)
 
-            # Escalonamiento: al superar el plazo (SLA_VENCIDO), el aviso de
-            # "próximo a vencer" (SLA_POR_VENCER) ya no aplica.
-            tipos_a_resolver = tipos_resueltos_por(
-                {notificacion.codigo_tipo for notificacion in alertas}
-            )
-
-            if tipos_a_resolver:
+            # Escalonamiento: la alerta del tramo actual deja superadas a las
+            # anteriores del proceso (aviso de "próximo a vencer" y tramos de
+            # vencimiento menores), que se marcan leídas.  Solo aplica una vez
+            # vencido: el aviso de "próximo a vencer" no tiene anteriores.
+            if alertas and any(n.codigo_tipo == 'SLA_VENCIDO' for n in alertas):
                 resueltas.extend(
-                    self.servicio_alertas.marcar_leidas(
-                        proceso.id_proceso_comercial, tipos_a_resolver, ahora
+                    self.servicio_alertas.marcar_leidas_sla_anteriores(
+                        proceso.id_proceso_comercial,
+                        {notificacion.dedupe_key for notificacion in alertas},
+                        ahora,
                     )
                 )
 
@@ -100,7 +108,9 @@ class GenerarAlertasSlaUseCase:
         if not destinatarios:
             return []
 
-        dias_transcurridos = (ahora - proceso.fecha_ingreso_estado).days
+        # Transcurrido con precisión de horas (días decimales, 24/7): el consumo
+        # del plazo se evalúa sobre la fracción real, sin truncar a días enteros.
+        dias_transcurridos = dias_decimales(proceso.fecha_ingreso_estado, ahora)
         consumido = dias_transcurridos / proceso.dias_limite
 
         if consumido < UMBRAL_POR_VENCER:
@@ -115,30 +125,51 @@ class GenerarAlertasSlaUseCase:
 
         if consumido <= 1.0:
             codigo_tipo = 'SLA_POR_VENCER'
+            tramo = TRAMO_POR_VENCER
             nivel = 'AVISO'
             titulo = f'Oportunidad próximo al límite en {proceso.nombre_estado}'
             mensaje = (
-                f'{self._nombre_proceso(proceso)} lleva {dias_transcurridos} de '
-                f'{proceso.dias_limite} días en {proceso.nombre_estado}'
+                f'{self._nombre_proceso(proceso)} lleva '
+                f'{formatear_dias_horas(dias_transcurridos)} de '
+                f'{formatear_dias_horas(proceso.dias_limite)} en {proceso.nombre_estado}'
                 f'{desc_siguiente} '
-                f'(restan {proceso.dias_limite - dias_transcurridos} días).'
+                f'(restan {formatear_dias_horas(proceso.dias_limite - dias_transcurridos)}).'
             )
         else:
             codigo_tipo = 'SLA_VENCIDO'
+            tramo = self._tramo_vencido(consumido)
             nivel = 'CRITICO'
             atraso = dias_transcurridos - proceso.dias_limite
-            titulo = f'Oportunidad fuera de plazo en {proceso.nombre_estado}'
-            mensaje = (
-                f'{self._nombre_proceso(proceso)} lleva {dias_transcurridos} de '
-                f'{proceso.dias_limite} días en {proceso.nombre_estado}'
-                f'{desc_siguiente} '
-                f'({atraso} días de atraso).'
-            )
+
+            if tramo == TRAMO_VENCIDO:
+                titulo = f'Oportunidad fuera de plazo en {proceso.nombre_estado}'
+                mensaje = (
+                    f'{self._nombre_proceso(proceso)} lleva '
+                    f'{formatear_dias_horas(dias_transcurridos)} de '
+                    f'{formatear_dias_horas(proceso.dias_limite)} en {proceso.nombre_estado}'
+                    f'{desc_siguiente} '
+                    f'(+{formatear_dias_horas(atraso)} de atraso).'
+                )
+            else:
+                # Recordatorio de un tramo posterior (130, 160, ...): el texto
+                # se basta solo, ya que la alerta del tramo anterior quedó
+                # leída.  El porcentaje es el consumo real (como el % Consumido
+                # del panel), no el tramo del recordatorio.
+                titulo = f'Oportunidad sigue fuera de plazo en {proceso.nombre_estado}'
+                mensaje = (
+                    f'{self._nombre_proceso(proceso)} lleva '
+                    f'{formatear_dias_horas(dias_transcurridos)} de '
+                    f'{formatear_dias_horas(proceso.dias_limite)} en {proceso.nombre_estado}'
+                    f'{desc_siguiente} '
+                    f'(va por el {self._porcentaje_entero(consumido)}% del plazo, '
+                    f'+{formatear_dias_horas(atraso)} de atraso).'
+                )
 
         return [
             NotificacionFactory.crear_alerta_sla(
                 rut_usuario=rut,
                 codigo_tipo=codigo_tipo,
+                tramo=tramo,
                 nivel=nivel,
                 titulo=titulo,
                 mensaje=mensaje,
@@ -149,6 +180,30 @@ class GenerarAlertasSlaUseCase:
             )
             for rut in destinatarios
         ]
+
+    @staticmethod
+    def _tramo_vencido(consumido: float) -> int:
+        """Tramo de recordatorio alcanzado: 100 y luego cada 30% adicional.
+
+        Un consumo exacto de 130% debe caer en el tramo 130: el epsilon
+        absorbe el error de coma flotante en los límites (p. ej. 1.3 puede
+        calcularse como 1.2999...).
+        """
+        pasos = math.floor(
+            (consumido * 100 - TRAMO_VENCIDO) / PASO_RECORDATORIO_PORCENTAJE + 1e-9
+        )
+        return TRAMO_VENCIDO + PASO_RECORDATORIO_PORCENTAJE * pasos
+
+    @staticmethod
+    def _porcentaje_entero(consumido: float) -> int:
+        """Porcentaje del plazo consumido, redondeado a entero half-up.
+
+        El mismo redondeo que el % Consumido del panel (toFixed() del
+        frontend), para que la notificación y el panel muestren siempre
+        la misma cifra.  Python round() usa banker's rounding y podría
+        diferir en un punto en los casos .5.
+        """
+        return math.floor(consumido * 100 + 0.5)
 
     def _resolver_destinatarios(self, proceso: ProcesoAlertableSla) -> list[str]:
         """Resuelve los RUTs destinatarios de la alerta.

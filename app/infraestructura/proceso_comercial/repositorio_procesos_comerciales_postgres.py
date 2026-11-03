@@ -439,6 +439,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EPC.codigo AS codigo_etapa,
                     EPC.nombre AS nombre_etapa,
                     HI.fecha_registro AS fecha_ingreso_estado,
+                    CASE
+                        WHEN HI.fecha_registro IS NULL THEN NULL
+                        ELSE EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - HI.fecha_registro)) / 86400.0
+                    END AS transcurrido_dias,
                     T.dias_limite AS dias_limite_transicion,
                     PC.cerrado,
                     PC.descartado,
@@ -473,43 +477,66 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
             )
         """)
 
+    @staticmethod
+    def _fmt_dias_horas(expresion: sql.Composable) -> sql.Composable:
+        """Formatea días decimales como texto 'X días Y h' (singular 'X día').
+
+        Días y horas se redondean hacia abajo; con horas en 0 se omite esa parte.
+        """
+        return sql.SQL(
+            "(FLOOR({e})::int || ' ' || CASE WHEN FLOOR({e})::int = 1 THEN 'día' ELSE 'días' END"
+            " || CASE WHEN MOD(FLOOR({e} * 24)::int, 24) = 0"
+            " THEN '' ELSE ' ' || MOD(FLOOR({e} * 24)::int, 24) || ' h' END)"
+        ).format(e=expresion)
+
     def _construir_columnas_semaforo(self) -> sql.Composable:
+        transcurrido = sql.SQL('base.transcurrido_dias')
+        fmt_transcurrido = self._fmt_dias_horas(transcurrido)
+        fmt_limite = self._fmt_dias_horas(sql.SQL('base.dias_limite_transicion::numeric'))
+        fmt_atraso = self._fmt_dias_horas(
+            sql.SQL('(base.transcurrido_dias - base.dias_limite_transicion)')
+        )
+
         return sql.SQL("""
                 SELECT *,
                     CASE
                         WHEN base.cerrado THEN 'NO_APLICA'
                         WHEN base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN 'NO_APLICA'
-                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) / base.dias_limite_transicion < 0.70 THEN 'VERDE'
-                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) / base.dias_limite_transicion <= 1.0 THEN 'AMARILLO'
+                        WHEN base.transcurrido_dias / base.dias_limite_transicion < 0.70 THEN 'VERDE'
+                        WHEN base.transcurrido_dias / base.dias_limite_transicion <= 1.0 THEN 'AMARILLO'
                         ELSE 'ROJO'
                     END AS estado_semaforo,
                     CASE
                         WHEN base.cerrado OR base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN NULL
-                        ELSE EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado)::int
+                        ELSE ROUND(base.transcurrido_dias, 4)
                     END AS dias_transcurridos,
                     CASE
                         WHEN base.cerrado OR base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN NULL
-                        ELSE ROUND((EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) / base.dias_limite_transicion)::numeric, 4)
+                        ELSE ROUND((base.transcurrido_dias / base.dias_limite_transicion)::numeric, 4)
                     END AS porcentaje_sla_consumido,
                     CASE
                         WHEN base.cerrado OR base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN NULL
-                        ELSE (base.dias_limite_transicion - EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado))::int
+                        ELSE ROUND((base.dias_limite_transicion - base.transcurrido_dias)::numeric, 4)
                     END AS dias_restantes,
                     CASE
                         WHEN base.cerrado OR base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN NULL
-                        ELSE (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) - base.dias_limite_transicion)::int
+                        ELSE ROUND((base.transcurrido_dias - base.dias_limite_transicion)::numeric, 4)
                     END AS dias_atraso,
                     CASE
                         WHEN base.cerrado THEN NULL
                         WHEN base.fecha_ingreso_estado IS NULL OR base.dias_limite_transicion IS NULL OR base.dias_limite_transicion <= 0 THEN NULL
-                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) / base.dias_limite_transicion < 0.70
-                            THEN 'Dentro del plazo (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado)::text || ' de ' || base.dias_limite_transicion::text || ' días)'
-                        WHEN EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado) / base.dias_limite_transicion <= 1.0
-                            THEN 'Próximo a vencer (' || EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado)::text || ' de ' || base.dias_limite_transicion::text || ' días)'
-                        ELSE 'Fuera de plazo (+' || (EXTRACT(DAY FROM (NOW() AT TIME ZONE 'UTC') - base.fecha_ingreso_estado)::int - base.dias_limite_transicion)::text || ' días de atraso)'
+                        WHEN base.transcurrido_dias / base.dias_limite_transicion < 0.70
+                            THEN 'Dentro del plazo (' || {fmt_transcurrido} || ' de ' || {fmt_limite} || ')'
+                        WHEN base.transcurrido_dias / base.dias_limite_transicion <= 1.0
+                            THEN 'Próximo a vencer (' || {fmt_transcurrido} || ' de ' || {fmt_limite} || ')'
+                        ELSE 'Fuera de plazo (+' || {fmt_atraso} || ' de atraso)'
                     END AS mensaje_semaforo
                 FROM base
-        """)
+        """).format(
+            fmt_transcurrido=fmt_transcurrido,
+            fmt_limite=fmt_limite,
+            fmt_atraso=fmt_atraso,
+        )
             
     def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
         with obtener_conexion() as conn:

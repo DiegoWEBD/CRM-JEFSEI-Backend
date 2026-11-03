@@ -17,8 +17,11 @@ class TestTiposResueltosPor:
             'RENOVACION_GESTION_PENDIENTE',
         )
 
-    def test_sla_vencido_resuelve_por_vencer(self):
-        assert tipos_resueltos_por(['SLA_VENCIDO']) == ('SLA_POR_VENCER',)
+    def test_sla_no_escalona_por_tipo(self):
+        # El escalonamiento de alertas SLA por tramos (70/100/130/...) lo hace
+        # ServicioAlertasProceso.marcar_leidas_sla_anteriores, no por tipo.
+        assert tipos_resueltos_por(['SLA_VENCIDO']) == ()
+        assert tipos_resueltos_por(['SLA_POR_VENCER']) == ()
 
     def test_fecha_cierre_vencida_resuelve_el_por_vencer(self):
         assert tipos_resueltos_por(['FECHA_CIERRE_VENCIDA']) == (
@@ -27,7 +30,6 @@ class TestTiposResueltosPor:
 
     def test_tipos_sin_escalones_no_resuelven_nada(self):
         assert tipos_resueltos_por(['RENOVACION_COTIZACION_PENDIENTE']) == ()
-        assert tipos_resueltos_por(['SLA_POR_VENCER']) == ()
         assert tipos_resueltos_por(['CIERRE_ESTIMADO_PROXIMO']) == ()
         assert tipos_resueltos_por([]) == ()
 

@@ -1,9 +1,10 @@
+from collections.abc import Collection
 from datetime import datetime
 
 from app.dominio.notificacion.repositorio_notificaciones import (
     RepositorioNotificaciones,
 )
-from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_RENOVACION
+from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_RENOVACION, TIPOS_ALERTA_SLA
 
 
 class ServicioAlertasProceso:
@@ -29,6 +30,45 @@ class ServicioAlertasProceso:
             id_proceso_comercial
         ):
             if notificacion.codigo_tipo not in tipos:
+                continue
+
+            if notificacion.leida:
+                continue
+
+            notificacion.leida = True
+            notificacion.fecha_leida = ahora
+            self.repositorio_notificaciones.actualizar(notificacion)
+
+            if notificacion.rut_usuario:
+                destinatarios.append(notificacion.rut_usuario)
+
+        return destinatarios
+
+    """Marca leídas las alertas SLA no leídas del proceso salvo las claves dadas.
+
+    Se invoca al crear la alerta de un tramo de vencimiento: las alertas de
+    tramos anteriores (incluido el aviso de "próximo a vencer") quedan
+    superadas por la nueva.  Las claves excluidas son las del tramo actual
+    (todas las del fan-out de destinatarios), que no deben marcarse.
+    Devuelve los RUTs cuyas alertas fueron marcadas (alertas huérfanas sin
+    destinatario quedan fuera), para que el caso de uso publique el
+    refresco correspondiente por socket.
+    """
+    def marcar_leidas_sla_anteriores(
+        self,
+        id_proceso_comercial: int,
+        claves_excluidas: Collection[str],
+        ahora: datetime,
+    ) -> list[str]:
+        destinatarios: list[str] = []
+
+        for notificacion in self.repositorio_notificaciones.buscar_notificaciones_proceso_comercial(
+            id_proceso_comercial
+        ):
+            if notificacion.codigo_tipo not in TIPOS_ALERTA_SLA:
+                continue
+
+            if notificacion.dedupe_key in claves_excluidas:
                 continue
 
             if notificacion.leida:

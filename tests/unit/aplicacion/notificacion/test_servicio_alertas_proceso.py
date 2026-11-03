@@ -301,3 +301,128 @@ class TestEliminarRenovacion:
 
         assert servicio.eliminar_renovacion('POL-404') == []
         repositorio_mock.eliminar.assert_not_called()
+
+
+@pytest.mark.unit
+class TestMarcarLeidasSlaAnteriores:
+
+    def test_marca_solo_alertas_sla_fuera_de_las_claves_excluidas(self, servicio, repositorio_mock):
+        tramo_actual = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='SLA_VENCIDO',
+            dedupe_key='SLA_VENCIDO@160:42:CONTACTO_INICIAL:12345678-9',
+        )
+        tramo_anterior = crear_notificacion_mock(
+            id=2,
+            codigo_tipo='SLA_VENCIDO',
+            dedupe_key='SLA_VENCIDO@130:42:CONTACTO_INICIAL:22222222-2',
+            rut_usuario='22222222-2',
+        )
+        por_vencer = crear_notificacion_mock(
+            id=3,
+            codigo_tipo='SLA_POR_VENCER',
+            dedupe_key='SLA_POR_VENCER@70:42:CONTACTO_INICIAL:33333333-3',
+            rut_usuario='33333333-3',
+        )
+        otro_tipo = crear_notificacion_mock(
+            id=4,
+            codigo_tipo='FECHA_CIERRE_VENCIDA',
+            dedupe_key='FECHA_CIERRE_VENCIDA:42:44444444-4',
+            rut_usuario='44444444-4',
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [
+            tramo_actual,
+            tramo_anterior,
+            por_vencer,
+            otro_tipo,
+        ]
+
+        destinatarios = servicio.marcar_leidas_sla_anteriores(
+            42,
+            {'SLA_VENCIDO@160:42:CONTACTO_INICIAL:12345678-9'},
+            AHORA,
+        )
+
+        repositorio_mock.buscar_notificaciones_proceso_comercial.assert_called_once_with(42)
+        assert repositorio_mock.actualizar.call_count == 2
+        repositorio_mock.actualizar.assert_any_call(tramo_anterior)
+        repositorio_mock.actualizar.assert_any_call(por_vencer)
+        assert tramo_actual.leida is False
+        assert tramo_anterior.leida is True
+        assert tramo_anterior.fecha_leida == AHORA
+        assert por_vencer.leida is True
+        assert otro_tipo.leida is False
+        assert otro_tipo.fecha_leida is None
+        assert destinatarios == ['22222222-2', '33333333-3']
+
+    def test_excluye_varias_claves_del_tramo_actual(self, servicio, repositorio_mock):
+        # Fan-out: las claves de todos los destinatarios del tramo actual
+        # quedan fuera del marcado.
+        propia = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='SLA_VENCIDO',
+            dedupe_key='SLA_VENCIDO@130:42:CONTACTO_INICIAL:11111111-1',
+        )
+        otra_del_tramo = crear_notificacion_mock(
+            id=2,
+            codigo_tipo='SLA_VENCIDO',
+            dedupe_key='SLA_VENCIDO@130:42:CONTACTO_INICIAL:22222222-2',
+            rut_usuario='22222222-2',
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [
+            propia,
+            otra_del_tramo,
+        ]
+
+        destinatarios = servicio.marcar_leidas_sla_anteriores(
+            42,
+            {
+                'SLA_VENCIDO@130:42:CONTACTO_INICIAL:11111111-1',
+                'SLA_VENCIDO@130:42:CONTACTO_INICIAL:22222222-2',
+            },
+            AHORA,
+        )
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert propia.leida is False
+        assert otra_del_tramo.leida is False
+        assert destinatarios == []
+
+    def test_no_remarca_las_ya_leidas(self, servicio, repositorio_mock):
+        leida = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='SLA_VENCIDO',
+            dedupe_key='SLA_VENCIDO@100:42:CONTACTO_INICIAL:12345678-9',
+            leida=True,
+            fecha_leida=AHORA_REF,
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [leida]
+
+        destinatarios = servicio.marcar_leidas_sla_anteriores(42, set(), AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert leida.fecha_leida == AHORA_REF
+        assert destinatarios == []
+
+    def test_excluye_las_sin_destinatario_del_resultado(self, servicio, repositorio_mock):
+        huerfana = crear_notificacion_mock(
+            id=1,
+            codigo_tipo='SLA_POR_VENCER',
+            dedupe_key='SLA_POR_VENCER@70:42:CONTACTO_INICIAL:12345678-9',
+            rut_usuario=None,
+        )
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = [huerfana]
+
+        destinatarios = servicio.marcar_leidas_sla_anteriores(42, set(), AHORA)
+
+        repositorio_mock.actualizar.assert_called_once_with(huerfana)
+        assert huerfana.leida is True
+        assert destinatarios == []
+
+    def test_sin_alertas_devuelve_vacio_sla(self, servicio, repositorio_mock):
+        repositorio_mock.buscar_notificaciones_proceso_comercial.return_value = []
+
+        destinatarios = servicio.marcar_leidas_sla_anteriores(42, set(), AHORA)
+
+        repositorio_mock.actualizar.assert_not_called()
+        assert destinatarios == []

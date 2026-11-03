@@ -82,6 +82,7 @@ class NotificacionFactory:
         *,
         rut_usuario: str | None,
         codigo_tipo: str,
+        tramo: int,
         nivel: str,
         titulo: str,
         mensaje: str,
@@ -104,8 +105,10 @@ class NotificacionFactory:
             entidad_id=id_proceso_comercial,
             id_prospecto=id_prospecto,
             # Dedupe estable (sin timestamp): el on conflict del repositorio
-            # evita duplicados entre corridas del scheduler.
-            dedupe_key=f'{codigo_tipo}:{id_proceso_comercial}:{codigo_estado}:{rut_usuario}',
+            # evita duplicados entre corridas del scheduler.  El tramo (70,
+            # 100, 130, ...) distingue los recordatorios de un mismo proceso,
+            # estado y usuario.
+            dedupe_key=f'{codigo_tipo}@{tramo}:{id_proceso_comercial}:{codigo_estado}:{rut_usuario}',
             leida=False,
             fecha_leida=None,
             created_at=ahora,

@@ -146,6 +146,7 @@ class TestCrearAlertaSla:
         notificacion = NotificacionFactory.crear_alerta_sla(
             rut_usuario='11111111-1',
             codigo_tipo='SLA_POR_VENCER',
+            tramo=70,
             nivel='AVISO',
             titulo='Oportunidad próximo al límite',
             mensaje='mensaje',
@@ -169,9 +170,29 @@ class TestCrearAlertaSla:
         assert notificacion.fecha_leida is None
         assert notificacion.created_at == AHORA
         # Dedupe estable: sin timestamp, el on conflict evita duplicados.
+        # El tramo distingue los recordatorios (70, 100, 130, ...).
         assert notificacion.dedupe_key == (
-            'SLA_POR_VENCER:42:CONTACTO_INICIAL:11111111-1'
+            'SLA_POR_VENCER@70:42:CONTACTO_INICIAL:11111111-1'
         )
+
+    def test_dedupe_key_varia_con_el_tramo(self):
+        kwargs = {
+            'rut_usuario': '11111111-1',
+            'codigo_tipo': 'SLA_VENCIDO',
+            'nivel': 'CRITICO',
+            'titulo': 'Oportunidad fuera de plazo',
+            'mensaje': 'mensaje',
+            'id_proceso_comercial': 42,
+            'id_prospecto': 7,
+            'codigo_estado': 'CONTACTO_INICIAL',
+            'ahora': AHORA,
+        }
+
+        tramo_100 = NotificacionFactory.crear_alerta_sla(tramo=100, **kwargs)
+        tramo_130 = NotificacionFactory.crear_alerta_sla(tramo=130, **kwargs)
+
+        assert tramo_100.dedupe_key == 'SLA_VENCIDO@100:42:CONTACTO_INICIAL:11111111-1'
+        assert tramo_130.dedupe_key == 'SLA_VENCIDO@130:42:CONTACTO_INICIAL:11111111-1'
 
 
 @pytest.mark.unit

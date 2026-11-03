@@ -10,12 +10,13 @@ from app.presentacion.api.proceso_comercial.dto.reportes_proceso_comercial_cerra
 class ReportesProcesoComercialDTO(BaseModel):
     proceso: ProcesoComercialJson
     fecha_ingreso_estado: str | None
-    dias_transcurridos: int | None
+    # Días decimales (fracción de día con precisión de horas, 24/7).
+    dias_transcurridos: float | None
     porentaje_sla_consumido: float | None
     estado_semaforo: EstadoSemaforo
     dias_limite: int | None
-    dias_restantes: int | None
-    dias_atraso: int | None
+    dias_restantes: float | None
+    dias_atraso: float | None
     mensaje_semaforo: str | None
 
 
