@@ -12,6 +12,7 @@ class ProspectoCondominioJson(ProspectoJson):
     porcentaje_espacios_comunes: float | None
     tiene_locales_comerciales: bool | None
     uso_del_condominio: str | None
+    condominio_vertical: bool | None
     materialidad: str | None
     clasificacion_preliminar_incendio: str | None
     procesos_productivos: bool | None

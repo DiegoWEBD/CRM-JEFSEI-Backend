@@ -91,6 +91,9 @@ class ArmarEstudioComercialCondominioUseCase:
         if prospecto.porcentaje_depreciacion is None:
             raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta el porcentaje de depreciación')
 
+        if prospecto.condominio_vertical is None:
+            raise ConflictoEnAccionException('No se puede armar el estudio del condominio con datos incompletos, falta determinar si el condominio es vertical u horizontal')
+
         es_unidades = proceso.producto.codigo == 'unidades'
 
         cotizaciones = []
@@ -115,7 +118,7 @@ class ArmarEstudioComercialCondominioUseCase:
             'uf_por_metro_cuadrado': convertir_numero_a_formato_chileno(prospecto.uf_por_metro_cuadrado),
             'porcentaje_depreciacion': round(prospecto.porcentaje_depreciacion * 100),
             'porcentaje_espacios_comunes': round(prospecto.porcentaje_espacios_comunes * 100),
-            'condominio_vertical': True,
+            'condominio_vertical': prospecto.condominio_vertical,
             'tipo_estudio': 'unidades' if es_unidades else 'espacios_comunes',
             'cantidad_cuotas': cantidad_cuotas,
             'year_actual': datetime.now(tz=timezone.utc).year,

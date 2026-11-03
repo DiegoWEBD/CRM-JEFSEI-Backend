@@ -68,6 +68,7 @@ class ProspectoCondominioJsonAdapter:
             tiene_sprinklers=self.prospecto.tiene_sprinklers,
             tiene_locales_comerciales=self.prospecto.tiene_locales_comerciales,
             uso_del_condominio=self.prospecto.uso_del_condominio,
+            condominio_vertical=self.prospecto.condominio_vertical,
             numero_pisos=self.prospecto.numero_pisos,
             numero_torres=self.prospecto.numero_torres,
             cantidad_departamentos=self.prospecto.cantidad_departamentos,

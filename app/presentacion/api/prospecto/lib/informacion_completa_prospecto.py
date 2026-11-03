@@ -59,6 +59,7 @@ def informacion_completa_prospecto_condominio(prospecto: ProspectoCondominio) ->
         "year_construccion": prospecto.year_construccion is not None,
         "metros_cuadrados": prospecto.metros_cuadrados is not None,
         "porcentaje_espacios_comunes": prospecto.porcentaje_espacios_comunes is not None,
+        "condominio_vertical": prospecto.condominio_vertical is not None,
         "planificacion": datos_completos_planificacion,
     }
 

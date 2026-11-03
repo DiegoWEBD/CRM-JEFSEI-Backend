@@ -156,7 +156,8 @@ def registrar_prospecto(
         procesos_productivos=request.procesos_productivos,
         ubicacion_piscina=request.ubicacion_piscina,
         tiene_alarma_incendio=request.tiene_alarma_incendio,
-        tiene_sprinklers=request.tiene_sprinklers
+        tiene_sprinklers=request.tiene_sprinklers,
+        condominio_vertical=request.condominio_vertical
     )
 
     return {
@@ -278,7 +279,8 @@ def actualizar_prospecto_condominio(
         tiene_alarma_incendio=request.tiene_alarma_incendio,
         tiene_sprinklers=request.tiene_sprinklers,
         year_construccion=request.year_construccion,
-        metros_cuadrados=request.metros_cuadrados
+        metros_cuadrados=request.metros_cuadrados,
+        condominio_vertical=request.condominio_vertical
     )
 
     return {

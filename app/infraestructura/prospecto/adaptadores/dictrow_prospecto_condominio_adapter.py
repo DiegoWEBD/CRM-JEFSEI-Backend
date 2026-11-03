@@ -59,6 +59,7 @@ class DictRowProspectoCondominioAdapter:
         metros_cuadrados = self.row['metros_cuadrados']
         valor_uf_m2_personalizado = self.row['valor_uf_m2_personalizado']
         porcentaje_depreciacion_personalizado = self.row['porcentaje_depreciacion_personalizado']
+        condominio_vertical = self.row['condominio_vertical']
         prospecto_updated_at = self.row['prospecto_updated_at']
         condominio_updated_at = self.row['condominio_updated_at']
 
@@ -184,6 +185,7 @@ class DictRowProspectoCondominioAdapter:
             metros_cuadrados=metros_cuadrados,
             valor_uf_m2_personalizado=valor_uf_m2_personalizado,
             porcentaje_depreciacion_personalizado=porcentaje_depreciacion_personalizado,
+            condominio_vertical=condominio_vertical,
             porcentaje_espacios_comunes=porcentaje_espacios_comunes,
             ultima_actualizacion=ultima_actualizacion,
             informacion_completa=informacion_completa,
