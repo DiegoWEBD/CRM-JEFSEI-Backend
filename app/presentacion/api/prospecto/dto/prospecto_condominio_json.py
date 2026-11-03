@@ -8,6 +8,7 @@ class ProspectoCondominioJson(ProspectoJson):
     valor_uf_m2_personalizado: float | None
     valor_uf_m2_disponible: bool
     porcentaje_depreciacion: float | None
+    porcentaje_depreciacion_personalizado: float | None
     porcentaje_espacios_comunes: float | None
     tiene_locales_comerciales: bool | None
     uso_del_condominio: str | None

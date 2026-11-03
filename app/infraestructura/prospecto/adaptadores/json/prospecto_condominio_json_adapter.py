@@ -58,6 +58,7 @@ class ProspectoCondominioJsonAdapter:
             valor_uf_m2_personalizado=self.prospecto.valor_uf_m2_personalizado,
             valor_uf_m2_disponible=self.prospecto.uf_por_metro_cuadrado is not None,
             porcentaje_depreciacion=self.prospecto.porcentaje_depreciacion,
+            porcentaje_depreciacion_personalizado=self.prospecto.porcentaje_depreciacion_personalizado,
             porcentaje_espacios_comunes=self.prospecto.porcentaje_espacios_comunes,
             materialidad=self.prospecto.materialidad,
             clasificacion_preliminar_incendio=self.prospecto.clasificacion_preliminar_incendio,

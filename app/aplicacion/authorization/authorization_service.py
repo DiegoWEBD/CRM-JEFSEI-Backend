@@ -118,3 +118,14 @@ class AuthorizationService:
 
         return (prospecto.ejecutivo_comercial_asignado is not None
                 and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut)
+
+    def usuario_puede_establecer_depreciacion_personalizada(self, prospecto: Prospecto, usuario: Usuario) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ESTABLECER_DEPRECIACION_PERSONALIZADA_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ESTABLECER_DEPRECIACION_PERSONALIZADA_PROPIOS'):
+            return False
+
+        return (prospecto.ejecutivo_evaluacion_asignado is not None
+                and prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut)

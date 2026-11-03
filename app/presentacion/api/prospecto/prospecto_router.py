@@ -9,6 +9,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.actualizar_porcentaje_depreciacion_personalizado import ActualizarPorcentajeDepreciacionPersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
@@ -27,9 +28,10 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_actualizar_valor_uf_m2_personalizado_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_porcentaje_depreciacion_personalizado_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_actualizar_valor_uf_m2_personalizado_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
+from app.presentacion.api.prospecto.dto.requests.actualizar_porcentaje_depreciacion_personalizado_request import ActualizarPorcentajeDepreciacionPersonalizadoRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_valor_uf_m2_personalizado_request import ActualizarValorUfM2PersonalizadoRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
 from app.presentacion.api.prospecto.dto.requests.asignar_ejecutivo_comercial_request import AsignarEjecutivoComercialRequest
@@ -298,6 +300,24 @@ def actualizar_valor_uf_m2_personalizado(
 
     return {
         'message': 'Valor UF/m2 personalizado actualizado correctamente'
+    }
+
+
+@router.patch('/condominios/{id}/porcentaje-depreciacion-personalizado', status_code=status.HTTP_200_OK)
+def actualizar_porcentaje_depreciacion_personalizado(
+    id: int,
+    request: ActualizarPorcentajeDepreciacionPersonalizadoRequest,
+    usuario: Usuario = Depends(permisos_requeridos('ESTABLECER_DEPRECIACION_PERSONALIZADA_TODOS', 'ESTABLECER_DEPRECIACION_PERSONALIZADA_PROPIOS')),
+    use_case: ActualizarPorcentajeDepreciacionPersonalizadoUseCase = Depends(get_actualizar_porcentaje_depreciacion_personalizado_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        porcentaje_depreciacion_personalizado=request.porcentaje_depreciacion_personalizado,
+        usuario=usuario
+    )
+
+    return {
+        'message': 'Porcentaje de depreciación personalizado actualizado correctamente'
     }
 
 
