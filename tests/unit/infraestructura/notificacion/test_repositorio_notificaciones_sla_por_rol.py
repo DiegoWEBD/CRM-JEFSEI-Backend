@@ -20,7 +20,7 @@ FILA = {
     'entidad_id': 42,
     'id_prospecto': 7,
     'numero_poliza': None,
-    'dedupe_key': 'SLA_POR_VENCER:42:CONTACTO_INICIAL:11111111-1',
+    'dedupe_key': 'SLA_POR_VENCER@70:42:CONTACTO_INICIAL:11111111-1',
     'leida': False,
     'fecha_leida': None,
     'created_at': datetime(2026, 10, 7, 12, 0, 0, tzinfo=timezone.utc),

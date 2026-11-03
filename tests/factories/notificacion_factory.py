@@ -20,7 +20,7 @@ def crear_notificacion_mock(
     entidad_id: int | None = 1,
     id_prospecto: int | None = 1,
     numero_poliza: str | None = None,
-    dedupe_key: str = "SLA_POR_VENCER:1:CONTACTO_INICIAL",
+    dedupe_key: str = "SLA_POR_VENCER@70:1:CONTACTO_INICIAL",
     leida: bool = False,
     fecha_leida: datetime | None = None,
     created_at: datetime | None = None,

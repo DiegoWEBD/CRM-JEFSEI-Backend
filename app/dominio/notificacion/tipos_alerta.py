@@ -17,15 +17,16 @@ TIPOS_ALERTA_RENOVACION = (
 
 # Escalonamiento de alertas: cuando una alerta de la clave aplica para la
 # entidad, las de nivel inferior listadas dejan de ser relevantes y se
-# marcan leídas en la misma corrida del scheduler (p. ej. al superar el
-# plazo, el aviso de "próximo a vencer" ya no aplica).
+# marcan leídas en la misma corrida del scheduler (p. ej. al vencer la
+# fecha de cierre, el aviso de "cierre próximo" ya no aplica).  Las alertas
+# SLA no escalan por tipo: sus recordatorios por tramo (70/100/130/...)
+# escalan vía ServicioAlertasProceso.marcar_leidas_sla_anteriores.
 ALERTAS_RESUELTAS_POR: dict[str, tuple[str, ...]] = {
     'RENOVACION_GESTION_PENDIENTE': ('RENOVACION_COTIZACION_PENDIENTE',),
     'RENOVACION_POLIZA_VENCIDA': (
         'RENOVACION_COTIZACION_PENDIENTE',
         'RENOVACION_GESTION_PENDIENTE',
     ),
-    'SLA_VENCIDO': ('SLA_POR_VENCER',),
     'FECHA_CIERRE_VENCIDA': ('CIERRE_ESTIMADO_PROXIMO',),
 }
 
