@@ -99,7 +99,7 @@ class DictRowProspectoCondominioAdapter:
             id=id_linea_negocio,
             nombre=nombre_linea_negocio,
             productos=[],
-            codigo=self.row.get('codigo_linea_negocio')
+            codigo=self.row['codigo_linea_negocio']
         )
 
         registrado_por = Usuario(

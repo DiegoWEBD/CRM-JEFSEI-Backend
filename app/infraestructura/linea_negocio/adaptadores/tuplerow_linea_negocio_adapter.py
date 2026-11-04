@@ -15,7 +15,7 @@ class TupleRowLineaNegocioAdapter:
     def to_linea_negocio(self) -> LineaNegocio:
          id = self.row['id_linea_negocio']
          nombre = self.row['nombre_linea_negocio']
-         codigo = self.row.get('codigo_linea_negocio')
+         codigo = self.row['codigo_linea_negocio']
 
          return LineaNegocio(
              id=id,

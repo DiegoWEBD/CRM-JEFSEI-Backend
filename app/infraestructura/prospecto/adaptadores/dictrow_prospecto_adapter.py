@@ -71,7 +71,7 @@ class DictRowProspectoAdapter:
             id=id_linea_negocio,
             nombre=nombre_linea_negocio,
             productos=[],
-            codigo=self.row.get('codigo_linea_negocio')
+            codigo=self.row['codigo_linea_negocio']
         )
 
         registrado_por = Usuario(
@@ -111,8 +111,8 @@ class DictRowProspectoAdapter:
                 nombre = nombre_ej_renovacion_asignado
             )
 
-        rut_as_renovacion = self.row.get('rut_as_renovacion_asignado')
-        nombre_as_renovacion = self.row.get('nombre_as_renovacion_asignado')
+        rut_as_renovacion = self.row['rut_as_renovacion_asignado']
+        nombre_as_renovacion = self.row['nombre_as_renovacion_asignado']
         asistente_renovacion = None
 
         if rut_as_renovacion is not None:
