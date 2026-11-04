@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.prospecto.prospecto_empresa.prospecto_empresa import ProspectoEmpresa
 from app.dominio.usuario.usuario import Usuario
 
 
@@ -14,6 +15,10 @@ class RepositorioProspectos(ABC):
     @abstractmethod
     def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> int:
         pass
+
+    @abstractmethod
+    def registrar_prospecto_empresa(self, prospecto: ProspectoEmpresa) -> int:
+        pass
     
     @abstractmethod
     def buscar(self, id: int) -> Prospecto | None:
@@ -25,6 +30,24 @@ class RepositorioProspectos(ABC):
 
     @abstractmethod
     def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
+        pass
+
+    @abstractmethod
+    def buscar_prospecto_empresa(self, id: int) -> ProspectoEmpresa | None:
+        pass
+
+    @abstractmethod
+    def crear_prospecto_empresa(self, id_prospecto: int) -> None:
+        """Crea la fila de extensión vacía de un prospecto empresa existente
+        (se usa al cambiar un prospecto a la línea de Líneas Comerciales)."""
+        pass
+
+    @abstractmethod
+    def eliminar_prospecto_empresa(self, id_prospecto: int) -> None:
+        pass
+
+    @abstractmethod
+    def existe_giro_comercial_por_nombre(self, id_prospecto: int, nombre: str) -> bool:
         pass
 
     @abstractmethod
@@ -49,6 +72,10 @@ class RepositorioProspectos(ABC):
 
     @abstractmethod
     def actualizar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
+        pass
+
+    @abstractmethod
+    def actualizar_prospecto_empresa(self, prospecto: ProspectoEmpresa) -> None:
         pass
 
     @abstractmethod

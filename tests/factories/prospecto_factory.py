@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 
 from app.dominio.prospecto.prospecto import Prospecto
+from app.dominio.prospecto.prospecto_empresa.giro_comercial import GiroComercial
+from app.dominio.prospecto.prospecto_empresa.prospecto_empresa import ProspectoEmpresa
 from app.dominio.usuario.usuario import Usuario
 from tests.factories.linea_negocio_factory import crear_linea_negocio_mock
 from tests.factories.usuario_factory import crear_usuario_mock
@@ -28,6 +30,40 @@ def crear_prospecto_mock(
         ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
         ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado,
         informacion_completa=informacion_completa,
+        id=id,
+    )
+
+
+def crear_prospecto_empresa_mock(
+    id: int = 1,
+    rut_riesgo: str | None = "76543210-1",
+    nombre_riesgo: str = "Comercial Andina SpA",
+    ejecutivo_comercial_asignado: Usuario | None = None,
+    informacion_completa: bool = True,
+    nombre_fantasia: str | None = "Comercial Andina",
+    cantidad_trabajadores: int | None = 25,
+    giros_comerciales: list[str] | None = None,
+) -> ProspectoEmpresa:
+    if giros_comerciales is None:
+        giros_comerciales = ["Comercio al por menor"]
+    return ProspectoEmpresa(
+        rut_riesgo=rut_riesgo,
+        nombre_riesgo=nombre_riesgo,
+        telefono_contacto=None,
+        correo_contacto=None,
+        direccion="Av. Industrial 456",
+        region="Metropolitana",
+        comuna="Santiago",
+        observaciones=None,
+        linea_negocio=crear_linea_negocio_mock(
+            id=12, nombre="Líneas Comerciales", codigo="lineas_comerciales"
+        ),
+        registrado_por=crear_usuario_mock(),
+        ejecutivo_comercial_asignado=ejecutivo_comercial_asignado,
+        informacion_completa=informacion_completa,
+        nombre_fantasia=nombre_fantasia,
+        cantidad_trabajadores=cantidad_trabajadores,
+        giros_comerciales=[GiroComercial(nombre=nombre) for nombre in giros_comerciales],
         id=id,
     )
 

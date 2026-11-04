@@ -15,6 +15,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                 query = '''
                     select LN.id as id_linea_negocio,
                     LN.nombre as nombre_linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     P.id as id_producto, P.nombre as nombre_producto
                     from LineaNegocio LN
                     left join Producto P
@@ -37,7 +38,8 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
 
                 query = '''
                     select LN.id as id_linea_negocio,
-                    LN.nombre as nombre_linea_negocio
+                    LN.nombre as nombre_linea_negocio,
+                    LN.codigo as codigo_linea_negocio
                     from LineaNegocio LN
                     left join Prospecto P
                     on LN.id = P.id_linea_negocio
@@ -61,7 +63,7 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
             with conn.cursor() as cur:
 
                 query = '''
-                    select id, nombre
+                    select id, nombre, codigo
                     from LineaNegocio
                     where id = %(id)s
                 '''
@@ -74,7 +76,27 @@ class RepositorioLineasNegocioPostgres(RepositorioLineasNegocio):
                 if not row:
                     return None
 
-                return LineaNegocio(id=row['id'], nombre=row['nombre'], productos=[])
+                return LineaNegocio(id=row['id'], nombre=row['nombre'], codigo=row['codigo'], productos=[])
+
+    def buscar_por_codigo(self, codigo: str) -> LineaNegocio | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select id, nombre, codigo
+                    from LineaNegocio
+                    where codigo = %(codigo)s
+                '''
+
+                params = {'codigo': codigo}
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if not row:
+                    return None
+
+                return LineaNegocio(id=row['id'], nombre=row['nombre'], codigo=row['codigo'], productos=[])
 
     def obtener_productos_por_linea_negocio(self, id_linea_negocio: int) -> list[Producto]:
         with obtener_conexion() as conn:

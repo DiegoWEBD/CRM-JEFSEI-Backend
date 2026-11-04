@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from app.presentacion.api.linea_negocio.dto.codigo_linea_negocio import CodigoLineaNegocio
+
 
 class CambiarLineaNegocioProspectoRequest(BaseModel):
-    id_linea_negocio: int
+    codigo_linea_negocio: CodigoLineaNegocio

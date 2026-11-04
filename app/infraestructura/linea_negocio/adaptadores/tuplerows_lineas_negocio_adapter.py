@@ -22,11 +22,13 @@ class TupleRowsLineasNegocioAdapter:
 
             if linea_negocio is None:
                 nombre_linea_negocio = row['nombre_linea_negocio']
+                codigo_linea_negocio = row.get('codigo_linea_negocio')
 
                 linea_negocio = LineaNegocio(
                     id=id_linea_negocio,
                     nombre=nombre_linea_negocio,
-                    productos=[]
+                    productos=[],
+                    codigo=codigo_linea_negocio
                 )
 
                 lineas_negocio[id_linea_negocio] = linea_negocio

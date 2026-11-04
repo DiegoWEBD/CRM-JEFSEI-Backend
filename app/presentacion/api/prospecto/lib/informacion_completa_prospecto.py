@@ -1,5 +1,6 @@
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.prospecto.prospecto_empresa.prospecto_empresa import ProspectoEmpresa
 
 
 def informacion_completa_prospecto(prospecto: Prospecto) -> bool:
@@ -9,6 +10,15 @@ def informacion_completa_prospecto(prospecto: Prospecto) -> bool:
         prospecto.direccion is not None,
         prospecto.region is not None,
         prospecto.comuna is not None
+    ])
+
+def informacion_completa_prospecto_empresa(prospecto: ProspectoEmpresa) -> bool:
+    return all([
+        informacion_completa_prospecto(prospecto),
+        prospecto.nombre_fantasia is not None,
+        prospecto.cantidad_trabajadores is not None,
+        prospecto.giros_comerciales is not None,
+        len(prospecto.giros_comerciales) > 0,
     ])
 
 

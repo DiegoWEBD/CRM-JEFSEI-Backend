@@ -56,7 +56,7 @@ def repositorio_prospectos_mock():
 @pytest.fixture
 def repositorio_lineas_negocio_mock():
     mock = MagicMock(spec=RepositorioLineasNegocio)
-    mock.obtener_por_id.return_value = crear_linea_negocio_mock(id=2, nombre='Líneas Personales')
+    mock.buscar_por_codigo.return_value = crear_linea_negocio_mock(id=2, nombre='Líneas Personales', codigo='lineas_personales')
     return mock
 
 
@@ -114,7 +114,7 @@ class TestCambiarLineaNegocioProspecto:
 
     def test_cambia_la_linea_de_negocio(self, mock_hub, use_case,
             repositorio_prospectos_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         prospecto = repositorio_prospectos_mock.buscar.return_value
         repositorio_prospectos_mock.actualizar_prospecto.assert_called_once_with(prospecto)
@@ -122,13 +122,13 @@ class TestCambiarLineaNegocioProspecto:
 
     def test_devuelve_la_cantidad_de_oportunidades_descartadas(self, mock_hub,
             use_case, usuario):
-        resultado = use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        resultado = use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert resultado == 2
 
     def test_consulta_solo_oportunidades_abiertas_del_prospecto(self, mock_hub,
             use_case, repositorio_procesos_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_called_once_with(
             id_prospecto=1,
@@ -137,7 +137,7 @@ class TestCambiarLineaNegocioProspecto:
 
     def test_descarta_todas_las_oportunidades_abiertas(self, mock_hub, use_case,
             repositorio_procesos_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert repositorio_procesos_mock.actualizar.call_count == 2
         for proceso in repositorio_procesos_mock.obtener_procesos_comerciales.return_value:
@@ -149,7 +149,7 @@ class TestCambiarLineaNegocioProspecto:
 
     def test_registra_historial_por_cada_oportunidad_descartada(self, mock_hub,
             use_case, repositorio_historial_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert repositorio_historial_mock.registrar.call_count == 2
         for llamada in repositorio_historial_mock.registrar.call_args_list:
@@ -171,13 +171,13 @@ class TestCambiarLineaNegocioProspecto:
         repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
         repositorio_prospectos_mock.actualizar_prospecto.side_effect = lambda p: orden.append('linea')
 
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert orden == ['descarte', 'descarte', 'linea']
 
     def test_marca_alertas_leidas_de_cada_oportunidad(self, mock_hub, use_case,
             servicio_alertas_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert servicio_alertas_mock.marcar_todas_leidas.call_count == 2
         ids = [
@@ -188,7 +188,7 @@ class TestCambiarLineaNegocioProspecto:
 
     def test_reevalua_alertas_de_renovacion_de_cada_oportunidad(self, mock_hub,
             use_case, reevaluar_alertas_mock, usuario):
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert reevaluar_alertas_mock.ejecutar.call_count == 2
         ids = [
@@ -211,7 +211,7 @@ class TestCambiarLineaNegocioProspecto:
 
         reevaluar_alertas_mock.ejecutar.side_effect = _reevaluar
 
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert orden == ['descarte', 'reevaluar', 'descarte', 'reevaluar']
 
@@ -219,7 +219,7 @@ class TestCambiarLineaNegocioProspecto:
             use_case, reevaluar_alertas_mock, usuario):
         reevaluar_alertas_mock.ejecutar.side_effect = [['22222222-2'], ['22222222-2']]
 
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert mock_hub.publicar_desde_hilo.call_count == 2
         mock_hub.publicar_desde_hilo.assert_called_with(
@@ -231,7 +231,7 @@ class TestCambiarLineaNegocioProspecto:
             servicio_alertas_mock, usuario):
         servicio_alertas_mock.marcar_todas_leidas.return_value = ['11111111-1', '22222222-2']
 
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         mock_hub.publicar_desde_hilo.assert_called_once_with(
             ['11111111-1', '22222222-2'],
@@ -242,7 +242,7 @@ class TestCambiarLineaNegocioProspecto:
             servicio_alertas_mock, usuario):
         servicio_alertas_mock.marcar_todas_leidas.return_value = []
 
-        use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         mock_hub.publicar_desde_hilo.assert_not_called()
 
@@ -251,7 +251,7 @@ class TestCambiarLineaNegocioProspecto:
             repositorio_historial_mock, usuario):
         repositorio_procesos_mock.obtener_procesos_comerciales.return_value = []
 
-        resultado = use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+        resultado = use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert resultado == 0
         repositorio_procesos_mock.actualizar.assert_not_called()
@@ -265,7 +265,7 @@ class TestCambiarLineaNegocioProspecto:
         repositorio_prospectos_mock.buscar.return_value = None
 
         with pytest.raises(RecursoNoEncontradoException):
-            use_case.ejecutar(id=99, id_linea_negocio=2, usuario=usuario)
+            use_case.ejecutar(id=99, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
         repositorio_procesos_mock.actualizar.assert_not_called()
@@ -281,7 +281,7 @@ class TestCambiarLineaNegocioProspecto:
         )
 
         with pytest.raises(UsuarioNoAutorizadoException):
-            use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+            use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
         repositorio_procesos_mock.actualizar.assert_not_called()
@@ -296,7 +296,7 @@ class TestCambiarLineaNegocioProspecto:
         )
 
         with pytest.raises(UsuarioNoAutorizadoException):
-            use_case.ejecutar(id=1, id_linea_negocio=2, usuario=usuario)
+            use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.actualizar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
@@ -304,10 +304,10 @@ class TestCambiarLineaNegocioProspecto:
     def test_linea_de_negocio_inexistente_no_descarta(self, mock_hub, use_case,
             repositorio_lineas_negocio_mock, repositorio_procesos_mock,
             repositorio_historial_mock, repositorio_prospectos_mock, usuario):
-        repositorio_lineas_negocio_mock.obtener_por_id.return_value = None
+        repositorio_lineas_negocio_mock.buscar_por_codigo.return_value = None
 
         with pytest.raises(DatoInvalidoException):
-            use_case.ejecutar(id=1, id_linea_negocio=999, usuario=usuario)
+            use_case.ejecutar(id=1, codigo_linea_negocio='lineas_comerciales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
         repositorio_procesos_mock.actualizar.assert_not_called()
@@ -315,13 +315,36 @@ class TestCambiarLineaNegocioProspecto:
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 
     def test_misma_linea_de_negocio_no_descarta(self, mock_hub, use_case,
-            repositorio_procesos_mock, repositorio_historial_mock,
-            repositorio_prospectos_mock, usuario):
+            repositorio_lineas_negocio_mock, repositorio_procesos_mock,
+            repositorio_historial_mock, repositorio_prospectos_mock, usuario):
         # El prospecto de la factory tiene la línea de negocio id=1
+        repositorio_lineas_negocio_mock.buscar_por_codigo.return_value = crear_linea_negocio_mock(
+            id=1, nombre='Líneas Personales', codigo='lineas_personales'
+        )
+
         with pytest.raises(ConflictoEnAccionException):
-            use_case.ejecutar(id=1, id_linea_negocio=1, usuario=usuario)
+            use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
         repositorio_procesos_mock.actualizar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
+
+    def test_al_cambiar_a_lineas_comerciales_crea_la_ficha_de_empresa(self, mock_hub,
+            use_case, repositorio_lineas_negocio_mock, repositorio_prospectos_mock,
+            usuario):
+        repositorio_lineas_negocio_mock.buscar_por_codigo.return_value = crear_linea_negocio_mock(
+            id=3, nombre='Líneas Comerciales', codigo='lineas_comerciales'
+        )
+
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_comerciales', usuario=usuario)
+
+        repositorio_prospectos_mock.crear_prospecto_empresa.assert_called_once_with(1)
+        repositorio_prospectos_mock.eliminar_prospecto_empresa.assert_not_called()
+
+    def test_al_cambiar_a_otra_linea_elimina_la_ficha_de_empresa(self, mock_hub,
+            use_case, repositorio_prospectos_mock, usuario):
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
+
+        repositorio_prospectos_mock.eliminar_prospecto_empresa.assert_called_once_with(1)
+        repositorio_prospectos_mock.crear_prospecto_empresa.assert_not_called()

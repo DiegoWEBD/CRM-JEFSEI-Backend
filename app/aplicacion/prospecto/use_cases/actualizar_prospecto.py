@@ -59,15 +59,31 @@ class ActualizarProspectoUseCase:
             prospecto_condominio.observaciones = observaciones
 
             self.repositorio_prospectos.actualizar_prospecto_condominio(prospecto_condominio)
-        else:
-            prospecto.rut_riesgo = rut_riesgo
-            prospecto.nombre_riesgo = nombre_riesgo
-            prospecto.telefono_contacto = telefono_contacto
-            prospecto.correo_contacto = correo_contacto
-            prospecto.direccion = direccion
-            prospecto.region = region
-            prospecto.comuna = comuna
-            prospecto.observaciones = observaciones
+            return
 
-            self.repositorio_prospectos.actualizar_prospecto(prospecto)
+        prospecto_empresa = self.repositorio_prospectos.buscar_prospecto_empresa(id)
+
+        if prospecto_empresa:
+            prospecto_empresa.rut_riesgo = rut_riesgo
+            prospecto_empresa.nombre_riesgo = nombre_riesgo
+            prospecto_empresa.telefono_contacto = telefono_contacto
+            prospecto_empresa.correo_contacto = correo_contacto
+            prospecto_empresa.direccion = direccion
+            prospecto_empresa.region = region
+            prospecto_empresa.comuna = comuna
+            prospecto_empresa.observaciones = observaciones
+
+            self.repositorio_prospectos.actualizar_prospecto_empresa(prospecto_empresa)
+            return
+
+        prospecto.rut_riesgo = rut_riesgo
+        prospecto.nombre_riesgo = nombre_riesgo
+        prospecto.telefono_contacto = telefono_contacto
+        prospecto.correo_contacto = correo_contacto
+        prospecto.direccion = direccion
+        prospecto.region = region
+        prospecto.comuna = comuna
+        prospecto.observaciones = observaciones
+
+        self.repositorio_prospectos.actualizar_prospecto(prospecto)
             
