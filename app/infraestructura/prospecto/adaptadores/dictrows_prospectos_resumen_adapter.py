@@ -19,6 +19,7 @@ class DictRowsProspectoResumenAdapter:
             id_cliente = row['id_cliente']
             rut_riesgo = row['rut_riesgo']
             nombre_riesgo = row['nombre_riesgo']
+            nombre_fantasia = row['nombre_fantasia']
             nombre_administrador = row['nombre_administrador']
             linea_negocio = row['linea_negocio']
             ejecutivo_comercial = row['ejecutivo_comercial']
@@ -33,6 +34,7 @@ class DictRowsProspectoResumenAdapter:
                     id_cliente=id_cliente,
                     rut_riesgo=rut_riesgo,
                     nombre_riesgo=nombre_riesgo,
+                    nombre_fantasia=nombre_fantasia,
                     nombre_administrador=nombre_administrador,
                     linea_negocio=linea_negocio,
                     ejecutivo_comercial=ejecutivo_comercial,

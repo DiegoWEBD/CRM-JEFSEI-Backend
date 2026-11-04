@@ -683,10 +683,16 @@ def _registrar_recordatorio(params: dict, body: dict, resolvedor: ResolvedorNomb
         etiqueta='el recordatorio',
         nombre=body.get('titulo'),
     ))]
+    rut_destino = body.get('rut_usuario_destino')
+    if rut_destino:
+        fragmentos.append(FragmentoFrase(
+            preposicion='para',
+            entidad=_usuario(rut_destino, resolvedor, articulo='el usuario'),
+        ))
     id_prospecto = body.get('id_prospecto')
     if id_prospecto is not None:
         fragmentos.append(FragmentoFrase(
-            preposicion='para',
+            preposicion='en' if rut_destino else 'para',
             entidad=_prospecto(int(id_prospecto), resolvedor),
         ))
     return AccionDescrita(evento=EventoAuditoria.CREAR, verbo='registrado', fragmentos=fragmentos)

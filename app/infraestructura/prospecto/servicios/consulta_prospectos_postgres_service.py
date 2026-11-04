@@ -18,6 +18,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         C.id as id_cliente,
         P.rut_riesgo,
         P.nombre_riesgo,
+        PE.nombre_fantasia,
         P.comuna,
         AC.nombre_administrador,
         LN.nombre as linea_negocio,
@@ -40,6 +41,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         on P.id = C.id_prospecto
         left join ProspectoCondominio PCO
         on P.id = PCO.id
+        left join ProspectoEmpresa PE
+        on P.id = PE.id
         left join AdministradorCondominio AC
         on PCO.id_administrador = AC.id
         inner join LineaNegocio LN 
@@ -67,6 +70,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 sql.SQL('''
                     left join ProspectoCondominio PCO
                     on P.id = PCO.id
+                    left join ProspectoEmpresa PE
+                    on P.id = PE.id
                     left join AdministradorCondominio AC
                     on PCO.id_administrador = AC.id
                     inner join LineaNegocio LN
@@ -150,6 +155,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             condiciones.append(sql.SQL('''
                 (
                     UNACCENT(LOWER(P.nombre_riesgo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(PE.nombre_fantasia)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR LOWER(REPLACE(REPLACE(P.rut_riesgo, '.', ''), '-', '')) LIKE LOWER(REPLACE(REPLACE(%(texto_busqueda)s, '.', ''), '-', ''))
                     OR UNACCENT(LOWER(LN.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR UNACCENT(LOWER(AC.nombre_administrador)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))

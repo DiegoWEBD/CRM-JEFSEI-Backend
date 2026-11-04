@@ -354,6 +354,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -390,6 +391,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -422,6 +425,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -458,6 +462,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -491,6 +497,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -527,6 +534,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -561,6 +570,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -599,6 +609,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -729,6 +741,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.informacion_completa,
@@ -789,6 +802,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join AdministradorCondominio AC
