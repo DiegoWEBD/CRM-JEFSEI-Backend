@@ -19,5 +19,9 @@ class RepositorioLineasNegocio(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_codigo(self, codigo: str) -> LineaNegocio | None:
+        pass
+
+    @abstractmethod
     def obtener_productos_por_linea_negocio(self, id_linea_negocio: int) -> list[Producto]:
         pass

@@ -1,41 +1,39 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from app.dominio.company_seguros.company_seguros import CompanySeguros
 from app.dominio.linea_negocio.linea_negocio import LineaNegocio
 from app.dominio.planificacion_prospecto.planificacion_prospecto import PlanificacionProspecto
-from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.prospecto.prospecto import Prospecto
+from app.dominio.prospecto.prospecto_empresa.giro_comercial import GiroComercial
 from app.dominio.usuario.usuario import Usuario
+
 
 class ProspectoEmpresa(Prospecto):
     def __init__(
         self,
-        rut_riesgo: str | None, 
-        nombre_riesgo: str, 
-        telefono_contacto: str | None, 
-        correo_contacto: str | None, 
+        rut_riesgo: str | None,
+        nombre_riesgo: str,
+        telefono_contacto: str | None,
+        correo_contacto: str | None,
         direccion: str | None,
-        region: str | None, 
-        comuna: str | None, 
-        observaciones: str | None, 
-        linea_negocio: LineaNegocio, 
-        registrado_por: Usuario, 
-        companies_sugeridas: list[CompanySeguros],
-        nombre_contacto: str,
-        actividad: str,
-        proceso_comercial: ProcesoComercial,
+        region: str | None,
+        comuna: str | None,
+        observaciones: str | None,
+        linea_negocio: LineaNegocio,
+        registrado_por: Usuario,
+        ejecutivo_comercial_asignado: Usuario | None,
         informacion_completa: bool,
-        ma_rc: float | None,
-        ma_edificio: float | None,
-        cantidad_trabajadores: int | None,
-        ultima_actualizacion: datetime,
-        id: int | None = None, 
-        id_cliente: int | None = None,
-        planificacion_prospecto: PlanificacionProspecto | None = None,
-        ejecutivo_comercial_asignado: Usuario | None = None,
+        nombre_fantasia: str | None = None,
+        cantidad_trabajadores: int | None = None,
+        giros_comerciales: list[GiroComercial] | None = None,
         ejecutivo_evaluacion_asignado: Usuario | None = None,
         ejecutivo_cobranza_asignado: Usuario | None = None,
         ejecutivo_renovacion_asignado: Usuario | None = None,
+        asistente_renovacion_asignado: Usuario | None = None,
+        ultima_actualizacion: datetime = datetime.now(tz=timezone.utc),
+        planificacion_prospecto: PlanificacionProspecto | None = None,
+        id: int | None = None,
+        id_cliente: int | None = None,
+        estado_general_cliente: str | None = None
     ):
         super().__init__(
             id=id,
@@ -54,14 +52,13 @@ class ProspectoEmpresa(Prospecto):
             ejecutivo_evaluacion_asignado=ejecutivo_evaluacion_asignado,
             ejecutivo_cobranza_asignado=ejecutivo_cobranza_asignado,
             ejecutivo_renovacion_asignado=ejecutivo_renovacion_asignado,
+            asistente_renovacion_asignado=asistente_renovacion_asignado,
             planificacion_prospecto=planificacion_prospecto,
             ultima_actualizacion=ultima_actualizacion,
-            informacion_completa=informacion_completa
+            informacion_completa=informacion_completa,
+            estado_general_cliente=estado_general_cliente
         )
 
-        self.actividad = actividad
-        self.ma_rc = ma_rc
-        self.ma_edificio = ma_edificio
+        self.nombre_fantasia = nombre_fantasia
         self.cantidad_trabajadores = cantidad_trabajadores
-        
-        
+        self.giros_comerciales = giros_comerciales if giros_comerciales is not None else []

@@ -8,3 +8,4 @@ class RegistrarRecordatorioRequest(BaseModel):
     tipo_gestion: str
     fecha_recordatorio: str
     id_prospecto: int | None = None
+    rut_usuario_destino: str | None = None

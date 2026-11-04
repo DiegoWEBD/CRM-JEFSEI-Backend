@@ -86,7 +86,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
     ):
         response = client_cambiar_linea.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": 2},
+            json={"codigo_linea_negocio": "lineas_personales"},
             headers=headers_auth_validos,
         )
 
@@ -97,7 +97,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
         use_case_mock.ejecutar.assert_called_once()
         kwargs = use_case_mock.ejecutar.call_args.kwargs
         assert kwargs["id"] == 1
-        assert kwargs["id_linea_negocio"] == 2
+        assert kwargs["codigo_linea_negocio"] == "lineas_personales"
         assert kwargs["usuario"] is usuario_cambiar_linea
 
     def test_sin_permiso_cambiar_linea_retorna_403(
@@ -105,7 +105,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
     ):
         response = client_sin_permiso.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": 2},
+            json={"codigo_linea_negocio": "lineas_personales"},
             headers=headers_auth_validos,
         )
 
@@ -119,7 +119,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
             with TestClient(app) as c:
                 response = c.patch(
                     "/prospectos/1/linea-negocio",
-                    json={"id_linea_negocio": 2},
+                    json={"codigo_linea_negocio": "lineas_personales"},
                 )
             assert response.status_code == 401
         finally:
@@ -135,7 +135,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
 
         response = client_cambiar_linea.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": 2},
+            json={"codigo_linea_negocio": "lineas_personales"},
             headers=headers_auth_validos,
         )
 
@@ -148,7 +148,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
 
         response = client_cambiar_linea.patch(
             "/prospectos/999/linea-negocio",
-            json={"id_linea_negocio": 2},
+            json={"codigo_linea_negocio": "lineas_personales"},
             headers=headers_auth_validos,
         )
 
@@ -163,7 +163,7 @@ class TestCambiarLineaNegocioProspectoEndpoints:
 
         response = client_cambiar_linea.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": 999},
+            json={"codigo_linea_negocio": "lineas_comerciales"},
             headers=headers_auth_validos,
         )
 
@@ -178,18 +178,18 @@ class TestCambiarLineaNegocioProspectoEndpoints:
 
         response = client_cambiar_linea.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": 1},
+            json={"codigo_linea_negocio": "condominios"},
             headers=headers_auth_validos,
         )
 
         assert response.status_code == 409
 
-    def test_id_linea_negocio_invalido_retorna_422(
+    def test_codigo_linea_negocio_invalido_retorna_422(
         self, client_cambiar_linea, use_case_mock, headers_auth_validos
     ):
         response = client_cambiar_linea.patch(
             "/prospectos/1/linea-negocio",
-            json={"id_linea_negocio": "no-numero"},
+            json={"codigo_linea_negocio": "no-existe"},
             headers=headers_auth_validos,
         )
 

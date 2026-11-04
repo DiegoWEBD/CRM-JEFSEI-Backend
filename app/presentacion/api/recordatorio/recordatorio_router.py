@@ -11,6 +11,7 @@ from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerR
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.dto.deps import get_paginacion_params
 from app.presentacion.api.dto.paginacion_params import PaginacionParams
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
@@ -56,11 +57,12 @@ def obtener_recordatorios_usuario(
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def registrar_recordatorio(
     request: RegistrarRecordatorioRequest,
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('CREAR_RECORDATORIO_PROPIO', 'CREAR_RECORDATORIO_GLOBAL')),
     use_case: RegistrarRecordatorioUseCase = Depends(get_registrar_recordatorio_use_case)
 ):
     use_case.ejecutar(
         rut_usuario=usuario.rut,
+        rut_usuario_destino=request.rut_usuario_destino,
         titulo=request.titulo,
         detalle=request.detalle,
         prioridad=request.prioridad,

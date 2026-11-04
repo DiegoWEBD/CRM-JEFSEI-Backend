@@ -1,14 +1,20 @@
 from app.dominio.configuracion_condominio.servicio_calculo_depreciacion import ServicioCalculoDepreciacion
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.linea_negocio.linea_negocio import CODIGO_LINEA_CONDOMINIOS, CODIGO_LINEAS_COMERCIALES
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.prospecto_condominio.prospecto_condominio import ProspectoCondominio
+from app.dominio.prospecto.prospecto_empresa.giro_comercial import GiroComercial
+from app.dominio.prospecto.prospecto_empresa.prospecto_empresa import ProspectoEmpresa
+from app.dominio.prospecto.prospecto_empresa.servicio_giros_comerciales import ServicioGirosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.configuracion_condominio.repositorio_configuracion_condominio_postgres import RepositorioConfiguracionCondominioPostgres
 from app.infraestructura.db.conexion import obtener_conexion
+from app.infraestructura.lib.normalizar_texto import normalizar_texto
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_adapter import DictRowProspectoAdapter
 from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_condominio_adapter import DictRowProspectoCondominioAdapter
-from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio
+from app.infraestructura.prospecto.adaptadores.dictrow_prospecto_empresa_adapter import DictRowProspectoEmpresaAdapter
+from app.presentacion.api.prospecto.lib.informacion_completa_prospecto import informacion_completa_prospecto, informacion_completa_prospecto_condominio, informacion_completa_prospecto_empresa
 
 
 class RepositorioProspectosPostgres(RepositorioProspectos):
@@ -354,6 +360,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -421,6 +428,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -489,6 +497,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -558,6 +567,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -629,6 +639,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.informacion_completa,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     CS_PLAN.id as id_company_planificacion,
                     CS_PLAN.nombre as nombre_company_planificacion,
                     PP.prima_vigente as prima_vigente_planificacion,
@@ -684,7 +695,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             with conn.cursor() as cur:
 
                 query = '''
-                    select LN.nombre as linea_negocio
+                    select LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio
                     from Prospecto P
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
@@ -702,8 +714,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     return None
                 
                 linea_negocio = row['linea_negocio']
+                codigo_linea_negocio = row['codigo_linea_negocio']
 
-                if linea_negocio.lower() != 'condominio':
+                if codigo_linea_negocio != CODIGO_LINEA_CONDOMINIOS and linea_negocio.lower() != 'condominio':
                     return None
                 
                 query = '''
@@ -723,6 +736,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     PCO.updated_at as condominio_updated_at,
                     LN.id as id_linea_negocio,
                     LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
                     PCO.id_administrador,
                     AC.nombre_administrador,
                     AC.nombre_contacto,
@@ -816,6 +830,359 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                         )
 
                 return prospecto
+
+    def registrar_prospecto_empresa(self, prospecto: ProspectoEmpresa) -> int:
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Prospecto base
+                query = '''
+                    insert into Prospecto(
+                        rut_riesgo,
+                        nombre_riesgo,
+                        telefono_contacto,
+                        correo_contacto,
+                        direccion,
+                        region,
+                        comuna,
+                        observaciones,
+                        id_linea_negocio,
+                        rut_registrado_por,
+                        rut_ej_comercial_asignado,
+                        informacion_completa
+                    )
+                    values(
+                        %(rut_riesgo)s,
+                        %(nombre_riesgo)s,
+                        %(telefono_contacto)s,
+                        %(correo_contacto)s,
+                        %(direccion)s,
+                        %(region)s,
+                        %(comuna)s,
+                        %(observaciones)s,
+                        %(id_linea_negocio)s,
+                        %(rut_registrado_por)s,
+                        %(rut_ej_comercial_asignado)s,
+                        %(informacion_completa)s
+                    )
+                    returning id
+                '''
+
+                params = {
+                    'rut_riesgo': prospecto.rut_riesgo,
+                    'nombre_riesgo': prospecto.nombre_riesgo,
+                    'telefono_contacto': prospecto.telefono_contacto,
+                    'correo_contacto': prospecto.correo_contacto,
+                    'direccion': prospecto.direccion,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
+                    'observaciones': prospecto.observaciones,
+                    'id_linea_negocio': prospecto.linea_negocio.id,
+                    'rut_registrado_por': prospecto.registrado_por.rut,
+                    'rut_ej_comercial_asignado': prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None,
+                    'informacion_completa': informacion_completa_prospecto_empresa(prospecto)
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    raise ValueError('Error al registrar prospecto')
+
+                id_prospecto: int = row['id']
+
+                # Prospecto empresa
+                query = '''
+                    insert into ProspectoEmpresa(
+                        id,
+                        nombre_fantasia,
+                        cantidad_trabajadores
+                    )
+                    values(
+                        %(id)s,
+                        %(nombre_fantasia)s,
+                        %(cantidad_trabajadores)s
+                    )
+                '''
+
+                params = {
+                    'id': id_prospecto,
+                    'nombre_fantasia': prospecto.nombre_fantasia,
+                    'cantidad_trabajadores': prospecto.cantidad_trabajadores
+                }
+
+                cur.execute(query, params)
+
+                self._insertar_giros_comerciales(cur, id_prospecto, prospecto.giros_comerciales)
+
+                return id_prospecto
+
+    def buscar_prospecto_empresa(self, id: int) -> ProspectoEmpresa | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio
+                    from Prospecto P
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    where P.id = %(id)s
+                '''
+
+                params = {
+                    'id': id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                linea_negocio = row['linea_negocio']
+                codigo_linea_negocio = row['codigo_linea_negocio']
+
+                if codigo_linea_negocio != CODIGO_LINEAS_COMERCIALES and normalizar_texto(linea_negocio) != 'lineas_comerciales':
+                    return None
+
+                query = '''
+                    select P.id as id_prospecto,
+                    CL.id as id_cliente,
+                    P.rut_riesgo, P.nombre_riesgo,
+                    P.telefono_contacto, P.direccion,
+                    P.rut_registrado_por, U.nombre as nombre_registrado_por,
+                    P.rut_ej_comercial_asignado, EJ_COM.nombre as nombre_ej_comercial_asignado,
+                    P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
+                    CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
+                    CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
+                    P.region, P.comuna,
+                    P.correo_contacto, P.observaciones,
+                    P.updated_at as prospecto_updated_at,
+                    P.informacion_completa,
+                    PEM.updated_at as empresa_updated_at,
+                    PEM.nombre_fantasia,
+                    PEM.cantidad_trabajadores,
+                    LN.id as id_linea_negocio,
+                    LN.nombre as linea_negocio,
+                    LN.codigo as codigo_linea_negocio,
+                    CS_PLAN.id as id_company_planificacion,
+                    CS_PLAN.nombre as nombre_company_planificacion,
+                    PP.prima_vigente as prima_vigente_planificacion,
+                    PP.termino_vigencia as termino_vigencia_planificacion,
+                    PP.monto_asegurado_vigente as monto_asegurado_vigente_planificacion,
+                    PP.fecha_envio_cotizacion as fecha_envio_cotizacion_planificacion,
+                    CASE
+                        WHEN CL.id IS NULL THEN 'prospecto'
+                        WHEN EXISTS (
+                            SELECT 1 FROM Poliza PZ
+                            WHERE PZ.id_cliente = CL.id
+                              AND PZ.cancelada = false
+                              AND PZ.fin_vigencia > CURRENT_TIMESTAMP
+                        ) THEN 'cliente_activo'
+                        ELSE 'cliente_inactivo'
+                    END as estado_general_cliente
+                    from Prospecto P
+                    inner join ProspectoEmpresa PEM
+                    on P.id = PEM.id
+                    left join Cliente CL
+                    on P.id = CL.id_prospecto
+                    inner join Usuario U
+                    on P.rut_registrado_por = U.rut
+                    left join Usuario EJ_COM
+                    on P.rut_ej_comercial_asignado = EJ_COM.rut
+                    left join Usuario EJ_EV
+                    on P.rut_ej_evaluacion_asignado = EJ_EV.rut
+                    left join Usuario EJ_CB
+                    on CL.rut_ej_cobranza_asignado = EJ_CB.rut
+                    left join Usuario EJ_RN
+                    on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
+                    inner join LineaNegocio LN
+                    on P.id_linea_negocio = LN.id
+                    left join PlanificacionProspecto PP
+                    on P.id = PP.id_prospecto
+                    left join CompanySeguros CS_PLAN
+                    on PP.id_company = CS_PLAN.id
+                    where P.id = %(id)s
+                '''
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return None
+
+                giros_comerciales = self._obtener_giros_comerciales(cur, id)
+
+                return DictRowProspectoEmpresaAdapter(row, giros_comerciales).to_prospecto_empresa()
+
+    def crear_prospecto_empresa(self, id_prospecto: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into ProspectoEmpresa(id)
+                    values(%(id)s)
+                    on conflict (id) do nothing
+                '''
+
+                params = {
+                    'id': id_prospecto
+                }
+
+                cur.execute(query, params)
+
+    def eliminar_prospecto_empresa(self, id_prospecto: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    delete from ProspectoEmpresa
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': id_prospecto
+                }
+
+                cur.execute(query, params)
+
+    def existe_giro_comercial_por_nombre(self, id_prospecto: int, nombre: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select nombre
+                    from GiroComercial
+                    where id_prospecto_empresa = %(id_prospecto)s
+                '''
+
+                params = {
+                    'id_prospecto': id_prospecto
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+                return any(
+                    ServicioGirosComerciales.es_el_mismo_giro(row['nombre'], nombre)
+                    for row in rows
+                )
+
+    def actualizar_prospecto_empresa(self, prospecto: ProspectoEmpresa) -> None:
+        if prospecto.id is None:
+            return
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Datos básicos del prospecto
+                query = '''
+                    update Prospecto
+                    set rut_riesgo = %(rut_riesgo)s,
+                    nombre_riesgo = %(nombre_riesgo)s,
+                    telefono_contacto = %(telefono_contacto)s,
+                    correo_contacto = %(correo_contacto)s,
+                    direccion = %(direccion)s,
+                    region = %(region)s,
+                    comuna = %(comuna)s,
+                    observaciones = %(observaciones)s,
+                    informacion_completa = %(informacion_completa)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'rut_riesgo': prospecto.rut_riesgo,
+                    'nombre_riesgo': prospecto.nombre_riesgo,
+                    'telefono_contacto': prospecto.telefono_contacto,
+                    'correo_contacto': prospecto.correo_contacto,
+                    'direccion': prospecto.direccion,
+                    'region': prospecto.region,
+                    'comuna': prospecto.comuna,
+                    'observaciones': prospecto.observaciones,
+                    'informacion_completa': informacion_completa_prospecto_empresa(prospecto),
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+                # Datos específicos de la empresa
+                query = '''
+                    update ProspectoEmpresa
+                    set nombre_fantasia = %(nombre_fantasia)s,
+                    cantidad_trabajadores = %(cantidad_trabajadores)s
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'nombre_fantasia': prospecto.nombre_fantasia,
+                    'cantidad_trabajadores': prospecto.cantidad_trabajadores,
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+                # Giros comerciales: la lista se reemplaza por completo
+                query = '''
+                    delete from GiroComercial
+                    where id_prospecto_empresa = %(id)s
+                '''
+
+                params = {
+                    'id': prospecto.id
+                }
+
+                cur.execute(query, params)
+
+                self._insertar_giros_comerciales(cur, prospecto.id, prospecto.giros_comerciales)
+
+    def _insertar_giros_comerciales(self, cur, id_prospecto: int, giros_comerciales: list[GiroComercial]) -> None:
+        for giro in giros_comerciales:
+            query = '''
+                insert into GiroComercial(
+                    id_prospecto_empresa,
+                    nombre
+                )
+                values(
+                    %(id_prospecto_empresa)s,
+                    %(nombre)s
+                )
+            '''
+
+            params = {
+                'id_prospecto_empresa': id_prospecto,
+                'nombre': giro.nombre
+            }
+
+            cur.execute(query, params)
+
+    def _obtener_giros_comerciales(self, cur, id_prospecto: int) -> list[GiroComercial]:
+        query = '''
+            select id, id_prospecto_empresa, nombre
+            from GiroComercial
+            where id_prospecto_empresa = %(id_prospecto)s
+            order by id
+        '''
+
+        params = {
+            'id_prospecto': id_prospecto
+        }
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+
+        return [
+            GiroComercial(
+                id=row['id'],
+                id_prospecto_empresa=row['id_prospecto_empresa'],
+                nombre=row['nombre']
+            )
+            for row in rows
+        ]
                 
     def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         if not prospecto.id:

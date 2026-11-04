@@ -167,14 +167,14 @@ def _cambiar_linea_negocio(params: dict, body: dict, resolvedor: ResolvedorNombr
             entidad=_prospecto(int(params['id']), resolvedor, articulo='prospecto'),
         )
     ]
-    id_linea = body.get('id_linea_negocio')
-    if id_linea is not None:
+    codigo_linea = body.get('codigo_linea_negocio')
+    if codigo_linea is not None:
         fragmentos.append(FragmentoFrase(
             preposicion='a',
             entidad=EntidadAuditada(
                 etiqueta='la línea de negocio',
-                nombre=resolvedor.nombre_linea_negocio(int(id_linea)),
-                identificador=id_linea,
+                nombre=resolvedor.nombre_linea_negocio_por_codigo(str(codigo_linea)),
+                identificador=codigo_linea,
             ),
         ))
     return AccionDescrita(
@@ -188,6 +188,17 @@ def _actualizar_ficha_condominio(params: dict, body: dict, resolvedor: Resolvedo
     return AccionDescrita(
         evento=EventoAuditoria.ACTUALIZAR,
         verbo='actualizado la ficha de condominio',
+        fragmentos=[FragmentoFrase(
+            preposicion='del',
+            entidad=_prospecto(int(params['id']), resolvedor, articulo='prospecto'),
+        )],
+    )
+
+
+def _actualizar_ficha_empresa(params: dict, body: dict, resolvedor: ResolvedorNombres) -> AccionDescrita:
+    return AccionDescrita(
+        evento=EventoAuditoria.ACTUALIZAR,
+        verbo='actualizado la ficha de empresa',
         fragmentos=[FragmentoFrase(
             preposicion='del',
             entidad=_prospecto(int(params['id']), resolvedor, articulo='prospecto'),
@@ -781,6 +792,7 @@ REGISTRO = [
     EntradaAccion('PUT', re.compile(r'^/prospectos/(?P<id>\d+)$'), EventoAuditoria.ACTUALIZAR, _actualizar_prospecto),
     EntradaAccion('PATCH', re.compile(r'^/prospectos/(?P<id>\d+)/linea-negocio$'), EventoAuditoria.ACTUALIZAR, _cambiar_linea_negocio),
     EntradaAccion('PUT', re.compile(r'^/prospectos/condominios/(?P<id>\d+)$'), EventoAuditoria.ACTUALIZAR, _actualizar_ficha_condominio),
+    EntradaAccion('PUT', re.compile(r'^/prospectos/empresas/(?P<id>\d+)$'), EventoAuditoria.ACTUALIZAR, _actualizar_ficha_empresa),
     EntradaAccion('PATCH', re.compile(r'^/prospectos/condominios/(?P<id>\d+)/valor-uf-m2-personalizado$'), EventoAuditoria.EJECUTAR_ACCION, _fijar_valor_uf_m2),
     EntradaAccion('PATCH', re.compile(r'^/prospectos/condominios/(?P<id>\d+)/porcentaje-depreciacion-personalizado$'), EventoAuditoria.EJECUTAR_ACCION, _fijar_porcentaje_depreciacion),
     EntradaAccion('POST', re.compile(r'^/prospectos/(?P<id>\d+)/contactos$'), EventoAuditoria.CREAR, _registrar_contacto),

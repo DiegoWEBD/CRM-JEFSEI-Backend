@@ -11,6 +11,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
+from app.dominio.linea_negocio.linea_negocio import CODIGO_LINEAS_COMERCIALES
 from app.dominio.linea_negocio.repositorio_lineas_negocio import RepositorioLineasNegocio
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -41,7 +42,7 @@ class CambiarLineaNegocioProspectoUseCase:
     def ejecutar(
         self,
         id: int,
-        id_linea_negocio: int,
+        codigo_linea_negocio: str,
         usuario: Usuario
     ) -> int:
         """Cambia la línea de negocio del prospecto y descarta todas sus
@@ -60,12 +61,12 @@ class CambiarLineaNegocioProspectoUseCase:
                 'Solo el ejecutivo comercial asignado puede cambiar la línea de negocio'
             )
 
-        linea_negocio = self.repositorio_lineas_negocio.obtener_por_id(id_linea_negocio)
+        linea_negocio = self.repositorio_lineas_negocio.buscar_por_codigo(codigo_linea_negocio)
 
         if linea_negocio is None:
             raise DatoInvalidoException('La línea de negocio indicada no existe')
 
-        if prospecto.linea_negocio.id == id_linea_negocio:
+        if prospecto.linea_negocio.id == linea_negocio.id:
             raise ConflictoEnAccionException('El prospecto ya pertenece a la línea de negocio indicada')
 
         procesos_abiertos = self.repositorio_procesos_comerciales.obtener_procesos_comerciales(
@@ -91,6 +92,14 @@ class CambiarLineaNegocioProspectoUseCase:
 
         prospecto.linea_negocio = linea_negocio
         self.repositorio_prospectos.actualizar_prospecto(prospecto)
+
+        # La ficha de extensión de empresa acompaña al cambio de línea:
+        # se crea vacía al entrar a Líneas Comerciales y se elimina
+        # (junto con sus giros comerciales) al salir de ella.
+        if codigo_linea_negocio == CODIGO_LINEAS_COMERCIALES:
+            self.repositorio_prospectos.crear_prospecto_empresa(id)
+        else:
+            self.repositorio_prospectos.eliminar_prospecto_empresa(id)
 
         destinatarios_unicos = list(dict.fromkeys(destinatarios))
         if destinatarios_unicos:

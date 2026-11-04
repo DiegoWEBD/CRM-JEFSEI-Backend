@@ -4,12 +4,21 @@ from unittest.mock import MagicMock
 from app.main import app
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.recordatorio.repositorio_recordatorios import RepositorioRecordatorios
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.recordatorio.dependencias.deps import (
     get_obtener_recordatorios_usuario_use_case,
+    get_registrar_recordatorio_use_case,
 )
 from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerRecordatoriosUsuarioUseCase
-from tests.factories.usuario_factory import crear_usuario_admin_mock
+from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
+from tests.factories.usuario_factory import (
+    crear_usuario_admin_mock,
+    crear_usuario_mock,
+    crear_rol_mock,
+    crear_permiso_mock,
+)
 from tests.factories.auth_factory import crear_token_mock, headers_auth
 from tests.factories.recordatorio_factory import crear_recordatorio_usuario_mock
 
@@ -156,3 +165,146 @@ class TestRecordatorioEndpointsPaginacion:
         )
 
         assert response.status_code == 400
+
+
+def _usuario_con_permiso(codigo_permiso: str) -> Usuario:
+    return crear_usuario_mock(
+        rut="11111111-1",
+        roles=[crear_rol_mock(permisos=[crear_permiso_mock(codigo=codigo_permiso)])],
+    )
+
+
+@pytest.fixture
+def use_case_registrar_mock():
+    return MagicMock(spec=RegistrarRecordatorioUseCase)
+
+
+@pytest.fixture
+def usuario_holder():
+    return {"usuario": _usuario_con_permiso("CREAR_RECORDATORIO_PROPIO")}
+
+
+@pytest.fixture
+def client_registrar(usuario_holder, use_case_registrar_mock):
+    def override_get_current_user():
+        return usuario_holder["usuario"]
+
+    def override_get_registrar_recordatorio_use_case():
+        return use_case_registrar_mock
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_registrar_recordatorio_use_case] = (
+        override_get_registrar_recordatorio_use_case
+    )
+
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+def _payload_registrar(**kwargs):
+    payload = {
+        "titulo": "Llamar al cliente",
+        "detalle": None,
+        "prioridad": "MEDIA",
+        "tipo_gestion": "LLAMADA",
+        "fecha_recordatorio": "2026-12-01T10:00:00",
+        "id_prospecto": None,
+        "rut_usuario_destino": None,
+    }
+    payload.update(kwargs)
+    return payload
+
+
+@pytest.mark.integration
+class TestRecordatorioEndpointsRegistrar:
+
+    def test_registrar_recordatorio_creado(self, client_registrar, headers_auth_validos, use_case_registrar_mock):
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 201
+        assert response.json() == {"message": "Recordatorio creado correctamente"}
+        assert use_case_registrar_mock.ejecutar.call_args.kwargs["rut_usuario"] == "11111111-1"
+        assert use_case_registrar_mock.ejecutar.call_args.kwargs["rut_usuario_destino"] is None
+
+    def test_registrar_recordatorio_con_destino(self, client_registrar, headers_auth_validos, use_case_registrar_mock, usuario_holder):
+        usuario_holder["usuario"] = _usuario_con_permiso("CREAR_RECORDATORIO_GLOBAL")
+
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(rut_usuario_destino="22222222-2"),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 201
+        assert use_case_registrar_mock.ejecutar.call_args.kwargs["rut_usuario"] == "11111111-1"
+        assert use_case_registrar_mock.ejecutar.call_args.kwargs["rut_usuario_destino"] == "22222222-2"
+
+    def test_registrar_recordatorio_sin_permisos_retorna_403(self, client_registrar, headers_auth_validos, use_case_registrar_mock, usuario_holder):
+        usuario_holder["usuario"] = crear_usuario_mock()
+
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+        use_case_registrar_mock.ejecutar.assert_not_called()
+
+    def test_registrar_recordatorio_destino_sin_permiso_global_retorna_403(self, client_registrar, headers_auth_validos, use_case_registrar_mock):
+        use_case_registrar_mock.ejecutar.side_effect = UsuarioNoAutorizadoException()
+
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(rut_usuario_destino="22222222-2"),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+
+    def test_registrar_recordatorio_destino_inexistente_retorna_404(self, client_registrar, headers_auth_validos, use_case_registrar_mock):
+        use_case_registrar_mock.ejecutar.side_effect = RecursoNoEncontradoException(
+            "El usuario con RUT 22222222-2 no existe"
+        )
+
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(rut_usuario_destino="22222222-2"),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 404
+
+    def test_registrar_recordatorio_pasa_todos_los_datos(self, client_registrar, headers_auth_validos, use_case_registrar_mock):
+        response = client_registrar.post(
+            "/recordatorios/",
+            json=_payload_registrar(
+                titulo="Cobrar cuota",
+                detalle="Cuota de octubre",
+                prioridad="ALTA",
+                tipo_gestion="COBRANZA",
+                fecha_recordatorio="2026-12-05T09:00:00",
+                id_prospecto=7,
+            ),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 201
+        use_case_registrar_mock.ejecutar.assert_called_once_with(
+            rut_usuario="11111111-1",
+            rut_usuario_destino=None,
+            titulo="Cobrar cuota",
+            detalle="Cuota de octubre",
+            prioridad="ALTA",
+            tipo_gestion="COBRANZA",
+            fecha_recordatorio="2026-12-05T09:00:00",
+            id_prospecto=7,
+        )

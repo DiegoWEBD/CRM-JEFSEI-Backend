@@ -9,6 +9,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto import ActualizarProspectoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_prospecto_condominio import ActualizarProspectoCondominioUseCase
+from app.aplicacion.prospecto.use_cases.actualizar_prospecto_empresa import ActualizarProspectoEmpresaUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_porcentaje_depreciacion_personalizado import ActualizarPorcentajeDepreciacionPersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.actualizar_valor_uf_m2_personalizado import ActualizarValorUfM2PersonalizadoUseCase
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import CambiarLineaNegocioProspectoUseCase
@@ -19,7 +20,6 @@ from app.presentacion.api.contacto.dependencias.deps import (
     get_registrar_contacto_use_case,
 )
 from app.presentacion.api.contacto.dto.registrar_contacto_request import RegistrarContactoRequest
-from app.infraestructura.lib.normalizar_texto import normalizar_texto
 from app.infraestructura.proceso_comercial.adaptadores.proceso_comercial_json_adapter import ProcesoComercialJsonAdapter
 from app.presentacion.api.prospecto.dependencias.obtener_prospecto_factory import ObtenerProspectoFactory
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import AsignarEjecutivoComercialUseCase
@@ -28,9 +28,10 @@ from app.aplicacion.prospecto.use_cases.registrar_prospecto import RegistrarPros
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
-from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_porcentaje_depreciacion_personalizado_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_use_case, get_actualizar_valor_uf_m2_personalizado_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
+from app.presentacion.api.prospecto.dependencias.deps import get_actualizar_linea_negocio_prospecto_use_case, get_actualizar_porcentaje_depreciacion_personalizado_use_case, get_actualizar_prospecto_condominio_use_case, get_actualizar_prospecto_empresa_use_case, get_actualizar_prospecto_use_case, get_actualizar_valor_uf_m2_personalizado_use_case, get_asignar_ejecutivo_comercial_use_case, get_asignar_ejecutivo_evaluacion_use_case, get_consulta_prospectos_service, get_filtros_prospectos, get_obtener_linea_negocio_prospecto_use_case, get_obtener_prospecto_factory, get_obtener_prospecto_use_case, get_registrar_prospecto_use_case
 from app.presentacion.api.prospecto.dto.filtros_prospectos import FiltrosProspectos
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_condominio_request import ActualizarProspectoCondominioRequest
+from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_empresa_request import ActualizarProspectoEmpresaRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_porcentaje_depreciacion_personalizado_request import ActualizarPorcentajeDepreciacionPersonalizadoRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_valor_uf_m2_personalizado_request import ActualizarValorUfM2PersonalizadoRequest
 from app.presentacion.api.prospecto.dto.requests.actualizar_prospecto_request import ActualizarProspectoRequest
@@ -87,17 +88,17 @@ def obtener_prospecto_por_id(
     obtener_linea_negocio_prospecto: ObtenerLineaNegocioProspectoUseCase = Depends(get_obtener_linea_negocio_prospecto_use_case),
     obtener_prospecto_factory: ObtenerProspectoFactory = Depends(get_obtener_prospecto_factory)
 ):
-    linea_negocio = normalizar_texto(obtener_linea_negocio_prospecto.ejecutar(id).nombre)
+    codigo_linea_negocio = obtener_linea_negocio_prospecto.ejecutar(id).codigo
 
     puede_ver_todos = usuario_tiene_permiso('OBTENER_PROSPECTOS_TODOS', usuario)
 
     prospecto = obtener_prospecto_factory.obtener(
-        linea_negocio=linea_negocio,
+        codigo_linea_negocio=codigo_linea_negocio,
         id_prospecto=id,
         rut_usuario=usuario.rut if not puede_ver_todos else None
     )
 
-    adapter = obtener_prospecto_factory.obtener_adapter(linea_negocio)  
+    adapter = obtener_prospecto_factory.obtener_adapter(codigo_linea_negocio)  
 
     return {
         'prospecto': adapter(prospecto).to_prospecto_json()
@@ -140,7 +141,7 @@ def registrar_prospecto(
         region=request.region,
         comuna=request.comuna,
         observaciones=request.observaciones,
-        id_linea_negocio=request.id_linea_negocio,
+        codigo_linea_negocio=request.codigo_linea_negocio,
         tiene_locales_comerciales=request.tiene_locales_comerciales,
         uso_del_condominio=request.uso_del_condominio,
         numero_pisos=request.numero_pisos,
@@ -157,7 +158,10 @@ def registrar_prospecto(
         ubicacion_piscina=request.ubicacion_piscina,
         tiene_alarma_incendio=request.tiene_alarma_incendio,
         tiene_sprinklers=request.tiene_sprinklers,
-        condominio_vertical=request.condominio_vertical
+        condominio_vertical=request.condominio_vertical,
+        nombre_fantasia=request.nombre_fantasia,
+        cantidad_trabajadores=request.cantidad_trabajadores,
+        giros_comerciales=request.giros_comerciales
     )
 
     return {
@@ -236,7 +240,7 @@ def actualizar_linea_negocio_prospecto(
     oportunidades_descartadas = use_case.ejecutar(
         id=id,
         usuario=usuario,
-        id_linea_negocio=request.id_linea_negocio
+        codigo_linea_negocio=request.codigo_linea_negocio
     )
 
     return {
@@ -281,6 +285,34 @@ def actualizar_prospecto_condominio(
         year_construccion=request.year_construccion,
         metros_cuadrados=request.metros_cuadrados,
         condominio_vertical=request.condominio_vertical
+    )
+
+    return {
+        'message': 'Prospecto actualizado correctamente'
+    }
+
+
+@router.put('/empresas/{id}', status_code=status.HTTP_200_OK)
+def actualizar_prospecto_empresa(
+    id: int,
+    request: ActualizarProspectoEmpresaRequest,
+    usuario = Depends(permisos_requeridos('ACTUALIZAR_DATOS_PROSPECTO')),
+    use_case: ActualizarProspectoEmpresaUseCase = Depends(get_actualizar_prospecto_empresa_use_case)
+):
+    use_case.ejecutar(
+        id=id,
+        rut_usuario=usuario.rut,
+        rut_riesgo=request.rut_riesgo,
+        nombre_riesgo=request.nombre_riesgo,
+        telefono_contacto=request.telefono_contacto,
+        correo_contacto=request.correo_contacto,
+        direccion=request.direccion,
+        region=request.region,
+        comuna=request.comuna,
+        observaciones=request.observaciones,
+        nombre_fantasia=request.nombre_fantasia,
+        cantidad_trabajadores=request.cantidad_trabajadores,
+        giros_comerciales=request.giros_comerciales
     )
 
     return {

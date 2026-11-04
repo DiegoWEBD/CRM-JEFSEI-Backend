@@ -110,6 +110,13 @@ class ResolvedorNombres:
         )
         return getattr(linea, 'nombre', None)
 
+    def nombre_linea_negocio_por_codigo(self, codigo_linea_negocio: str) -> str | None:
+        linea = self._resolver(
+            lambda: self.repositorio_lineas_negocio.buscar_por_codigo(codigo_linea_negocio),
+            f'linea de negocio {codigo_linea_negocio}',
+        )
+        return getattr(linea, 'nombre', None)
+
     def nombre_contacto(self, id_contacto: int) -> str | None:
         contacto = self._resolver(
             lambda: self.repositorio_contactos.buscar(id_contacto),

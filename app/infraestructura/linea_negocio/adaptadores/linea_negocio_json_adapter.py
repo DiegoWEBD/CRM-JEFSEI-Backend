@@ -14,5 +14,6 @@ class LineaNegocioJsonAdapter:
         return LineaNegocioJson(
             id=self.linea_negocio.id,
             nombre=self.linea_negocio.nombre,
+            codigo=self.linea_negocio.codigo,
             productos=[producto.nombre for producto in self.linea_negocio.productos]
         )
