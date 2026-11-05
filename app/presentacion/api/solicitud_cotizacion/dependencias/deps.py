@@ -16,6 +16,7 @@ from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_post
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
+from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
 
 def get_obtener_solicitudes_cotizacion_use_case():
@@ -39,6 +40,7 @@ def get_obtener_procesos_comerciales_use_case():
     )
 
     return ObtenerProcesosComercialesUseCase(
+        repositorio_usuarios=RepositorioUsuariosPostgres(),
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio,
         repositorio_prospectos=repositorio_prospectos,

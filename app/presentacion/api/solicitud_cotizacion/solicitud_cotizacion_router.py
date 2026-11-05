@@ -85,7 +85,7 @@ def obtener_cotizaciones_por_solicitud(
     use_case: ObtenerCotizacionesPorSolicitudUseCase = Depends(get_obtener_cotizaciones_por_solicitud_use_case)
 ):
     rut_usuario = usuario.rut if not usuario_tiene_permiso('VER_COTIZACIONES_GLOBAL', usuario) else None
-    cotizaciones = use_case.ejecutar(id, rut_usuario)
+    cotizaciones = use_case.ejecutar(id, usuario)
 
     return {
         'cotizaciones': [CotizacionJsonAdapter(cotizacion).to_cotizacion_json() for cotizacion in cotizaciones]

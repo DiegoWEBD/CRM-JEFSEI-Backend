@@ -153,6 +153,7 @@ class AsignarEjecutivoComercialUseCase:
         procesos = self.repositorio_procesos.obtener_procesos_comerciales(
             id_prospecto=id_prospecto,
             abiertos=True,
+            renovaciones=False,
         )
 
         for proceso in procesos:

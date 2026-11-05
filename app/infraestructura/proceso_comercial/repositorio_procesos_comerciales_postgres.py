@@ -31,6 +31,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre as nombre_ej_evaluacion,
+                    PC.rut_ej_renovacion,
+                    EJ_REN.nombre as nombre_ej_renovacion,
+                    PC.rut_as_renovacion,
+                    REN.nombre as nombre_as_renovacion,
                     PC.id_producto,
                     P.nombre as nombre_producto,
                     P.codigo as codigo_producto,
@@ -64,6 +68,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_comercial = EJ_COM.rut
                     left join Usuario EJ_EV
                     on PC.rut_ej_evaluacion = EJ_EV.rut
+                    left join Usuario EJ_REN
+                    on PC.rut_ej_renovacion = EJ_REN.rut
+                    left join Usuario AS REN
+                    on PC.rut_as_renovacion = REN.rut
                     where PC.id = %(id)s
                 '''
 
@@ -95,6 +103,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre as nombre_ej_evaluacion,
+                    PC.rut_ej_renovacion,
+                    EJ_REN.nombre as nombre_ej_renovacion,
+                    PC.rut_as_renovacion,
+                    REN.nombre as nombre_as_renovacion,
                     PC.id_producto,
                     P.nombre as nombre_producto,
                     P.codigo as codigo_producto,
@@ -131,6 +143,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_comercial = EJ_COM.rut
                     left join Usuario EJ_EV
                     on PC.rut_ej_evaluacion = EJ_EV.rut
+                    left join Usuario EJ_REN
+                    on PC.rut_ej_renovacion = EJ_REN.rut
+                    left join Usuario AS REN
+                    on PC.rut_as_renovacion = REN.rut
                 '''
 
                 params = {
@@ -142,7 +158,12 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
-    def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
+    def obtener_procesos_comerciales(
+        self, 
+        id_prospecto: int | None = None, 
+        abiertos: bool | None = None,
+        renovaciones: bool | None = None
+    ) -> list[ProcesoComercial]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -161,6 +182,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_COM.nombre as nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre as nombre_ej_evaluacion,
+                    PC.rut_ej_renovacion,
+                    EJ_REN.nombre as nombre_ej_renovacion,
+                    PC.rut_as_renovacion,
+                    REN.nombre as nombre_as_renovacion,
                     PC.id_producto,
                     P.nombre as nombre_producto,
                     P.codigo as codigo_producto,
@@ -194,6 +219,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_comercial = EJ_COM.rut
                     left join Usuario EJ_EV
                     on PC.rut_ej_evaluacion = EJ_EV.rut
+                    left join Usuario EJ_REN
+                    on PC.rut_ej_renovacion = EJ_REN.rut
+                    left join Usuario AS REN
+                    on PC.rut_as_renovacion = REN.rut
                     where 1 = 1
                 """
 
@@ -213,6 +242,13 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     query += """
                         and PC.cerrado = true
                     """
+
+                if renovaciones is not None:
+                    query += """
+                        and PC.renovacion = %(renovaciones)s
+                    """
+                    params["renovaciones"] = renovaciones
+
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
@@ -451,6 +487,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     EJ_COM.nombre AS nombre_ej_comercial,
                     PC.rut_ej_evaluacion,
                     EJ_EV.nombre AS nombre_ej_evaluacion,
+                    PC.rut_ej_renovacion,
+                    EJ_REN.nombre AS nombre_ej_renovacion,
+                    PC.rut_as_renovacion,
+                    REN.nombre AS nombre_as_renovacion,
                     PC.id_producto,
                     P.nombre AS nombre_producto,
                     P.codigo AS codigo_producto
@@ -474,6 +514,10 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     AND T.es_principal = true
                 LEFT JOIN Usuario EJ_COM ON PC.rut_ej_comercial = EJ_COM.rut
                 LEFT JOIN Usuario EJ_EV ON PC.rut_ej_evaluacion = EJ_EV.rut
+                left join Usuario EJ_REN
+                on PC.rut_ej_renovacion = EJ_REN.rut
+                left join Usuario AS REN
+                on PC.rut_as_renovacion = REN.rut
             )
         """)
 
@@ -918,15 +962,16 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 query = '''
                     update ProcesoComercial
                     set id_prospecto = %(id_prospecto)s,
-                    rut_ej_comercial = %(rut_ej_comercial)s,
                     id_producto = %(id_producto)s,
                     cerrado = %(cerrado)s,
                     descartado = %(descartado)s,
                     motivo_cierre = %(motivo_cierre)s,
                     fecha_cierre = %(fecha_cierre)s,
                     codigo_estado_actual = %(codigo_estado_actual)s,
-                    rut_ej_renovacion = %(rut_ej_renovacion)s,
+                    rut_ej_comercial = %(rut_ej_comercial)s,
                     rut_ej_evaluacion = %(rut_ej_evaluacion)s,
+                    rut_ej_renovacion = %(rut_ej_renovacion)s,
+                    rut_as_renovacion = %(rut_as_renovacion)s,
                     fecha_estimada_cierre = %(fecha_estimada_cierre)s,
                     probabilidad_cierre_ejecutivo = %(probabilidad_cierre_ejecutivo)s
                     where id = %(id)s
@@ -938,6 +983,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     'rut_ej_comercial': proceso.ejecutivo_comercial.rut if proceso.ejecutivo_comercial else None,
                     'rut_ej_evaluacion': proceso.ejecutivo_evaluacion.rut if proceso.ejecutivo_evaluacion else None,
                     'rut_ej_renovacion': proceso.ejecutivo_renovacion.rut if proceso.ejecutivo_renovacion else None,
+                    'rut_as_renovacion': proceso.asistente_renovacion.rut if proceso.asistente_renovacion else None,
                     'id_producto': proceso.producto.id,
                     'cerrado': proceso.cerrado,
                     'descartado': proceso.descartado,

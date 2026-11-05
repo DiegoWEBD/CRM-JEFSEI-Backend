@@ -5,6 +5,7 @@ from psycopg import sql
 
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.prospecto.adaptadores.dictrows_prospectos_resumen_adapter import DictRowsProspectoResumenAdapter
 
@@ -249,7 +250,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
     def obtener_todos(
         self,
-        rut_usuario: Optional[str] = None,
+        usuario: Usuario,
+        rut_usuario_filtro: Optional[str] = None,
         filtro: Optional[str] = None,
         texto_busqueda: Optional[str] = None,
         pagina: int = 1,
@@ -262,7 +264,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params, region, comuna)
+                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario_filtro, params, region, comuna)
                 where_clause = sql.SQL('where {}').format(where_condiciones)
 
                 filtrar_joins = self._filtrar_joins(texto_busqueda)
@@ -304,7 +306,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     ids = [row['id'] for row in page_rows]
 
                     data_query = self._BASE_QUERY.format(
-                        where_clause=sql.SQL('where P.id = ANY(%(ids)s)')
+                        where_clause=sql.SQL('where P.id = ANY(%(ids)s) and PC.cerrado = false')
                     )
                     cur.execute(data_query, {"ids": ids})
                     rows = cur.fetchall()
@@ -313,7 +315,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                         prospectos = DictRowsProspectoResumenAdapter(rows).to_prospectos_resumen()
                         prospectos.sort(key=lambda p: (p.nombre_riesgo, p.id))
 
-                contadores = self._obtener_contadores(rut_usuario)
+                contadores = self._obtener_contadores(rut_usuario_filtro)
 
                 return {
                     'data': prospectos,

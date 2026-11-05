@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
+from app.dominio.usuario.usuario import Usuario
 
 
 class ConsultaProspectosService(ABC):
@@ -8,7 +9,8 @@ class ConsultaProspectosService(ABC):
     @abstractmethod
     def obtener_todos(
         self,
-        rut_usuario: str | None = None,
+        usuario: Usuario,
+        rut_usuario_filtro: str | None = None,
         filtro: str | None = None,
         texto_busqueda: str | None = None,
         pagina: int = 1,

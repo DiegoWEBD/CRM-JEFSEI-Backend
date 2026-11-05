@@ -26,6 +26,10 @@ class DictRowProcesoComercialAdapter:
         nombre_ej_comercial = self.row['nombre_ej_comercial']
         rut_ej_evaluacion = self.row['rut_ej_evaluacion']
         nombre_ej_evaluacion = self.row['nombre_ej_evaluacion']
+        rut_ej_renovacion = self.row['rut_ej_renovacion']
+        nombre_ej_renovacion = self.row['nombre_ej_renovacion']
+        rut_as_renovacion = self.row['rut_as_renovacion']
+        nombre_as_renovacion = self.row['nombre_as_renovacion']
         id_producto = self.row['id_producto']
         codigo_producto = self.row['codigo_producto']
         nombre_producto = self.row['nombre_producto']
@@ -42,6 +46,8 @@ class DictRowProcesoComercialAdapter:
 
         ejecutivo_comercial = None
         ejecutivo_evaluacion = None
+        ejecutivo_renovacion = None
+        asistente_renovacion = None
 
         if rut_ej_comercial is not None:
             ejecutivo_comercial = Usuario(
@@ -53,6 +59,18 @@ class DictRowProcesoComercialAdapter:
             ejecutivo_evaluacion = Usuario(
                 rut=rut_ej_evaluacion,
                 nombre=nombre_ej_evaluacion
+            )
+
+        if rut_ej_renovacion is not None:
+            ejecutivo_renovacion = Usuario(
+                rut=rut_ej_renovacion,
+                nombre=nombre_ej_renovacion
+            )
+
+        if rut_as_renovacion is not None:
+            asistente_renovacion = Usuario(
+                rut=rut_as_renovacion,
+                nombre=nombre_as_renovacion
             )
 
         producto = Producto(
@@ -81,6 +99,8 @@ class DictRowProcesoComercialAdapter:
             cerrado=cerrado,
             ejecutivo_comercial=ejecutivo_comercial,
             ejecutivo_evaluacion=ejecutivo_evaluacion,
+            ejecutivo_renovacion=ejecutivo_renovacion,
+            asistente_renovacion=asistente_renovacion,
             producto=producto,
             id_prospecto=id_prospecto,
             nombre_cliente=nombre_cliente,
