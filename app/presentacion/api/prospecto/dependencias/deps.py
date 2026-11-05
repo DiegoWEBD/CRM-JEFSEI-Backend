@@ -67,15 +67,6 @@ def get_obtener_prospecto_lineas_personales_use_case():
         repositorio_prospectos=repositorio_prospectos
     )
 
-def get_obtener_prospecto_lineas_comerciales_use_case():
-    repositorio_prospectos = RepositorioProspectosPostgres()
-    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
-
-    return ObtenerProspectoLineasComercialesUseCase(
-        authorization_service=authorization_service,
-        repositorio_prospectos=repositorio_prospectos
-    )
-
 def get_obtener_prospecto_condominio_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     authorization_service = AuthorizationServiceFactory.crear_authorization_service()
@@ -129,6 +120,7 @@ def get_asignar_ejecutivo_evaluacion_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     repositorio_usuarios = RepositorioUsuariosPostgres()
     repositorio_notificaciones = RepositorioNotificacionesPostgres()
+
     return AsignarEjecutivoEvaluacionUseCase(
         repositorio_prospectos,
         repositorio_usuarios,
@@ -137,6 +129,7 @@ def get_asignar_ejecutivo_evaluacion_use_case():
             repositorio_notificaciones,
             ServicioAlertasProceso(repositorio_notificaciones),
         ),
+        repositorio_procesos=RepositorioProcesosComercialesPostgres(),
     )
 
 def get_obtener_linea_negocio_prospecto_use_case():

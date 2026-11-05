@@ -722,7 +722,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 row = cur.fetchone()
 
                 return DictRowProspectoAdapter(row).to_prospecto() if row else None
-            
+                
             
     def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:
@@ -1221,74 +1221,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             for row in rows
         ]
                 
-    def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id:
-            return
-
-        rut = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Prospecto
-                    set rut_ej_comercial_asignado = %(rut_ej_comercial)s
-                    where id = %(id_prospecto)s
-                '''
-                params = {
-                    'rut_ej_comercial': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_comercial = %(rut_ej_comercial)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_comercial': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-
-    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id:
-            return
-
-        rut = prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None
-        
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Prospecto
-                    set rut_ej_evaluacion_asignado = %(rut_ej_evaluacion)s
-                    where id = %(id_prospecto)s
-                '''
-                params = {
-                    'rut_ej_evaluacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_evaluacion = %(rut_ej_evaluacion)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_evaluacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
 
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         with obtener_conexion() as conn:
@@ -1302,82 +1234,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 params = {
                     'id_administrador': id_administrador,
                     'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-    def asignar_ejecutivo_cobranza(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_ej_cobranza_asignado = %(rut_ej_cobranza)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_ej_cobranza': rut,
-                    'id_cliente': prospecto.id_cliente
-                }
-
-                cur.execute(query, params)
-
-    def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_ej_renovacion_asignado = %(rut_ej_renovacion)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_ej_renovacion': rut,
-                    'id_cliente': prospecto.id_cliente
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_renovacion = %(rut_ej_renovacion)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_renovacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-    def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_as_renovacion_asignado = %(rut_as_renovacion)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_as_renovacion': rut,
-                    'id_cliente': prospecto.id_cliente
                 }
 
                 cur.execute(query, params)

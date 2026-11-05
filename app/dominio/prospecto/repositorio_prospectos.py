@@ -63,14 +63,6 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
-    def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        pass
-
-    @abstractmethod
-    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        pass
-
-    @abstractmethod
     def actualizar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> None:
         pass
 
@@ -84,16 +76,4 @@ class RepositorioProspectos(ABC):
 
     @abstractmethod
     def actualizar_prospecto(self, prospecto: Prospecto) -> None:
-        pass
-
-    @abstractmethod
-    def asignar_ejecutivo_cobranza(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        pass
-
-    @abstractmethod
-    def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        pass
-
-    @abstractmethod
-    def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
         pass

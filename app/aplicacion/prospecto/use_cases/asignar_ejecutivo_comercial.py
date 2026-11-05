@@ -49,6 +49,7 @@ class AsignarEjecutivoComercialUseCase:
 
         rut_anterior = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
 
+        # Reasignación de ejecutivo comercial en prospecto
         if rut_ej_comercial is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
 
@@ -67,6 +68,7 @@ class AsignarEjecutivoComercialUseCase:
             renovaciones=False,
         )
 
+        # Reasignación de ejecutivo comercial en procesos abiertos
         for proceso in procesos:
             proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
             self.repositorio_procesos.actualizar(proceso)

@@ -4,6 +4,7 @@ from app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion import Asig
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_cobranza import AsignarEjecutivoCobranzaUseCase
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_renovacion import AsignarEjecutivoRenovacionUseCase
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
@@ -34,6 +35,7 @@ def get_asignar_ejecutivo_renovacion_use_case():
         repositorio_usuarios,
         RepositorioNotificacionesPostgres(),
         _crear_refrescar_alertas_renovacion(),
+        repositorio_procesos=RepositorioProcesosComercialesPostgres(),
     )
 
 
@@ -45,4 +47,5 @@ def get_asignar_asistente_renovacion_use_case():
         repositorio_usuarios,
         RepositorioNotificacionesPostgres(),
         _crear_refrescar_alertas_renovacion(),
+        repositorio_procesos=RepositorioProcesosComercialesPostgres()
     )

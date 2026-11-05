@@ -158,6 +158,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 return DictRowProcesoComercialAdapter(row).to_proceso_comercial() if row else None
 
+
     def obtener_procesos_comerciales(
         self, 
         id_prospecto: int | None = None, 
@@ -732,9 +733,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                 # proceso (sin asignación, queda el usuario que lo crea).
 
                 query = '''
-                    insert into ProcesoComercial (id_prospecto, rut_ej_comercial, id_producto, codigo_estado_actual, renovacion)
+                    insert into ProcesoComercial (id_prospecto, id_producto, codigo_estado_actual, renovacion)
                     select C.id_prospecto,
-                    coalesce(C.rut_ej_renovacion_asignado, %(rut_usuario)s),
                     PC.id_producto,
                     %(codigo_estado_actual)s,
                     true

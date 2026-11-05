@@ -7,6 +7,7 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.usuario import Usuario
@@ -67,6 +68,8 @@ class IniciarRenovacionPolizaUseCase:
         # Al ser una oportunidad de renovación, sólo se asignan los ejecutivos de renovación y el asistente de renovación del prospecto
         proceso.ejecutivo_renovacion = prospecto.ejecutivo_renovacion_asignado
         proceso.asistente_renovacion = prospecto.asistente_renovacion_asignado
+
+        self.repositorio_procesos_comerciales.actualizar(proceso)
 
         ahora = datetime.now(tz=timezone.utc)
         destinatarios = self.servicio_alertas.marcar_leidas_renovacion(numero_poliza, ahora)

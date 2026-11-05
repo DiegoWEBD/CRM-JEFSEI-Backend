@@ -5,6 +5,7 @@ from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -17,16 +18,18 @@ class AsignarEjecutivoRenovacionUseCase:
         repositorio_usuarios: RepositorioUsuarios,
         repositorio_notificaciones: RepositorioNotificaciones,
         refrescar_alertas_renovacion: RefrescarAlertasRenovacionUseCase,
+        repositorio_procesos: RepositorioProcesosComerciales,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
         self.repositorio_notificaciones = repositorio_notificaciones
         self.refrescar_alertas_renovacion = refrescar_alertas_renovacion
+        self.repositorio_procesos = repositorio_procesos
 
     def ejecutar(self, id_cliente: int, rut_ej_renovacion: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
 
-        if not prospecto or not prospecto.id:
+        if not prospecto or not prospecto.id or not prospecto.id_cliente:
             raise RecursoNoEncontradoException('Cliente no encontrado')
 
         rut_anterior = prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None
@@ -41,11 +44,18 @@ class AsignarEjecutivoRenovacionUseCase:
         else:
             prospecto.ejecutivo_renovacion_asignado = None
 
-        # Sin cliente asociado no hay asignación que guardar ni notificar.
-        if not prospecto.id_cliente:
-            return
+        self.repositorio_prospectos.actualizar_prospecto(prospecto)
 
-        self.repositorio_prospectos.asignar_ejecutivo_renovacion(prospecto, asignado_por)
+        procesos = self.repositorio_procesos.obtener_procesos_comerciales(
+            id_prospecto=prospecto.id,
+            abiertos=True,
+            renovaciones=True,
+        )
+
+        # Reasignación de ejecutivo de renovación en procesos abiertos
+        for proceso in procesos:
+            proceso.ejecutivo_renovacion = prospecto.ejecutivo_renovacion_asignado
+            self.repositorio_procesos.actualizar(proceso)
 
         if rut_anterior != rut_ej_renovacion:
             # Con cambio de ejecutivo, las alertas de renovación del anterior

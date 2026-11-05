@@ -6,6 +6,7 @@ from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import ROL_EJECUTIVO_EVALUACION_PROYECTOS
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -18,11 +19,13 @@ class AsignarEjecutivoEvaluacionUseCase:
         repositorio_usuarios: RepositorioUsuarios,
         repositorio_notificaciones: RepositorioNotificaciones,
         generar_alertas_sla: GenerarAlertasSlaUseCase,
+        repositorio_procesos: RepositorioProcesosComerciales,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
         self.repositorio_notificaciones = repositorio_notificaciones
         self.generar_alertas_sla = generar_alertas_sla
+        self.repositorio_procesos = repositorio_procesos
 
     def ejecutar(self, id_prospecto: int, rut_ej_evaluacion: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
@@ -42,7 +45,18 @@ class AsignarEjecutivoEvaluacionUseCase:
         else:
             prospecto.ejecutivo_evaluacion_asignado = None
 
-        self.repositorio_prospectos.asignar_ejecutivo_evaluacion_proyectos(prospecto, asignado_por)
+        self.repositorio_prospectos.actualizar_prospecto(prospecto)
+
+        procesos = self.repositorio_procesos.obtener_procesos_comerciales(
+            id_prospecto=id_prospecto,
+            abiertos=True,
+            renovaciones=False,
+        )
+
+        # Reasignación de ejecutivo de evaluación en procesos abiertos
+        for proceso in procesos:
+            proceso.ejecutivo_evaluacion = prospecto.ejecutivo_evaluacion_asignado
+            self.repositorio_procesos.actualizar(proceso)
 
         if rut_anterior != rut_ej_evaluacion:
             # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
