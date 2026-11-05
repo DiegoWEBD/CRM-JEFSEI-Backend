@@ -57,6 +57,7 @@ def obtener_prospectos(
     if puede_ver_todos:
         return consulta_prospectos_service.obtener_todos(
             usuario=usuario,
+            oportunidades_todas=True,
             rut_usuario_filtro=filtros.rut_usuario,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,
@@ -71,6 +72,7 @@ def obtener_prospectos(
             raise UsuarioNoAutorizadoException
         return consulta_prospectos_service.obtener_todos(
             usuario=usuario,
+            oportunidades_todas=False,
             rut_usuario_filtro=usuario.rut,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,

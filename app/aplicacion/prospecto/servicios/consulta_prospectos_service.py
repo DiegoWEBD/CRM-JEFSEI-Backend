@@ -10,6 +10,7 @@ class ConsultaProspectosService(ABC):
     def obtener_todos(
         self,
         usuario: Usuario,
+        oportunidades_todas: bool,
         rut_usuario_filtro: str | None = None,
         filtro: str | None = None,
         texto_busqueda: str | None = None,

@@ -230,7 +230,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     comuna = %(comuna)s,
                     observaciones = %(observaciones)s,
                     informacion_completa = %(informacion_completa)s,
-                    id_linea_negocio = %(id_linea_negocio)s
+                    id_linea_negocio = %(id_linea_negocio)s,
+                    rut_ej_comercial_asignado = %(rut_ej_comercial_asignado)s,
+                    rut_ej_evaluacion_asignado = %(rut_ej_evaluacion_asignado)s
                     where id = %(id)s
                 '''
 
@@ -245,7 +247,27 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'observaciones': prospecto.observaciones,
                     'informacion_completa': informacion_completa_prospecto(prospecto),
                     'id': prospecto.id,
-                    'id_linea_negocio': prospecto.linea_negocio.id
+                    'id_linea_negocio': prospecto.linea_negocio.id,
+                    'rut_ej_comercial_asignado': prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None,
+                    'rut_ej_evaluacion_asignado': prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None,
+                }
+
+                cur.execute(query, params)
+
+                # Actualización de ejecutivos en cliente
+                query = '''
+                    update Cliente
+                    set rut_ej_cobranza_asignado = %(rut_ej_cobranza_asignado)s,
+                    rut_ej_renovacion_asignado = %(rut_ej_renovacion_asignado)s,
+                    rut_as_renovacion_asignado = %(rut_as_renovacion_asignado)s
+                    where id_prospecto = %(id_prospecto)s
+                '''
+
+                params = {
+                    'rut_ej_cobranza_asignado': prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None,
+                    'rut_ej_renovacion_asignado': prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None,
+                    'rut_as_renovacion_asignado': prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None,
+                    'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)

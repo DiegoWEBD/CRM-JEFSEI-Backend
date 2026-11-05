@@ -15,6 +15,7 @@ from app.dominio.notificacion.tipos_alerta import (
     ROL_EJECUTIVO_COMERCIAL,
     TIPOS_ALERTA_FECHA,
 )
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -58,7 +59,17 @@ class AsignarEjecutivoComercialUseCase:
         else:
             prospecto.ejecutivo_comercial_asignado = None
 
-        self.repositorio_prospectos.asignar_ejecutivo_comercial(prospecto, asignado_por)
+        self.repositorio_prospectos.actualizar_prospecto(prospecto)
+        
+        procesos = self.repositorio_procesos.obtener_procesos_comerciales(
+            id_prospecto=id_prospecto,
+            abiertos=True,
+            renovaciones=False,
+        )
+
+        for proceso in procesos:
+            proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
+            self.repositorio_procesos.actualizar(proceso)
 
         if rut_anterior != rut_ej_comercial:
             # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
@@ -70,7 +81,7 @@ class AsignarEjecutivoComercialUseCase:
             # ser relevantes: se marcan leídas y se genera la del nuevo responsable
             # (creada en este momento, no transferida). En desasignación no se crea
             # nada (sin destinatario), pero las previas quedan leídas.
-            self._refrescar_alertas_de_cierre(id_prospecto)
+            self._refrescar_alertas_de_cierre(procesos)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).
@@ -146,15 +157,9 @@ class AsignarEjecutivoComercialUseCase:
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'sla_reevaluado'},
             )
 
-    def _refrescar_alertas_de_cierre(self, id_prospecto: int) -> None:
+    def _refrescar_alertas_de_cierre(self, procesos: list[ProcesoComercial]) -> None:
         ahora = datetime.now(tz=timezone.utc)
         destinatarios: list[str] = []
-
-        procesos = self.repositorio_procesos.obtener_procesos_comerciales(
-            id_prospecto=id_prospecto,
-            abiertos=True,
-            renovaciones=False,
-        )
 
         for proceso in procesos:
             destinatarios.extend(
