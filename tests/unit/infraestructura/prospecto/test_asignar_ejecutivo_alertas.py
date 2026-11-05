@@ -4,11 +4,18 @@ import pytest
 
 import app.infraestructura.prospecto.repositorio_prospectos_postgres as modulo_repo
 from app.dominio.prospecto.prospecto import Prospecto
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import (
+    RepositorioProcesosComercialesPostgres,
+)
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import (
     RepositorioProspectosPostgres,
 )
+from tests.factories.linea_negocio_factory import crear_linea_negocio_mock
+from tests.factories.proceso_comercial_factory import crear_proceso_comercial_mock
+from tests.factories.usuario_factory import crear_usuario_mock
 
 MODULO = 'app.infraestructura.prospecto.repositorio_prospectos_postgres'
+MODULO_PROCESOS = 'app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres'
 
 
 def _conexion_mock():
@@ -21,23 +28,32 @@ def _conexion_mock():
     return conexion, cursor
 
 
-def _prospecto(id: int | None = 1, id_cliente: int | None = 5, ejecutivo=None) -> Prospecto:
+def _prospecto(id: int | None = 1, **ejecutivos) -> Prospecto:
+    """Prospecto real con los ejecutivos informados por nombre de atributo.
+
+    Los métodos de asignación son puros: solo persistencia. La actualización
+    del prospecto persiste los ejecutivos comerciales/de evaluación en
+    Prospecto y los de cobranza/renovación/asistencia en Cliente.
+    """
     prospecto = Prospecto(
         rut_riesgo='12345678-9',
         nombre_riesgo='Riesgo de prueba',
         telefono_contacto=None,
         correo_contacto=None,
-        direccion=None,
-        region=None,
-        comuna=None,
+        direccion='Av. Principal 123',
+        region='Metropolitana',
+        comuna='Santiago',
         observaciones=None,
-        linea_negocio=None,  # type: ignore[arg-type]
-        registrado_por=None,  # type: ignore[arg-type]
-        ejecutivo_comercial_asignado=ejecutivo,
+        linea_negocio=crear_linea_negocio_mock(),
+        registrado_por=crear_usuario_mock(),
+        ejecutivo_comercial_asignado=ejecutivos.get('ejecutivo_comercial'),
+        ejecutivo_evaluacion_asignado=ejecutivos.get('ejecutivo_evaluacion'),
+        ejecutivo_cobranza_asignado=ejecutivos.get('ejecutivo_cobranza'),
+        ejecutivo_renovacion_asignado=ejecutivos.get('ejecutivo_renovacion'),
+        asistente_renovacion_asignado=ejecutivos.get('asistente_renovacion'),
         informacion_completa=False,
         id=id,
     )
-    prospecto.id_cliente = id_cliente
     return prospecto
 
 
@@ -56,139 +72,113 @@ def _consultas_de(cursor, palabra: str) -> list[dict]:
 
 @pytest.mark.unit
 @patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoComercialPuro:
+class TestActualizarProspectoEjecutivos:
 
-    def test_actualiza_prospecto_y_procesos_abiertos(self, mock_conexion):
+    def test_persiste_los_ejecutivos_comercial_y_de_evaluacion_en_el_prospecto(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        prospecto = _prospecto()
-        prospecto.ejecutivo_comercial_asignado = MagicMock(rut='22222222-2')
+        prospecto = _prospecto(
+            ejecutivo_comercial=crear_usuario_mock(rut='22222222-2'),
+            ejecutivo_evaluacion=crear_usuario_mock(rut='33333333-3'),
+        )
 
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(prospecto, MagicMock())
+        RepositorioProspectosPostgres().actualizar_prospecto(prospecto)
 
         params_prospecto = _consultas_de(cursor, 'update Prospecto')
         assert len(params_prospecto) == 1
-        assert params_prospecto[0]['rut_ej_comercial'] == '22222222-2'
-        assert params_prospecto[0]['id_prospecto'] == 1
+        assert params_prospecto[0]['rut_ej_comercial_asignado'] == '22222222-2'
+        assert params_prospecto[0]['rut_ej_evaluacion_asignado'] == '33333333-3'
+        assert params_prospecto[0]['id'] == 1
 
-        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
-        assert len(params_procesos) == 1
-        assert params_procesos[0]['rut_ej_comercial'] == '22222222-2'
-        assert any(
-            'cerrado = false' in str(call.args[0])
-            for call in cursor.execute.call_args_list
-            if 'update ProcesoComercial' in str(call.args[0])
+    def test_persiste_los_ejecutivos_de_cobranza_renovacion_y_asistente_en_el_cliente(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        prospecto = _prospecto(
+            ejecutivo_cobranza=crear_usuario_mock(rut='44444444-4'),
+            ejecutivo_renovacion=crear_usuario_mock(rut='55555555-5'),
+            asistente_renovacion=crear_usuario_mock(rut='66666666-6'),
         )
 
-        _sin_alertas(cursor)
+        RepositorioProspectosPostgres().actualizar_prospecto(prospecto)
+
+        params_cliente = _consultas_de(cursor, 'update Cliente')
+        assert len(params_cliente) == 1
+        assert params_cliente[0]['rut_ej_cobranza_asignado'] == '44444444-4'
+        assert params_cliente[0]['rut_ej_renovacion_asignado'] == '55555555-5'
+        assert params_cliente[0]['rut_as_renovacion_asignado'] == '66666666-6'
+        assert params_cliente[0]['id_prospecto'] == 1
+
+    def test_sin_ejecutivos_deja_los_ruts_en_none(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        prospecto = _prospecto()
+
+        RepositorioProspectosPostgres().actualizar_prospecto(prospecto)
+
+        assert _consultas_de(cursor, 'update Prospecto')[0]['rut_ej_comercial_asignado'] is None
+        assert _consultas_de(cursor, 'update Prospecto')[0]['rut_ej_evaluacion_asignado'] is None
+        assert _consultas_de(cursor, 'update Cliente')[0]['rut_ej_cobranza_asignado'] is None
+        assert _consultas_de(cursor, 'update Cliente')[0]['rut_ej_renovacion_asignado'] is None
+        assert _consultas_de(cursor, 'update Cliente')[0]['rut_as_renovacion_asignado'] is None
 
     def test_sin_id_no_hace_nada(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
 
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_comercial(_prospecto(id=None), MagicMock())
+        RepositorioProspectosPostgres().actualizar_prospecto(_prospecto(id=None))
 
         cursor.execute.assert_not_called()
 
-
-@pytest.mark.unit
-@patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoEvaluacionPuro:
-
-    def test_actualiza_prospecto_y_procesos_abiertos(self, mock_conexion):
+    def test_no_toca_alertas(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        prospecto = _prospecto()
-        prospecto.ejecutivo_evaluacion_asignado = MagicMock(rut='22222222-2')
 
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_evaluacion_proyectos(prospecto, MagicMock())
-
-        params_prospecto = _consultas_de(cursor, 'update Prospecto')
-        assert len(params_prospecto) == 1
-        assert params_prospecto[0]['rut_ej_evaluacion'] == '22222222-2'
-
-        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
-        assert len(params_procesos) == 1
-        assert params_procesos[0]['rut_ej_evaluacion'] == '22222222-2'
+        RepositorioProspectosPostgres().actualizar_prospecto(_prospecto())
 
         _sin_alertas(cursor)
 
 
 @pytest.mark.unit
-@patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoCobranzaPuro:
+@patch(f'{MODULO_PROCESOS}.obtener_conexion')
+class TestActualizarProcesoComercialEjecutivos:
 
-    def test_actualiza_cliente(self, mock_conexion):
+    def test_persiste_los_ejecutivos_en_la_oportunidad(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
-        prospecto = _prospecto()
-        prospecto.ejecutivo_cobranza_asignado = MagicMock(rut='22222222-2')
+        proceso = crear_proceso_comercial_mock(
+            ejecutivo_comercial=crear_usuario_mock(rut='22222222-2'),
+            ejecutivo_evaluacion=crear_usuario_mock(rut='33333333-3'),
+            ejecutivo_renovacion=crear_usuario_mock(rut='44444444-4'),
+            asistente_renovacion=crear_usuario_mock(rut='55555555-5'),
+        )
 
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_cobranza(prospecto, MagicMock())
+        RepositorioProcesosComercialesPostgres().actualizar(proceso)
 
-        params_cliente = _consultas_de(cursor, 'update Cliente')
-        assert len(params_cliente) == 1
-        assert params_cliente[0]['rut_ej_cobranza'] == '22222222-2'
-        assert params_cliente[0]['id_cliente'] == 5
+        query, params = cursor.execute.call_args.args
+        assert 'update ProcesoComercial' in str(query)
+        assert params['rut_ej_comercial'] == '22222222-2'
+        assert params['rut_ej_evaluacion'] == '33333333-3'
+        assert params['rut_ej_renovacion'] == '44444444-4'
+        assert params['rut_as_renovacion'] == '55555555-5'
 
-        _sin_alertas(cursor)
+    def test_sin_ejecutivos_deja_los_ruts_en_none(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        proceso = crear_proceso_comercial_mock()
 
-    def test_sin_cliente_asociado_no_hace_nada(self, mock_conexion):
+        RepositorioProcesosComercialesPostgres().actualizar(proceso)
+
+        params = cursor.execute.call_args.args[1]
+        assert params['rut_ej_comercial'] is None
+        assert params['rut_ej_evaluacion'] is None
+        assert params['rut_ej_renovacion'] is None
+        assert params['rut_as_renovacion'] is None
+
+    def test_no_toca_alertas(self, mock_conexion):
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
 
-        repo = RepositorioProspectosPostgres()
-        prospecto = _prospecto()
-        prospecto.id_cliente = None
-        repo.asignar_ejecutivo_cobranza(prospecto, MagicMock())
-
-        cursor.execute.assert_not_called()
-
-
-@pytest.mark.unit
-@patch(f'{MODULO}.obtener_conexion')
-class TestAsignarEjecutivoRenovacionPuro:
-
-    def test_actualiza_cliente_y_procesos_abiertos(self, mock_conexion):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        prospecto = _prospecto()
-        prospecto.ejecutivo_renovacion_asignado = MagicMock(rut='22222222-2')
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_ejecutivo_renovacion(prospecto, MagicMock())
-
-        params_cliente = _consultas_de(cursor, 'update Cliente')
-        assert len(params_cliente) == 1
-        assert params_cliente[0]['rut_ej_renovacion'] == '22222222-2'
-
-        params_procesos = _consultas_de(cursor, 'update ProcesoComercial')
-        assert len(params_procesos) == 1
-        assert params_procesos[0]['rut_ej_renovacion'] == '22222222-2'
-
-        _sin_alertas(cursor)
-
-
-@pytest.mark.unit
-@patch(f'{MODULO}.obtener_conexion')
-class TestAsignarAsistenteRenovacionPuro:
-
-    def test_actualiza_cliente(self, mock_conexion):
-        conexion, cursor = _conexion_mock()
-        mock_conexion.return_value = conexion
-        prospecto = _prospecto()
-        prospecto.asistente_renovacion_asignado = MagicMock(rut='22222222-2')
-
-        repo = RepositorioProspectosPostgres()
-        repo.asignar_asistente_renovacion(prospecto, MagicMock())
-
-        params_cliente = _consultas_de(cursor, 'update Cliente')
-        assert len(params_cliente) == 1
-        assert params_cliente[0]['rut_as_renovacion'] == '22222222-2'
+        RepositorioProcesosComercialesPostgres().actualizar(crear_proceso_comercial_mock())
 
         _sin_alertas(cursor)
 

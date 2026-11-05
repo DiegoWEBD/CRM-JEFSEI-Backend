@@ -212,6 +212,27 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return row['id']
 
+
+    def crear_cliente(self, prospecto: Prospecto) -> int | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into Cliente (id_prospecto)
+                    values (%(id_prospecto)s)
+                    returning id
+                '''
+
+                params = {
+                    'id_prospecto': prospecto.id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                
+                return row['id'] if row else None
+    
+
     def actualizar_prospecto(self, prospecto: Prospecto) -> None:
         if prospecto.id is None:
             return

@@ -12,6 +12,11 @@ class RepositorioProspectos(ABC):
     def registrar_prospecto(self, prospecto: Prospecto) -> int:
         pass
 
+    # Retorna el id del cliente
+    @abstractmethod
+    def crear_cliente(self, prospecto: Prospecto) -> int | None:
+        pass
+
     @abstractmethod
     def registrar_prospecto_condominio(self, prospecto: ProspectoCondominio) -> int:
         pass

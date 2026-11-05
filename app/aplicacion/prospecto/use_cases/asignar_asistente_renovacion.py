@@ -34,6 +34,9 @@ class AsignarAsistenteRenovacionUseCase:
 
         rut_anterior = prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None
 
+        if rut_anterior == rut_as_renovacion:
+            return
+
         if rut_as_renovacion is not None:
             usuario = self.repositorio_usuarios.buscar(rut_as_renovacion)
 

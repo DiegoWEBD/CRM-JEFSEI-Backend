@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from app.dominio.estudio_comercial.estudio_comercial_condominio.estudio_comercial_condominio import EstudioComercialCondominio
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 from app.infraestructura.db.conexion import obtener_conexion
@@ -10,8 +8,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
     def insertar(
         self,
         id_solicitud: int,
-        nombre_archivo: str,
-        rut_usuario: str
+        nombre_archivo: str
     ) -> int:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -30,74 +27,7 @@ class RepositorioEstudiosComercialesPostgres(RepositorioEstudiosComerciales):
                 if row is None:
                     raise Exception('Error al registrar el estudio comercial')
                 
-                id_estudio = row['id']
-
-                # Registro de historial
-
-                query = '''
-                    select SC.id_proceso_comercial
-                    from EstudioComercialCondominio EC
-                    inner join SolicitudCotizacion SC
-                    on EC.id_solicitud = SC.id
-                    where id_solicitud = %(id_solicitud)s
-                '''
-
-                params = {
-                    'id_solicitud': id_solicitud
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    raise Exception('Error al registrar el estudio comercial')
-                
-                id_proceso_comercial = row['id_proceso_comercial']
-                fecha = datetime.now(tz=timezone.utc)
-
-                # Registro de historial
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial(
-                        id_proceso_comercial, 
-                        codigo_estado, 
-                        fecha_registro,
-                        observacion,
-                        rut_registrado_por
-                    )
-                    values(
-                        %(id_proceso_comercial)s, 
-                        %(codigo_estado)s, 
-                        %(fecha_registro)s,
-                        %(observacion)s,
-                        %(rut_registrado_por)s
-                    )
-                '''
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'codigo_estado': 'ESTUDIO_DISPONIBLE',
-                    'fecha_registro': fecha,
-                    'observacion': None,
-                    'rut_registrado_por': rut_usuario
-                }
-
-                cur.execute(query, params)
-
-                # Cambio de estado de proceso comercial
-                
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'codigo_estado': 'ESTUDIO_DISPONIBLE',
-                }
-
-                cur.execute(query, params)
+                id_estudio = row['id'] 
 
         return id_estudio
 

@@ -19,7 +19,7 @@ def _use_case():
     repo_polizas = MagicMock()
     repo_polizas.buscar.return_value = None
     repo_procesos = MagicMock()
-    repo_procesos.buscar.return_value = MagicMock(id=42)
+    repo_procesos.buscar.return_value = MagicMock(id=42, cerrado=False)
     repo_companies = MagicMock()
     repo_companies.buscar.return_value = MagicMock(id=1)
     authorization = MagicMock()

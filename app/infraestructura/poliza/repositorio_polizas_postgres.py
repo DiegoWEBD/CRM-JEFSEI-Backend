@@ -257,57 +257,9 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 return [DictRowPolizaAdapter(row).to_poliza() for row in rows]
 
-    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int, rut_usuario: str) -> None:
-        ESTADO_POLIZA_REGISTRADA = 'POLIZA_REGISTRADA'
-        fecha = datetime.now(tz=timezone.utc)
-
+    def registrar_a_proceso_comercial(self, poliza: Poliza, id_proceso_comercial: int) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-
-                query = '''
-                    select C.id as id_cliente,
-                    P.id as id_prospecto
-                    from ProcesoComercial PC
-                    inner join Prospecto P
-                    on PC.id_prospecto = P.id
-                    left join Cliente C
-                    on P.id = C.id_prospecto
-                    where PC.id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial
-                }
-
-                cur.execute(query, params)
-                row = cur.fetchone()
-
-                if row is None:
-                    return
-                
-                id_prospecto = row['id_prospecto']
-                id_cliente = row['id_cliente']
-
-                if not id_cliente:
-                    # Crear cliente en caso que no lo sea
-
-                    query = '''
-                        insert into Cliente (id_prospecto)
-                        values (%(id_prospecto)s)
-                        returning id
-                    '''
-
-                    params = {
-                        'id_prospecto': id_prospecto
-                    }
-
-                    cur.execute(query, params)
-                    row = cur.fetchone()
-
-                    if not row:
-                        return
-                    
-                    id_cliente = row['id']
 
                 # Registrar póliza
                 query = '''
@@ -325,9 +277,9 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         cancelada,
                         renovacion_cotizada
                     )
-                    values (
+                    select
                         %(numero_poliza)s,
-                        %(id_cliente)s,
+                        C.id,
                         %(tipo)s,
                         %(prima_neta)s,
                         %(comision_corredora_pct)s,
@@ -338,12 +290,16 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
                         %(id_proceso_comercial)s,
                         %(cancelada)s,
                         %(renovacion_cotizada)s
-                    )
+                    from ProcesoComercial PC
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    inner join Cliente C
+                    on C.id_prospecto = P.id
+                    where PC.id = %(id_proceso_comercial)s
                 '''
 
                 params = {
                     'numero_poliza': poliza.numero_poliza,
-                    'id_cliente': id_cliente,
                     'tipo': poliza.tipo,
                     'prima_neta': poliza.prima_neta,
                     'comision_corredora_pct': poliza.comision_corredora_pct,
@@ -358,52 +314,6 @@ class RepositorioPolizasPostgres(RepositorioPolizas):
 
                 cur.execute(query, params)
 
-                # Registro de historial
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial (
-                        id_proceso_comercial,
-                        codigo_estado,
-                        rut_registrado_por
-                    )
-                    select
-                        %(id_proceso_comercial)s,
-                        %(codigo_estado)s,
-                        %(rut_registrado_por)s
-                    where coalesce(
-                        (
-                            select codigo_estado
-                            from HistorialEstadoInformativoProcesoComercial
-                            where id_proceso_comercial = %(id_proceso_comercial)s
-                            order by fecha_registro desc
-                            limit 1
-                        ),
-                        ''
-                    ) <> %(codigo_estado)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': poliza.id_proceso_comercial,
-                    'codigo_estado': ESTADO_POLIZA_REGISTRADA,
-                    'rut_registrado_por': rut_usuario
-                }
-
-                cur.execute(query, params)
-
-                # Cambio de estado del proceso comercial
-                
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': poliza.id_proceso_comercial,
-                    'codigo_estado': ESTADO_POLIZA_REGISTRADA
-                }
-
-                cur.execute(query, params)
 
     def obtener_polizas_panel(
         self,

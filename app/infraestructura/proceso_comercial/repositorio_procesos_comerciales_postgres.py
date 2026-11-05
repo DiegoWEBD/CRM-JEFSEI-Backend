@@ -583,56 +583,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
             fmt_atraso=fmt_atraso,
         )
             
-    def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                codigo_estado = 'GANADO' if ganado else 'PERDIDO'
-                fecha = datetime.now(tz=timezone.utc)
-
-                query = '''
-                    update ProcesoComercial
-                    set cerrado = %(cerrado)s,
-                    codigo_estado_actual = %(codigo_estado)s,
-                    fecha_cierre = %(fecha_cierre)s
-                    where id = %(id)s
-                '''
-
-                params = {
-                    'id': id,
-                    'cerrado': True,
-                    'fecha_cierre': fecha,
-                    'codigo_estado': codigo_estado,
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial(
-                        id_proceso_comercial, 
-                        codigo_estado, 
-                        fecha_registro,
-                        observacion,
-                        rut_registrado_por
-                    )
-                    values(
-                        %(id_proceso_comercial)s, 
-                        %(codigo_estado)s, 
-                        %(fecha_registro)s,
-                        %(observacion)s,
-                        %(rut_registrado_por)s
-                    )
-                '''
-
-                params = {
-                    'id_proceso_comercial': id,
-                    'codigo_estado': codigo_estado,
-                    'fecha_registro': fecha,
-                    'observacion': observacion,
-                    'rut_registrado_por': rut_usuario
-                }
-
-                cur.execute(query, params)
 
 
     def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:

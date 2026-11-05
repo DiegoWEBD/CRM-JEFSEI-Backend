@@ -66,7 +66,7 @@ def get_cerrar_proceso_comercial_use_case():
         repositorio_procesos_comerciales=repositorio,
         repositorio_planes_pago=repositorio_planes_pago,
         repositorio_polizas=repositorio_polizas,
-        repositorio_notificaciones=repositorio_notificaciones,
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 

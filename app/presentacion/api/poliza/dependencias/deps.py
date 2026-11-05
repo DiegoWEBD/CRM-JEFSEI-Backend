@@ -12,6 +12,7 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
@@ -53,11 +54,12 @@ def get_registrar_poliza_a_proceso_comercial_use_case():
 
 
     return RegistrarPolizaAProcesoComercialUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
         repositorio_polizas=repositorio_polizas,
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         authorization_service=authorization_service,
-        repositorio_notificaciones=RepositorioNotificacionesPostgres(),
+        repositorio_historial_estados=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres())
     )
 

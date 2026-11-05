@@ -4,7 +4,9 @@ import pytest
 
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.dominio.authorization.authorizacion_repository import AuthorizationRepository
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from tests.factories.prospecto_factory import crear_prospecto_mock
 from tests.factories.usuario_factory import crear_usuario_mock
@@ -31,6 +33,8 @@ def authorization_service(repositorio_usuarios_mock):
         authorization_repository=MagicMock(spec=AuthorizationRepository),
         repositorio_prospectos=MagicMock(spec=RepositorioProspectos),
         repositorio_usuarios=repositorio_usuarios_mock,
+        repositorio_procesos_comerciales=MagicMock(spec=RepositorioProcesosComerciales),
+        repositorio_solicitudes_cotizacion=MagicMock(spec=RepositorioSolicitudesCotizacion),
     )
 
 

@@ -35,6 +35,9 @@ class AsignarEjecutivoEvaluacionUseCase:
 
         rut_anterior = prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None
 
+        if rut_anterior == rut_ej_evaluacion:
+            return
+
         if rut_ej_evaluacion is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_evaluacion)
 
@@ -58,11 +61,10 @@ class AsignarEjecutivoEvaluacionUseCase:
             proceso.ejecutivo_evaluacion = prospecto.ejecutivo_evaluacion_asignado
             self.repositorio_procesos.actualizar(proceso)
 
-        if rut_anterior != rut_ej_evaluacion:
-            # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
-            # de la EVALUACIÓN se eliminan y se re-evalúan al tiro: el nuevo
-            # responsable la recibe creada ahora, no transferida.
-            self._refrescar_alertas_sla(id_prospecto, rut_ej_evaluacion)
+        # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
+        # de la EVALUACIÓN se eliminan y se re-evalúan al tiro: el nuevo
+        # responsable la recibe creada ahora, no transferida.
+        self._refrescar_alertas_sla(id_prospecto, rut_ej_evaluacion)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

@@ -78,10 +78,11 @@ class TestAsignarEjecutivoComercialFlujoFecha:
 
         uc.ejecutar(id_prospecto=1, rut_ej_comercial='22222222-2', asignado_por=MagicMock())
 
-        repo_prospectos.asignar_ejecutivo_comercial.assert_called_once()
+        repo_prospectos.actualizar_prospecto.assert_called_once_with(prospecto)
         repo_procesos.obtener_procesos_comerciales.assert_called_once_with(
             id_prospecto=1,
             abiertos=True,
+            renovaciones=False,
         )
         assert generar.ejecutar.call_count == 2
         ids = [c.kwargs['id_proceso_comercial'] for c in generar.ejecutar.call_args_list]
@@ -272,8 +273,8 @@ class TestAsignarEjecutivoComercialRefrescoAlertasSla:
 @patch(f'{MODULO}.hub')
 class TestAsignarEjecutivoComercialNotificacionesAsignacion:
 
-    def test_crea_notificacion_asignacion_en_cada_invocacion_con_rut(self, mock_hub):
-        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+    def test_crea_notificacion_asignacion_al_cambiar_de_ejecutivo(self, mock_hub):
+        prospecto = _prospecto_mock(ejecutivo_previo=None)
         generar = MagicMock()
         uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo='11111111-1')
 
@@ -323,6 +324,15 @@ class TestAsignarEjecutivoComercialNotificacionesAsignacion:
         uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo=None)
 
         uc.ejecutar(id_prospecto=1, rut_ej_comercial=None, asignado_por=MagicMock())
+
+        repo_notificaciones.registrar.assert_not_called()
+
+    def test_no_crea_notificacion_si_el_rut_no_cambia(self, mock_hub):
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        uc, _, _, repo_notificaciones, _ = _use_case(prospecto, generar, rut_nuevo='11111111-1')
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial='11111111-1', asignado_por=MagicMock())
 
         repo_notificaciones.registrar.assert_not_called()
 

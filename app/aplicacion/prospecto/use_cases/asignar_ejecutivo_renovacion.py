@@ -34,6 +34,9 @@ class AsignarEjecutivoRenovacionUseCase:
 
         rut_anterior = prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None
 
+        if rut_anterior == rut_ej_renovacion:
+            return
+
         if rut_ej_renovacion is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_renovacion)
 
@@ -57,13 +60,12 @@ class AsignarEjecutivoRenovacionUseCase:
             proceso.ejecutivo_renovacion = prospecto.ejecutivo_renovacion_asignado
             self.repositorio_procesos.actualizar(proceso)
 
-        if rut_anterior != rut_ej_renovacion:
-            # Con cambio de ejecutivo, las alertas de renovación del anterior
-            # dejan de ser suyas: se eliminan y se re-evalúan en este momento
-            # para crear las del nuevo responsable (creadas ahora, no
-            # transferidas). En desasignación se eliminan las previas y no se
-            # crea nada (sin destinatario), igual que en cierre y SLA.
-            self.refrescar_alertas_renovacion.ejecutar(prospecto.id_cliente)
+        # Con cambio de ejecutivo, las alertas de renovación del anterior
+        # dejan de ser suyas: se eliminan y se re-evalúan en este momento
+        # para crear las del nuevo responsable (creadas ahora, no
+        # transferidas). En desasignación se eliminan las previas y no se
+        # crea nada (sin destinatario), igual que en cierre y SLA.
+        self.refrescar_alertas_renovacion.ejecutar(prospecto.id_cliente)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

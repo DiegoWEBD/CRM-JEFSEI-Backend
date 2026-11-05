@@ -77,10 +77,6 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
-    def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
-        pass
-
-    @abstractmethod
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         pass
 

@@ -26,6 +26,9 @@ class AsignarEjecutivoCobranzaUseCase:
 
         rut_anterior = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
 
+        if rut_anterior == rut_ej_cobranza:
+            return
+
         if rut_ej_cobranza is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_cobranza)
 

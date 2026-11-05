@@ -49,6 +49,9 @@ class AsignarEjecutivoComercialUseCase:
 
         rut_anterior = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
 
+        if rut_anterior == rut_ej_comercial:
+            return
+
         # Reasignación de ejecutivo comercial en prospecto
         if rut_ej_comercial is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_comercial)
@@ -73,17 +76,16 @@ class AsignarEjecutivoComercialUseCase:
             proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
             self.repositorio_procesos.actualizar(proceso)
 
-        if rut_anterior != rut_ej_comercial:
-            # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
-            # del EJECUTIVO_COMERCIAL se eliminan y se re-evalúan al tiro: el
-            # nuevo responsable la recibe creada ahora, no transferida.
-            self._refrescar_alertas_sla(id_prospecto, rut_ej_comercial)
+        # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
+        # del EJECUTIVO_COMERCIAL se eliminan y se re-evalúan al tiro: el
+        # nuevo responsable la recibe creada ahora, no transferida.
+        self._refrescar_alertas_sla(id_prospecto, rut_ej_comercial)
 
-            # Con cambio de ejecutivo, las alertas de cierre del anterior dejan de
-            # ser relevantes: se marcan leídas y se genera la del nuevo responsable
-            # (creada en este momento, no transferida). En desasignación no se crea
-            # nada (sin destinatario), pero las previas quedan leídas.
-            self._refrescar_alertas_de_cierre(procesos)
+        # Con cambio de ejecutivo, las alertas de cierre del anterior dejan de
+        # ser relevantes: se marcan leídas y se genera la del nuevo responsable
+        # (creada en este momento, no transferida). En desasignación no se crea
+        # nada (sin destinatario), pero las previas quedan leídas.
+        self._refrescar_alertas_de_cierre(procesos)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

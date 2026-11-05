@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from app.dominio.cuota.cuota import Cuota
 from app.dominio.plan_pago.plan_pago import PlanPago
@@ -72,10 +72,7 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
                     fecha_pago=row['fecha_pago']
                 )
             
-    def registrar_plan_pago_poliza(self, poliza: Poliza, plan_pago: PlanPago, rut_usuario: str) -> None:
-        ESTADO_PLAN_PAGO_CREADO = 'PLAN_PAGO_CREADO'
-        fecha = datetime.now(tz=timezone.utc)
-
+    def registrar_plan_pago_poliza(self, poliza: Poliza, plan_pago: PlanPago) -> None:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -167,52 +164,6 @@ class RepositorioPlanesPagoPostgres(RepositorioPlanesPago):
 
                     cur.execute(query, params)
 
-                # Registro de historial
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial (
-                        id_proceso_comercial,
-                        codigo_estado,
-                        rut_registrado_por
-                    )
-                    select
-                        %(id_proceso_comercial)s,
-                        %(codigo_estado)s,
-                        %(rut_registrado_por)s
-                    where coalesce(
-                        (
-                            select codigo_estado
-                            from HistorialEstadoInformativoProcesoComercial
-                            where id_proceso_comercial = %(id_proceso_comercial)s
-                            order by fecha_registro desc
-                            limit 1
-                        ),
-                        ''
-                    ) <> %(codigo_estado)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': poliza.id_proceso_comercial,
-                    'codigo_estado': ESTADO_PLAN_PAGO_CREADO,
-                    'rut_registrado_por': rut_usuario
-                }
-
-                cur.execute(query, params)
-
-                # Cambio de estado del proceso comercial
-                                
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': poliza.id_proceso_comercial,
-                    'codigo_estado': ESTADO_PLAN_PAGO_CREADO
-                }
-
-                cur.execute(query, params)
 
     def actualizar_cuota(self, id_cuota: int, pagado: bool, fecha_pago: datetime | None) -> None:
         with obtener_conexion() as conn:

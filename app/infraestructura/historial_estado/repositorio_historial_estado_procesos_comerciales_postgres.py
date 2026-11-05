@@ -12,35 +12,26 @@ class RepositorioHistorialEstadoProcesosComercialesPostgres(RepositorioHistorial
                 # 1. Insertar en historial (patrón anti-duplicado del último estado)
 
                 query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial (
-                        id_proceso_comercial,
-                        codigo_estado,
+                    insert into HistorialEstadoInformativoProcesoComercial(
+                        id_proceso_comercial, 
+                        codigo_estado, 
                         fecha_registro,
                         observacion,
                         rut_registrado_por
                     )
-                    select
-                        %(id_proceso_comercial)s,
-                        %(codigo_estado)s,
-                        %(fecha)s,
+                    values(
+                        %(id_proceso_comercial)s, 
+                        %(codigo_estado)s, 
+                        %(fecha_registro)s,
                         %(observacion)s,
                         %(rut_registrado_por)s
-                    where coalesce(
-                        (
-                            select codigo_estado
-                            from HistorialEstadoInformativoProcesoComercial
-                            where id_proceso_comercial = %(id_proceso_comercial)s
-                            order by fecha_registro desc
-                            limit 1
-                        ),
-                        ''
-                    ) <> %(codigo_estado)s
+                    )
                 '''
 
                 params = {
                     'id_proceso_comercial': historial.id_proceso_comercial,
                     'codigo_estado': historial.codigo_estado,
-                    'fecha': historial.fecha,
+                    'fecha_registro': historial.fecha,
                     'observacion': historial.observacion,
                     'rut_registrado_por': historial.rut_registrado_por,
                 }

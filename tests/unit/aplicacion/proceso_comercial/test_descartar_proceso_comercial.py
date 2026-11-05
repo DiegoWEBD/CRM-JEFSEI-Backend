@@ -235,12 +235,12 @@ class TestDescartarProcesoComercial:
         authorization_service_mock.usuario_puede_descartar_proceso_comercial.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
 
-    def test_valida_autorizacion_con_prospecto_y_usuario(self, mock_hub, use_case,
-            repositorio_prospectos_mock, authorization_service_mock, usuario):
+    def test_valida_autorizacion_con_el_proceso_y_usuario(self, mock_hub, use_case,
+            repositorio_procesos_mock, authorization_service_mock, usuario):
         use_case.ejecutar(id=1, observacion=None, usuario=usuario)
 
         authorization_service_mock.usuario_puede_descartar_proceso_comercial.assert_called_once_with(
-            repositorio_prospectos_mock.buscar.return_value,
+            repositorio_procesos_mock.buscar.return_value,
             usuario,
         )
 
