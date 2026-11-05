@@ -33,8 +33,19 @@ class AuthorizationService:
     def usuario_puede_gestionar_renovacion(self, rut_usuario: str, numero_poliza: str) -> bool:
         return self.authorization_repository.usuario_puede_gestionar_renovacion(rut_usuario, numero_poliza)
     
-    def usuario_puede_crear_proceso_comercial(self, usuario: Usuario, id_prospecto: int) -> bool:
-        return self.authorization_repository.usuario_puede_crear_proceso_comercial(usuario.rut, id_prospecto)
+    def usuario_puede_crear_proceso_comercial(self, usuario: Usuario, prospecto: Prospecto) -> bool:
+        tiene_permiso = False
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_PROCESOS_COMERCIALES'):
+            tiene_permiso = True
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS'):
+            tiene_permiso = True
+
+        if not tiene_permiso:
+            return False
+
+        return True if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut else False
     
     def usuario_puede_ver_procesos_comerciales(self, rut_usuario: str, id_prospecto: int) -> bool:
         return self.authorization_repository.usuario_puede_ver_procesos_comerciales(rut_usuario, id_prospecto)

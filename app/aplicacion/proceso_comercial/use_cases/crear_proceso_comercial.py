@@ -25,7 +25,7 @@ class CrearProcesoComercialUseCase:
         if not prospecto:
             raise RecursoNoEncontradoException('Prospecto no encontrado')
         
-        if not self.authorization_service.usuario_puede_crear_proceso_comercial(usuario, id_prospecto):
+        if not self.authorization_service.usuario_puede_crear_proceso_comercial(usuario, prospecto):
             raise UsuarioNoAutorizadoException
         
         id_nuevo_proceso = self.repositorio_procesos_comerciales.nuevo(
