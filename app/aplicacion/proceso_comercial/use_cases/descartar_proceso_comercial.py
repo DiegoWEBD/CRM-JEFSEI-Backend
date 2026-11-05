@@ -48,9 +48,9 @@ class DescartarProcesoComercialUseCase:
         if not prospecto:
             raise RecursoNoEncontradoException(f'No se encontró el prospecto {proceso.id_prospecto}')
 
-        if not self.authorization_service.usuario_puede_descartar_proceso_comercial(prospecto, usuario):
+        if not self.authorization_service.usuario_puede_descartar_proceso_comercial(proceso, usuario):
             raise UsuarioNoAutorizadoException(
-                'Solo el ejecutivo comercial asignado puede descartar la oportunidad'
+                'Solo el ejecutivo a cargo puede descartar la oportunidad'
             )
 
         ahora = datetime.now(tz=timezone.utc)

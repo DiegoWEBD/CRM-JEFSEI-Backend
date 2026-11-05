@@ -1,5 +1,6 @@
 from app.dominio.authorization.authorizacion_repository import AuthorizationRepository
 from app.dominio.cuota.cuota import Cuota
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
@@ -187,13 +188,15 @@ class AuthorizationService:
 
         return self.authorization_repository.usuario_puede_marcar_pago_cuota(usuario, cuota)
 
-    def usuario_puede_descartar_proceso_comercial(self, prospecto: Prospecto, usuario: Usuario) -> bool:
+    def usuario_puede_descartar_proceso_comercial(self, oportunidad: ProcesoComercial, usuario: Usuario) -> bool:
 
         if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'DESCARTAR_PROCESO_COMERCIAL'):
             return False
 
-        return (prospecto.ejecutivo_comercial_asignado is not None
-                and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut)
+        if oportunidad.renovacion:
+            return oportunidad.ejecutivo_renovacion is not None and oportunidad.ejecutivo_renovacion.rut == usuario.rut
+
+        return oportunidad.ejecutivo_comercial is not None and oportunidad.ejecutivo_comercial.rut == usuario.rut
 
     def usuario_puede_establecer_depreciacion_personalizada(self, prospecto: Prospecto, usuario: Usuario) -> bool:
 
