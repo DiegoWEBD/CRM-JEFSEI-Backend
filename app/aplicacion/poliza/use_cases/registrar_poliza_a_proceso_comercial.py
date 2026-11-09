@@ -106,7 +106,7 @@ class RegistrarPolizaAProcesoComercialUseCase:
 
         ESTADO_POLIZA_REGISTRADA = 'POLIZA_REGISTRADA'
         proceso.estado_actual.codigo = ESTADO_POLIZA_REGISTRADA
-        self.repositorio_procesos_comerciales.actualizar(proceso)
+        self.repositorio_procesos_comerciales.guardar(proceso, es_nuevo=False)
 
         historial = HistorialEstadoProcesoComercial(
             id_proceso_comercial=proceso.id,

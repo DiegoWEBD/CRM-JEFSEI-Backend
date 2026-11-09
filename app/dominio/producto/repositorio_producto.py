@@ -15,6 +15,10 @@ class RepositorioProducto(ABC):
         pass
 
     @abstractmethod
+    def obtener_por_codigo(self, codigo: str) -> Producto | None:
+        pass
+
+    @abstractmethod
     def obtener_por_id(self, id: int) -> Producto | None:
         pass
 

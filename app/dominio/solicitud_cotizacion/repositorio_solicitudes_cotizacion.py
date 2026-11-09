@@ -14,7 +14,7 @@ class RepositorioSolicitudesCotizacion(ABC):
         pass
 
     @abstractmethod
-    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
+    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int):
         pass
 
     @abstractmethod

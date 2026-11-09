@@ -18,11 +18,13 @@ from app.aplicacion.proceso_comercial.use_cases.importar_alicuota_oportunidad im
 from app.aplicacion.proceso_comercial.use_cases.obtener_alicuota_oportunidad import ObtenerAlicuotaOportunidadUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_desglose_reconstruccion_unidades import ObtenerDesgloseReconstruccionUnidadesUseCase
 from app.aplicacion.proceso_comercial.use_cases.obtener_todos_procesos_comerciales import ObtenerTodosProcesosComercialesUseCase
+from app.infraestructura.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial_postgres import RepositorioEstadosProcesoComercialPostgres
 from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
+from app.infraestructura.producto.repositorio_producto_postgres import RepositorioProductoPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.unidades.repositorio_unidades_alicuotas_postgres import RepositorioUnidadesAlicuotasPostgres
 from app.presentacion.api.proceso_comercial.dto.filtros_procesos_comerciales import FiltrosProcesosComerciales
@@ -99,7 +101,9 @@ def get_crear_proceso_comercial_use_case():
     return CrearProcesoComercialUseCase(
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio_procesos,
-        repositorio_prospectos=repositorio_prospectos
+        repositorio_prospectos=repositorio_prospectos,
+        repositorio_productos=RepositorioProductoPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres()
     )
 
 def get_actualizar_fecha_estimada_cierre_use_case():
@@ -182,4 +186,6 @@ def get_cambiar_estado_manual_use_case():
         repositorio_procesos_comerciales=repositorio_procesos,
         repositorio_notificaciones=repositorio_notificaciones,
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
+        repositorio_estados=RepositorioEstadosProcesoComercialPostgres(),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres()
     )

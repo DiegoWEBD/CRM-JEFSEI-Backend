@@ -59,7 +59,7 @@ class AsignarEjecutivoEvaluacionUseCase:
         # Reasignación de ejecutivo de evaluación en procesos abiertos
         for proceso in procesos:
             proceso.ejecutivo_evaluacion = prospecto.ejecutivo_evaluacion_asignado
-            self.repositorio_procesos.actualizar(proceso)
+            self.repositorio_procesos.guardar(proceso)
 
         # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
         # de la EVALUACIÓN se eliminan y se re-evalúan al tiro: el nuevo

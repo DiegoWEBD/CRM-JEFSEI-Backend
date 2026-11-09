@@ -152,10 +152,10 @@ class TestActualizarProcesoComercialEjecutivos:
             asistente_renovacion=crear_usuario_mock(rut='55555555-5'),
         )
 
-        RepositorioProcesosComercialesPostgres().actualizar(proceso)
+        RepositorioProcesosComercialesPostgres().guardar(proceso, es_nuevo=False)
 
         query, params = cursor.execute.call_args.args
-        assert 'update ProcesoComercial' in str(query)
+        assert 'UPDATE ProcesoComercial' in str(query)
         assert params['rut_ej_comercial'] == '22222222-2'
         assert params['rut_ej_evaluacion'] == '33333333-3'
         assert params['rut_ej_renovacion'] == '44444444-4'
@@ -166,7 +166,7 @@ class TestActualizarProcesoComercialEjecutivos:
         mock_conexion.return_value = conexion
         proceso = crear_proceso_comercial_mock()
 
-        RepositorioProcesosComercialesPostgres().actualizar(proceso)
+        RepositorioProcesosComercialesPostgres().guardar(proceso, es_nuevo=False)
 
         params = cursor.execute.call_args.args[1]
         assert params['rut_ej_comercial'] is None
@@ -178,7 +178,7 @@ class TestActualizarProcesoComercialEjecutivos:
         conexion, cursor = _conexion_mock()
         mock_conexion.return_value = conexion
 
-        RepositorioProcesosComercialesPostgres().actualizar(crear_proceso_comercial_mock())
+        RepositorioProcesosComercialesPostgres().guardar(crear_proceso_comercial_mock(), es_nuevo=False)
 
         _sin_alertas(cursor)
 

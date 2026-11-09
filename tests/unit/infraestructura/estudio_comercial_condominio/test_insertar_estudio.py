@@ -32,12 +32,11 @@ class TestInsertarEstudioPuro:
         mock_conexion.return_value = conexion
         cursor.fetchone.side_effect = [
             {'id': 5},
-            {'id_proceso_comercial': 9},
         ]
 
         repo = RepositorioEstudiosComercialesPostgres()
         resultado = repo.insertar(
-            id_solicitud=3, nombre_archivo='estudio.pdf', rut_usuario='99999999-9'
+            id_solicitud=3, nombre_archivo='estudio.pdf'
         )
 
         assert resultado == 5
@@ -47,11 +46,10 @@ class TestInsertarEstudioPuro:
         mock_conexion.return_value = conexion
         cursor.fetchone.side_effect = [
             {'id': 5},
-            {'id_proceso_comercial': 9},
         ]
 
         repo = RepositorioEstudiosComercialesPostgres()
-        repo.insertar(id_solicitud=3, nombre_archivo='estudio.pdf', rut_usuario='99999999-9')
+        repo.insertar(id_solicitud=3, nombre_archivo='estudio.pdf')
 
         for call in cursor.execute.call_args_list:
             assert 'Notificacion' not in str(call.args[0])

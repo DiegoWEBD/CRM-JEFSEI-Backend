@@ -94,7 +94,7 @@ class CrearPlanPagoUseCase:
             nombre=''
         )
 
-        self.repositorio_procesos_comerciales.actualizar(proceso_comercial)
+        self.repositorio_procesos_comerciales.guardar(proceso_comercial, es_nuevo=False)
 
         historial = HistorialEstadoProcesoComercial(
             id_proceso_comercial=proceso_comercial.id,

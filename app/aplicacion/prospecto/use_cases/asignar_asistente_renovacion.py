@@ -58,7 +58,7 @@ class AsignarAsistenteRenovacionUseCase:
         # Reasignación de asistente de renovación en procesos abiertos
         for proceso in procesos:
             proceso.asistente_renovacion = prospecto.asistente_renovacion_asignado
-            self.repositorio_procesos.actualizar(proceso)
+            self.repositorio_procesos.guardar(proceso)
 
         if rut_anterior != rut_as_renovacion:
             # Con cambio de asistente, las alertas de renovación del anterior

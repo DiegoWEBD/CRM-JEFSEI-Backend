@@ -54,7 +54,8 @@ class TestCrearPlanPagoAlertas:
         _ejecutar(uc)
 
         repo_planes_pago.registrar_plan_pago_poliza.assert_called_once()
-        repo_procesos.cerrar.assert_called_once()
+        proceso = repo_procesos.buscar.return_value
+        repo_procesos.guardar.assert_called_once_with(proceso, es_nuevo=False)
         servicio_alertas.marcar_leidas.assert_called_once()
         args = servicio_alertas.marcar_leidas.call_args.args
         assert args[0] == 42

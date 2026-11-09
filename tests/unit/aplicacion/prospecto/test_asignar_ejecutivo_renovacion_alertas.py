@@ -172,7 +172,7 @@ class TestAsignarEjecutivoRenovacionProcesosAbiertos:
             renovaciones=True,
         )
         assert proceso.ejecutivo_renovacion == prospecto.ejecutivo_renovacion_asignado
-        repo_procesos.actualizar.assert_called_once_with(proceso)
+        repo_procesos.guardar.assert_called_once_with(proceso)
 
     def test_sin_cambio_de_rut_no_toca_los_procesos(self):
         prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='11111111-1'))
@@ -181,4 +181,4 @@ class TestAsignarEjecutivoRenovacionProcesosAbiertos:
         uc.ejecutar(id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock())
 
         repo_procesos.obtener_procesos_comerciales.assert_not_called()
-        repo_procesos.actualizar.assert_not_called()
+        repo_procesos.guardar.assert_not_called()

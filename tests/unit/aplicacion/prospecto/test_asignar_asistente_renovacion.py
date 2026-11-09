@@ -235,7 +235,7 @@ class TestAsignarAsistenteRenovacionProcesosAbiertos:
             renovaciones=True,
         )
         assert proceso.asistente_renovacion == prospecto.asistente_renovacion_asignado
-        repo_procesos.actualizar.assert_called_once_with(proceso)
+        repo_procesos.guardar.assert_called_once_with(proceso)
 
     def test_sin_cambio_de_rut_no_toca_los_procesos(self):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='11111111-1'))
@@ -244,4 +244,4 @@ class TestAsignarAsistenteRenovacionProcesosAbiertos:
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
         repo_procesos.obtener_procesos_comerciales.assert_not_called()
-        repo_procesos.actualizar.assert_not_called()
+        repo_procesos.guardar.assert_not_called()

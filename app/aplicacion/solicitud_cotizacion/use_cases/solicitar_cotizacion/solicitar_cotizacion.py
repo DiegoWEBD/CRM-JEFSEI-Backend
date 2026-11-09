@@ -4,10 +4,12 @@ from app.aplicacion.authorization.authorization_service import AuthorizationServ
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.solicitud_cotizacion_request import SolicitudCotizacionRequest
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
+from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
@@ -19,7 +21,6 @@ from app.dominio.solicitud_cotizacion.solicitud_cotizacion_vida_guardia.solicitu
 from app.dominio.usuario.usuario import Usuario
 
 
-
 class SolicitarCotizacionUseCase:
 
     def __init__(
@@ -27,13 +28,15 @@ class SolicitarCotizacionUseCase:
         repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         authorization_service: AuthorizationService,
-        repositorio_notificaciones: RepositorioNotificaciones,
-        servicio_alertas: ServicioAlertasProceso
+        repositorio_estados: RepositorioEstadosProcesoComercial,
+        repositorio_historial: RepositorioHistorialEstadoProcesosComerciales,
+        servicio_alertas: ServicioAlertasProceso,
     ) -> None:
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.authorization_service = authorization_service
-        self.repositorio_notificaciones = repositorio_notificaciones
+        self.repositorio_estados = repositorio_estados
+        self.repositorio_historial = repositorio_historial
         self.servicio_alertas = servicio_alertas
 
     def ejecutar(self, id_proceso_comercial: int, request: SolicitudCotizacionRequest, usuario: Usuario):
@@ -46,6 +49,12 @@ class SolicitarCotizacionUseCase:
         if not self.authorization_service.usuario_puede_solicitar_cotizacion(usuario, proceso_comercial.id):
             raise UsuarioNoAutorizadoException    
 
+        nuevo_estado = self.repositorio_estados.obtener_por_codigo('COTIZACION_SOLICITADA_COMPANY')
+        
+        if not nuevo_estado:
+            raise ConflictoEnAccionException('Error al solicitar cotización')
+
+        ahora = datetime.now(tz=timezone.utc)
         solicitud: SolicitudCotizacion
 
         if request.tipo == 'accidentes_personales':
@@ -62,7 +71,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionAccidentesPersonales(
                 id=None,
-                fecha=datetime.now(tz=timezone.utc),
+                fecha=ahora,
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -82,7 +91,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionVidaGuardia(
                 id=None,
-                fecha=datetime.now(tz=timezone.utc),
+                fecha=ahora,
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -102,7 +111,7 @@ class SolicitarCotizacionUseCase:
 
             solicitud = SolicitudCotizacionResponsabilidadCivil(
                 id=None,
-                fecha=datetime.now(tz=timezone.utc),
+                fecha=ahora,
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -120,7 +129,7 @@ class SolicitarCotizacionUseCase:
         else:
             solicitud = SolicitudCotizacion(
                 id=None,
-                fecha=datetime.now(tz=timezone.utc),
+                fecha=ahora,
                 nombre_riesgo='',
                 informacion_completa=False,
                 rut_ejecutivo_comercial=usuario.rut,
@@ -136,13 +145,23 @@ class SolicitarCotizacionUseCase:
             
         self.repositorio_solicitudes_cotizacion.nueva_solicitud(
             solicitud=solicitud,
-            id_proceso_comercial=proceso_comercial.id,
-            registrado_por=usuario
+            id_proceso_comercial=proceso_comercial.id
         )
+
+        proceso_comercial.estado_actual = nuevo_estado
+
+        historial = HistorialEstadoProcesoComercial(
+            id_proceso_comercial=proceso_comercial.id,
+            codigo_estado=nuevo_estado.codigo,
+            rut_registrado_por=usuario.rut,
+            fecha=ahora
+        )
+
+        self.repositorio_procesos_comerciales.guardar(proceso_comercial)
+        self.repositorio_historial.registrar(historial)
 
         # La solicitud cambia el estado del proceso: la alerta de permanencia
         # en el estado anterior deja de ser relevante.
-        ahora = datetime.now(tz=timezone.utc)
         destinatarios = self.servicio_alertas.marcar_leidas(
             proceso_comercial.id, TIPOS_ALERTA_SLA, ahora
         )

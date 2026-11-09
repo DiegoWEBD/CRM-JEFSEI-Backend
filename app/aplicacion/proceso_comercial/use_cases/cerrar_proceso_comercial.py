@@ -59,7 +59,7 @@ class CerrarProcesoComercialUseCase:
         )
         proceso.fecha_cierre = fecha_cierre
 
-        self.repositorio_procesos_comerciales.actualizar(proceso)
+        self.repositorio_procesos_comerciales.guardar(proceso, es_nuevo=False)
 
         historial = HistorialEstadoProcesoComercial(
             id_proceso_comercial=proceso.id,

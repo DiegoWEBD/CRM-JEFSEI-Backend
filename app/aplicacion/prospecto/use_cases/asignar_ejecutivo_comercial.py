@@ -74,7 +74,7 @@ class AsignarEjecutivoComercialUseCase:
         # Reasignación de ejecutivo comercial en procesos abiertos
         for proceso in procesos:
             proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
-            self.repositorio_procesos.actualizar(proceso)
+            self.repositorio_procesos.guardar(proceso, es_nuevo=False)
 
         # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
         # del EJECUTIVO_COMERCIAL se eliminan y se re-evalúan al tiro: el

@@ -58,7 +58,8 @@ class DescartarProcesoComercialUseCase:
         proceso.cerrado = True
         proceso.fecha_cierre = ahora
         proceso.motivo_cierre = observacion
-        self.repositorio_procesos_comerciales.actualizar(proceso)
+        
+        self.repositorio_procesos_comerciales.guardar(proceso, es_nuevo=False)
 
         self.repositorio_historial.registrar(
             HistorialEstadoProcesoComercial(

@@ -58,7 +58,7 @@ class AsignarEjecutivoRenovacionUseCase:
         # Reasignación de ejecutivo de renovación en procesos abiertos
         for proceso in procesos:
             proceso.ejecutivo_renovacion = prospecto.ejecutivo_renovacion_asignado
-            self.repositorio_procesos.actualizar(proceso)
+            self.repositorio_procesos.guardar(proceso)
 
         # Con cambio de ejecutivo, las alertas de renovación del anterior
         # dejan de ser suyas: se eliminan y se re-evalúan en este momento
