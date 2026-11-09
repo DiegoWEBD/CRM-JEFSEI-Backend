@@ -1,5 +1,7 @@
 from app.dominio.authorization.authorizacion_repository import AuthorizationRepository
 from app.dominio.cuota.cuota import Cuota
+from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
@@ -13,11 +15,15 @@ class AuthorizationService:
         self,
         authorization_repository: AuthorizationRepository,
         repositorio_prospectos: RepositorioProspectos,
-        repositorio_usuarios: RepositorioUsuarios
+        repositorio_usuarios: RepositorioUsuarios,
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales,
+        repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion
     ):
         self.authorization_repository = authorization_repository
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
+        self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
+        self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
 
     def usuario_puede_ver_prospecto(self, rut_usuario: str, id_prospecto) -> bool:
         return self.authorization_repository.usuario_puede_ver_prospecto(rut_usuario, id_prospecto)
@@ -28,11 +34,19 @@ class AuthorizationService:
     def usuario_puede_gestionar_renovacion(self, rut_usuario: str, numero_poliza: str) -> bool:
         return self.authorization_repository.usuario_puede_gestionar_renovacion(rut_usuario, numero_poliza)
     
-    def usuario_puede_crear_proceso_comercial(self, usuario: Usuario, id_prospecto: int) -> bool:
-        return self.authorization_repository.usuario_puede_crear_proceso_comercial(usuario.rut, id_prospecto)
-    
-    def usuario_puede_solicitar_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
-        return self.authorization_repository.usuario_puede_solicitar_cotizacion(usuario.rut, id_proceso_comercial)
+    def usuario_puede_crear_proceso_comercial(self, usuario: Usuario, prospecto: Prospecto) -> bool:
+        tiene_permiso = False
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_PROCESOS_COMERCIALES'):
+            tiene_permiso = True
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS'):
+            tiene_permiso = True
+
+        if not tiene_permiso:
+            return False
+
+        return True if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut else False
     
     def usuario_puede_ver_procesos_comerciales(self, rut_usuario: str, id_prospecto: int) -> bool:
         return self.authorization_repository.usuario_puede_ver_procesos_comerciales(rut_usuario, id_prospecto)
@@ -76,11 +90,43 @@ class AuthorizationService:
     def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_descargar_estudio_comercial(rut_usuario, id_solicitud)
 
-    def usuario_puede_ver_solicitudes_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
-        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_SOLICITUDES_COTIZACION_GLOBAL'):
+    def usuario_puede_ver_cotizaciones(self, usuario: Usuario, id_solicitud: int) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_COTIZACIONES_GLOBAL'):
             return True
 
-        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_SOLICITUDES_COTIZACION_PROPIAS'):
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_COTIZACIONES_PROPIAS'):
+            return False
+
+        solicitud = self.repositorio_solicitudes_cotizacion.buscar(id_solicitud)
+
+        if not solicitud or not solicitud.id:
+            return False
+
+        proceso = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(solicitud.id)
+
+        if not proceso:
+            return False
+
+        if not proceso.renovacion:
+            return any([
+                proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut,
+                proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut
+            ])
+
+        else:
+            return any([
+                proceso.ejecutivo_renovacion and proceso.ejecutivo_renovacion.rut == usuario.rut,
+                proceso.asistente_renovacion and proceso.asistente_renovacion.rut == usuario.rut
+            ])
+
+
+    def usuario_puede_solicitar_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'SOLICITAR_COTIZACION'):
+            return False
+
+        proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
+
+        if not proceso:
             return False
 
         prospecto = self.repositorio_prospectos.buscar_prospecto_por_proceso_comercial(id_proceso_comercial)
@@ -88,10 +134,40 @@ class AuthorizationService:
         if not prospecto:
             return False
 
-        return any([
-            prospecto.ejecutivo_comercial_asignado.rut == usuario.rut if prospecto.ejecutivo_comercial_asignado else False,
-            prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut if prospecto.ejecutivo_evaluacion_asignado else False
-        ])
+        if not proceso.renovacion:
+            return prospecto.ejecutivo_comercial_asignado.rut == usuario.rut if prospecto.ejecutivo_comercial_asignado else False
+
+        else:
+            return prospecto.ejecutivo_renovacion_asignado.rut == usuario.rut if prospecto.ejecutivo_renovacion_asignado else False
+
+    def usuario_puede_ver_solicitudes_cotizacion(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_SOLICITUDES_COTIZACION_GLOBAL'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_SOLICITUDES_COTIZACION_PROPIAS'):
+            return False
+
+        proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
+
+        if not proceso:
+            return False
+
+        prospecto = self.repositorio_prospectos.buscar_prospecto_por_proceso_comercial(id_proceso_comercial)
+
+        if not prospecto:
+            return False
+
+        if not proceso.renovacion:
+            return any([
+                prospecto.ejecutivo_comercial_asignado.rut == usuario.rut if prospecto.ejecutivo_comercial_asignado else False,
+                prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut if prospecto.ejecutivo_evaluacion_asignado else False
+            ])
+
+        else:
+            return any([
+                prospecto.ejecutivo_renovacion_asignado.rut == usuario.rut if prospecto.ejecutivo_renovacion_asignado else False,
+                prospecto.asistente_renovacion_asignado.rut == usuario.rut if prospecto.asistente_renovacion_asignado else False
+            ])
 
     def usuario_puede_administrar_alicuotas(self, usuario: Usuario, id_proceso_comercial: int) -> bool:
         if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ALICUOTAS'):
@@ -112,13 +188,15 @@ class AuthorizationService:
 
         return self.authorization_repository.usuario_puede_marcar_pago_cuota(usuario, cuota)
 
-    def usuario_puede_descartar_proceso_comercial(self, prospecto: Prospecto, usuario: Usuario) -> bool:
+    def usuario_puede_descartar_proceso_comercial(self, oportunidad: ProcesoComercial, usuario: Usuario) -> bool:
 
         if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'DESCARTAR_PROCESO_COMERCIAL'):
             return False
 
-        return (prospecto.ejecutivo_comercial_asignado is not None
-                and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut)
+        if oportunidad.renovacion:
+            return oportunidad.ejecutivo_renovacion is not None and oportunidad.ejecutivo_renovacion.rut == usuario.rut
+
+        return oportunidad.ejecutivo_comercial is not None and oportunidad.ejecutivo_comercial.rut == usuario.rut
 
     def usuario_puede_establecer_depreciacion_personalizada(self, prospecto: Prospecto, usuario: Usuario) -> bool:
 

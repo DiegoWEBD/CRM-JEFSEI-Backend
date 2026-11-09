@@ -3,8 +3,10 @@ from typing import Optional
 
 from psycopg import sql
 
+from app.aplicacion.proceso_comercial.dto.oportunidades_contadores import OportunidadesContadores
 from app.aplicacion.prospecto.dto.prospecto_resumen import ProspectoResumen
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import ConsultaProspectosService
+from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.db.conexion import obtener_conexion
 from app.infraestructura.prospecto.adaptadores.dictrows_prospectos_resumen_adapter import DictRowsProspectoResumenAdapter
 
@@ -12,18 +14,16 @@ from app.infraestructura.prospecto.adaptadores.dictrows_prospectos_resumen_adapt
 class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
     _BASE_QUERY = sql.SQL('''
-        select distinct on (P.nombre_riesgo, PC.id) 
+        select distinct on (P.nombre_riesgo, P.id) 
         P.id,
-        PC.id as id_proceso_comercial,
         C.id as id_cliente,
         P.rut_riesgo,
         P.nombre_riesgo,
+        PE.nombre_fantasia,
         P.comuna,
         AC.nombre_administrador,
         LN.nombre as linea_negocio,
         EJ_COM.nombre as ejecutivo_comercial,
-        EI.codigo as codigo_estado,
-        EI.nombre as nombre_estado,
         CASE
             WHEN C.id IS NULL THEN 'prospecto'
             WHEN EXISTS (
@@ -40,6 +40,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         on P.id = C.id_prospecto
         left join ProspectoCondominio PCO
         on P.id = PCO.id
+        left join ProspectoEmpresa PE
+        on P.id = PE.id
         left join AdministradorCondominio AC
         on PCO.id_administrador = AC.id
         inner join LineaNegocio LN 
@@ -51,7 +53,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
         left join Usuario EJ_COM
         on P.rut_ej_comercial_asignado = EJ_COM.rut
         {where_clause}
-        order by P.nombre_riesgo, PC.id
+        order by P.nombre_riesgo, P.id
     ''')
 
     @staticmethod
@@ -67,6 +69,8 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 sql.SQL('''
                     left join ProspectoCondominio PCO
                     on P.id = PCO.id
+                    left join ProspectoEmpresa PE
+                    on P.id = PE.id
                     left join AdministradorCondominio AC
                     on PCO.id_administrador = AC.id
                     inner join LineaNegocio LN
@@ -150,6 +154,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             condiciones.append(sql.SQL('''
                 (
                     UNACCENT(LOWER(P.nombre_riesgo)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
+                    OR UNACCENT(LOWER(PE.nombre_fantasia)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR LOWER(REPLACE(REPLACE(P.rut_riesgo, '.', ''), '-', '')) LIKE LOWER(REPLACE(REPLACE(%(texto_busqueda)s, '.', ''), '-', ''))
                     OR UNACCENT(LOWER(LN.nombre)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
                     OR UNACCENT(LOWER(AC.nombre_administrador)) LIKE UNACCENT(LOWER(%(texto_busqueda)s))
@@ -241,9 +246,73 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
 
         return contadores
 
+    @staticmethod
+    def _obtener_contadores_oportunidades(
+        cur,
+        ids: list[int],
+        oportunidades_todas: bool,
+        rut_usuario: Optional[str] = None,
+    ) -> dict[int, OportunidadesContadores]:
+        condiciones: list[sql.Composable] = [
+            sql.SQL('PC.cerrado = false'),
+            sql.SQL('PC.id_prospecto = ANY(%(ids)s)'),
+        ]
+        params: dict = {"ids": ids}
+
+        if oportunidades_todas:
+            filtro_comerciales = sql.SQL('not PC.renovacion')
+            filtro_renovaciones = sql.SQL('PC.renovacion')
+        else:
+            params["rut_usuario"] = rut_usuario
+            condiciones.append(sql.SQL('''
+                (
+                    PC.rut_ej_comercial = %(rut_usuario)s
+                    or PC.rut_ej_evaluacion = %(rut_usuario)s
+                    or PC.rut_ej_renovacion = %(rut_usuario)s
+                    or PC.rut_as_renovacion = %(rut_usuario)s
+                )
+            '''))
+            filtro_comerciales = sql.SQL('''
+                (
+                    PC.rut_ej_comercial = %(rut_usuario)s
+                    or PC.rut_ej_evaluacion = %(rut_usuario)s
+                )
+            ''')
+            filtro_renovaciones = sql.SQL('''
+                (
+                    PC.rut_ej_renovacion = %(rut_usuario)s
+                    or PC.rut_as_renovacion = %(rut_usuario)s
+                )
+            ''')
+
+        query = sql.SQL('''
+            select
+                PC.id_prospecto,
+                count(*) filter (where {filtro_comerciales}) as comerciales,
+                count(*) filter (where {filtro_renovaciones}) as renovaciones
+            from ProcesoComercial PC
+            where {condiciones}
+            group by PC.id_prospecto
+        ''').format(
+            filtro_comerciales=filtro_comerciales,
+            filtro_renovaciones=filtro_renovaciones,
+            condiciones=sql.SQL(' and ').join(condiciones),
+        )
+        cur.execute(query, params)
+
+        return {
+            row['id_prospecto']: OportunidadesContadores(
+                comerciales=row['comerciales'],
+                renovaciones=row['renovaciones'],
+            )
+            for row in cur.fetchall()
+        }
+
     def obtener_todos(
         self,
-        rut_usuario: Optional[str] = None,
+        usuario: Usuario,
+        oportunidades_todas: bool,
+        rut_usuario_filtro: Optional[str] = None,
         filtro: Optional[str] = None,
         texto_busqueda: Optional[str] = None,
         pagina: int = 1,
@@ -256,7 +325,7 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
             with conn.cursor() as cur:
 
                 params: dict = {}
-                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario, params, region, comuna)
+                where_condiciones = self._construir_where(filtro, texto_busqueda, rut_usuario_filtro, params, region, comuna)
                 where_clause = sql.SQL('where {}').format(where_condiciones)
 
                 filtrar_joins = self._filtrar_joins(texto_busqueda)
@@ -304,10 +373,16 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                     rows = cur.fetchall()
 
                     if rows:
-                        prospectos = DictRowsProspectoResumenAdapter(rows).to_prospectos_resumen()
+                        contadores_oportunidades = self._obtener_contadores_oportunidades(
+                            cur,
+                            ids,
+                            oportunidades_todas,
+                            None if oportunidades_todas else usuario.rut,
+                        )
+                        prospectos = DictRowsProspectoResumenAdapter(rows, contadores_oportunidades).to_prospectos_resumen()
                         prospectos.sort(key=lambda p: (p.nombre_riesgo, p.id))
 
-                contadores = self._obtener_contadores(rut_usuario)
+                contadores = self._obtener_contadores(rut_usuario_filtro)
 
                 return {
                     'data': prospectos,
@@ -349,4 +424,12 @@ class ConsultaProspectosPostgresService(ConsultaProspectosService):
                 if not rows:
                     return []
 
-                return DictRowsProspectoResumenAdapter(rows).to_prospectos_resumen()
+                ids = list({row['id'] for row in rows})
+                contadores_oportunidades = self._obtener_contadores_oportunidades(
+                    cur,
+                    ids,
+                    rut_usuario is None,
+                    rut_usuario,
+                )
+
+                return DictRowsProspectoResumenAdapter(rows, contadores_oportunidades).to_prospectos_resumen()

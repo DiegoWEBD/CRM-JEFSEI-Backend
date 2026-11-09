@@ -9,29 +9,33 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
 from app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial import (
     RegistrarPolizaAProcesoComercialUseCase,
 )
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
+from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
 MODULO = 'app.aplicacion.poliza.use_cases.registrar_poliza_a_proceso_comercial'
 
 
 def _use_case():
+    repo_prospectos = MagicMock(spec=RepositorioProspectos)
+    repo_prospectos.buscar_prospecto_por_proceso_comercial.return_value = MagicMock(id_cliente=1)
     repo_polizas = MagicMock()
     repo_polizas.buscar.return_value = None
     repo_procesos = MagicMock()
-    repo_procesos.buscar.return_value = MagicMock(id=42)
+    repo_procesos.buscar.return_value = MagicMock(id=42, cerrado=False)
     repo_companies = MagicMock()
     repo_companies.buscar.return_value = MagicMock(id=1)
     authorization = MagicMock()
-    repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
+    repo_historial = MagicMock(spec=RepositorioHistorialEstadoProcesosComerciales)
     servicio_alertas = MagicMock(spec=ServicioAlertasProceso)
     servicio_alertas.marcar_leidas.return_value = ['11111111-1']
     uc = RegistrarPolizaAProcesoComercialUseCase(
+        repo_prospectos,
         repo_polizas,
         repo_procesos,
         repo_companies,
         authorization,
-        repo_notificaciones,
+        repo_historial,
         servicio_alertas,
     )
     return uc, repo_polizas, servicio_alertas

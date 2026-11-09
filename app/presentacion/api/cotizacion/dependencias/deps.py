@@ -40,7 +40,7 @@ def get_registrar_cotizacion_a_solicitud_use_case():
         repositorio_solicitudes_cotizacion=repositorio_solicitudes_cotizacion,
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
-        repositorio_notificaciones=repositorio_notificaciones,
+        repositorio_historial_estado=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
         servicio_archivos=ServicioArchivos()
     )
@@ -52,7 +52,7 @@ def get_subir_estudio_comercial_use_case():
     return SubirEstudioComercialUseCase(
         repositorio_estudios=repositorio_estudios,
         repositorio_procesos=RepositorioProcesosComercialesPostgres(),
-        repositorio_notificaciones=repositorio_notificaciones,
+        repositorio_historial_estado=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones),
         servicio_archivos=ServicioArchivos(),
         authorization_service=AuthorizationServiceFactory.crear_authorization_service()

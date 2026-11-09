@@ -6,7 +6,10 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.core.archivos import DIRECTORIO_ESTUDIOS_FINALES
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -18,14 +21,14 @@ class SubirEstudioComercialUseCase:
         self,
         repositorio_estudios: RepositorioEstudiosComerciales,
         repositorio_procesos: RepositorioProcesosComerciales,
-        repositorio_notificaciones: RepositorioNotificaciones,
+        repositorio_historial_estado: RepositorioHistorialEstadoProcesosComerciales,
         servicio_alertas: ServicioAlertasProceso,
         servicio_archivos: ServicioArchivos,
         authorization_service: AuthorizationService,
     ):
         self.repositorio_estudios = repositorio_estudios
         self.repositorio_procesos = repositorio_procesos
-        self.repositorio_notificaciones = repositorio_notificaciones
+        self.repositorio_historial_estado = repositorio_historial_estado
         self.servicio_alertas = servicio_alertas
         self.servicio_archivos = servicio_archivos
         self.authorization_service = authorization_service
@@ -41,23 +44,34 @@ class SubirEstudioComercialUseCase:
         self.servicio_archivos.guardar(DIRECTORIO_ESTUDIOS_FINALES, nombre_unico, contenido_archivo)
 
         id_estudio = self.repositorio_estudios.insertar(
-            id_solicitud=id_solicitud, nombre_archivo=nombre_unico, rut_usuario=usuario.rut
+            id_solicitud=id_solicitud, nombre_archivo=nombre_unico
         )
 
         # El estudio cambia el estado del proceso: la alerta de permanencia en
         # el estado anterior deja de ser relevante.
         proceso_comercial = self.repositorio_procesos.buscar_por_solicitud_cotizacion(id_solicitud)
 
-        if proceso_comercial is not None:
-            ahora = datetime.now(tz=timezone.utc)
-            destinatarios = self.servicio_alertas.marcar_leidas(
-                proceso_comercial.id, TIPOS_ALERTA_SLA, ahora
-            )
+        if proceso_comercial is None:
+            raise ConflictoEnAccionException('Error al subir el estudio')
 
-            if destinatarios:
-                hub.publicar_desde_hilo(
-                    destinatarios,
-                    {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-                )
+        historial = HistorialEstadoProcesoComercial(
+            id_proceso_comercial=proceso_comercial.id,
+            codigo_estado='ESTUDIO_DISPONIBLE',
+            rut_registrado_por=usuario.rut,
+            fecha=datetime.now(tz=timezone.utc)
+        )
+
+        self.repositorio_historial_estado.registrar(historial)
+
+        ahora = datetime.now(tz=timezone.utc)
+        destinatarios = self.servicio_alertas.marcar_leidas(
+            proceso_comercial.id, TIPOS_ALERTA_SLA, ahora
+        )
+
+        if destinatarios:
+            hub.publicar_desde_hilo(
+                destinatarios,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )
 
         return id_estudio, nombre_unico

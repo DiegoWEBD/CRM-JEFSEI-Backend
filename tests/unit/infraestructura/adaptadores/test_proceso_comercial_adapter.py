@@ -27,6 +27,10 @@ def _make_row(
         "nombre_ej_comercial": "Juan Pérez",
         "rut_ej_evaluacion": None,
         "nombre_ej_evaluacion": None,
+        "rut_ej_renovacion": None,
+        "nombre_ej_renovacion": None,
+        "rut_as_renovacion": None,
+        "nombre_as_renovacion": None,
         "id_producto": 1,
         "codigo_producto": "VIDA-001",
         "nombre_producto": "Seguro de Vida",
@@ -103,3 +107,28 @@ class TestDictRowProcesoComercialAdapter:
         assert proceso.fecha_apertura == datetime(2026, 9, 1, 10, 0, 0)
         assert proceso.monto_asegurado_actual is None
         assert proceso.nombre_excel_alicuota is None
+
+    def test_adapter_mapea_ejecutivo_y_asistente_de_renovacion(self):
+        row = _make_row()
+        row.update({
+            "renovacion": True,
+            "rut_ej_renovacion": "22222222-2",
+            "nombre_ej_renovacion": "Ana Rivas",
+            "rut_as_renovacion": "33333333-3",
+            "nombre_as_renovacion": "Luis Soto",
+        })
+
+        proceso = DictRowProcesoComercialAdapter(row).to_proceso_comercial()
+
+        assert proceso.renovacion is True
+        assert proceso.ejecutivo_renovacion.rut == "22222222-2"
+        assert proceso.ejecutivo_renovacion.nombre == "Ana Rivas"
+        assert proceso.asistente_renovacion.rut == "33333333-3"
+        assert proceso.asistente_renovacion.nombre == "Luis Soto"
+
+    def test_adapter_sin_ejecutivos_de_renovacion_los_deja_en_none(self):
+        proceso = DictRowProcesoComercialAdapter(_make_row()).to_proceso_comercial()
+
+        assert proceso.renovacion is False
+        assert proceso.ejecutivo_renovacion is None
+        assert proceso.asistente_renovacion is None

@@ -10,12 +10,14 @@ from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicita
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_recotizacion import SolicitarRecotizacionUseCase
 from app.aplicacion.archivo.servicios.servicio_archivos import ServicioArchivos
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.infraestructura.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial_postgres import RepositorioEstadosProcesoComercialPostgres
 from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
+from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
 
 def get_obtener_solicitudes_cotizacion_use_case():
@@ -39,6 +41,7 @@ def get_obtener_procesos_comerciales_use_case():
     )
 
     return ObtenerProcesosComercialesUseCase(
+        repositorio_usuarios=RepositorioUsuariosPostgres(),
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio,
         repositorio_prospectos=repositorio_prospectos,
@@ -61,7 +64,8 @@ def get_solicitar_cotizacion_use_case():
         repositorio_solicitudes_cotizacion=repositorio,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         authorization_service=authorization_service,
-        repositorio_notificaciones=repositorio_notificaciones,
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        repositorio_estados=RepositorioEstadosProcesoComercialPostgres(),
         servicio_alertas=ServicioAlertasProceso(repositorio_notificaciones)
     )
 

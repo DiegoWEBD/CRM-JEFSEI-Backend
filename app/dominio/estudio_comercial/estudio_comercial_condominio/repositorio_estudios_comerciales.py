@@ -10,7 +10,6 @@ class RepositorioEstudiosComerciales(ABC):
         self,
         id_solicitud: int,
         nombre_archivo: str,
-        rut_usuario: str,
     ) -> int:
         """Registra el estudio comercial y actualiza el estado del proceso.
 

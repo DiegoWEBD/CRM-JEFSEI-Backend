@@ -110,7 +110,7 @@ class TestDescartarProcesoComercial:
         use_case.ejecutar(id=1, observacion='Cliente no interesado', usuario=usuario)
 
         proceso = repositorio_procesos_mock.buscar.return_value
-        repositorio_procesos_mock.actualizar.assert_called_once_with(proceso)
+        repositorio_procesos_mock.guardar.assert_called_once_with(proceso, es_nuevo=False)
         assert proceso.descartado is True
         assert proceso.cerrado is True
         assert isinstance(proceso.fecha_cierre, datetime)
@@ -169,7 +169,7 @@ class TestDescartarProcesoComercial:
     def test_reevalua_tras_persistir_el_descarte(self, mock_hub, use_case,
             repositorio_procesos_mock, reevaluar_alertas_mock, usuario):
         orden = []
-        repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
+        repositorio_procesos_mock.guardar.side_effect = lambda p, es_nuevo=False: orden.append('descarte')
 
         def _reevaluar(id, ahora):
             orden.append('reevaluar')
@@ -209,7 +209,7 @@ class TestDescartarProcesoComercial:
         with pytest.raises(RecursoNoEncontradoException):
             use_case.ejecutar(id=99, observacion=None, usuario=usuario)
 
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         servicio_alertas_mock.marcar_todas_leidas.assert_not_called()
         reevaluar_alertas_mock.ejecutar.assert_not_called()
@@ -221,7 +221,7 @@ class TestDescartarProcesoComercial:
         with pytest.raises(ConflictoEnAccionException):
             use_case.ejecutar(id=1, observacion=None, usuario=usuario)
 
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
 
     def test_prospecto_no_encontrado_no_descarta(self, mock_hub, use_case,
@@ -235,12 +235,12 @@ class TestDescartarProcesoComercial:
         authorization_service_mock.usuario_puede_descartar_proceso_comercial.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
 
-    def test_valida_autorizacion_con_prospecto_y_usuario(self, mock_hub, use_case,
-            repositorio_prospectos_mock, authorization_service_mock, usuario):
+    def test_valida_autorizacion_con_el_proceso_y_usuario(self, mock_hub, use_case,
+            repositorio_procesos_mock, authorization_service_mock, usuario):
         use_case.ejecutar(id=1, observacion=None, usuario=usuario)
 
         authorization_service_mock.usuario_puede_descartar_proceso_comercial.assert_called_once_with(
-            repositorio_prospectos_mock.buscar.return_value,
+            repositorio_procesos_mock.buscar.return_value,
             usuario,
         )
 
@@ -253,7 +253,7 @@ class TestDescartarProcesoComercial:
         with pytest.raises(UsuarioNoAutorizadoException):
             use_case.ejecutar(id=1, observacion=None, usuario=usuario)
 
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         servicio_alertas_mock.marcar_todas_leidas.assert_not_called()
         reevaluar_alertas_mock.ejecutar.assert_not_called()

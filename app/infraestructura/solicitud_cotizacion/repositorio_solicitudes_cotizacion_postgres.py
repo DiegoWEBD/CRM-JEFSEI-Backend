@@ -366,9 +366,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
 
             return cotizaciones 
          
-    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
-        ESTADO_COTIZACION_SOLICITADA = 'COTIZACION_SOLICITADA_COMPANY'
-        
+    def nueva_solicitud(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int):      
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
@@ -468,37 +466,7 @@ class RepositorioSolicitudesCotizacionPostgres(RepositorioSolicitudesCotizacion)
                         }
 
                         cur.execute(query, params)
-                    
-                # Registro de historial
-
-                query = '''
-                    insert into HistorialEstadoInformativoProcesoComercial (id_proceso_comercial, codigo_estado, fecha_registro, rut_registrado_por)
-                    values (%(id_proceso_comercial)s, %(codigo_estado)s, %(fecha_registro)s, %(rut_registrado_por)s)
-                '''
-                
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'codigo_estado': ESTADO_COTIZACION_SOLICITADA,
-                    'fecha_registro': solicitud.fecha,
-                    'rut_registrado_por': registrado_por.rut
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set codigo_estado_actual = %(codigo_estado)s
-                    where id = %(id_proceso_comercial)s
-                '''
-
-                params = {
-                    'id_proceso_comercial': id_proceso_comercial,
-                    'codigo_estado': ESTADO_COTIZACION_SOLICITADA
-                }
-
-                cur.execute(query, params)
-
-         
+                             
 
     def registrar_solicitud_recotizacion(self, solicitud: SolicitudCotizacion, id_proceso_comercial: int, registrado_por: Usuario):
         ESTADO_RECOTIZACION_SOLICITADA = 'RECOTIZACION_SOLICITADA'

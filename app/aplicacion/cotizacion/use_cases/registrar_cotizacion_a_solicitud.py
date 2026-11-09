@@ -7,12 +7,13 @@ from app.aplicacion.cotizacion.cotizacion_factory import CotizacionFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.core.archivos import DIRECTORIO_COTIZACIONES
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
-from app.dominio.cotizacion.cotizacion import Cotizacion
 from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizaciones
 from app.dominio.company_seguros.repositorio_company_seguros import RepositorioCompanySeguros
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
@@ -27,7 +28,7 @@ class RegistrarCotizacionASolicitudUseCase:
         repositorio_cotizaciones: RepositorioCotizaciones,
         authorization_service: AuthorizationService,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
-        repositorio_notificaciones: RepositorioNotificaciones,
+        repositorio_historial_estado: RepositorioHistorialEstadoProcesosComerciales,
         servicio_alertas: ServicioAlertasProceso,
         servicio_archivos: ServicioArchivos
     ) -> None:
@@ -36,9 +37,9 @@ class RegistrarCotizacionASolicitudUseCase:
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
         self.repositorio_companies = repositorio_companies
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
-        self.repositorio_notificaciones = repositorio_notificaciones
         self.servicio_alertas = servicio_alertas
         self.servicio_archivos = servicio_archivos
+        self.repositorio_historial_estado = repositorio_historial_estado
 
     def ejecutar(
         self, 
@@ -101,14 +102,25 @@ class RegistrarCotizacionASolicitudUseCase:
             id_solicitud
         )
 
-        if proceso_comercial is not None:
-            ahora = datetime.now(tz=timezone.utc)
-            destinatarios = self.servicio_alertas.marcar_leidas(
-                proceso_comercial.id, TIPOS_ALERTA_SLA, ahora
-            )
+        if not proceso_comercial:
+            raise ConflictoEnAccionException('Error al registrar la cotización')
 
-            if destinatarios:
-                hub.publicar_desde_hilo(
-                    destinatarios,
-                    {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
-                )
+        historial = HistorialEstadoProcesoComercial(
+            id_proceso_comercial=proceso_comercial.id,
+            codigo_estado='COTIZACION_DISPONIBLE',
+            rut_registrado_por=rut_usuario,
+            fecha=datetime.now(tz=timezone.utc)
+        )
+
+        self.repositorio_historial_estado.registrar(historial)
+
+        ahora = datetime.now(tz=timezone.utc)
+        destinatarios = self.servicio_alertas.marcar_leidas(
+            proceso_comercial.id, TIPOS_ALERTA_SLA, ahora
+        )
+
+        if destinatarios:
+            hub.publicar_desde_hilo(
+                destinatarios,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'alertas_leidas_cambio_estado'},
+            )

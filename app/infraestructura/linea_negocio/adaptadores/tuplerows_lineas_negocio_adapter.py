@@ -22,7 +22,7 @@ class TupleRowsLineasNegocioAdapter:
 
             if linea_negocio is None:
                 nombre_linea_negocio = row['nombre_linea_negocio']
-                codigo_linea_negocio = row.get('codigo_linea_negocio')
+                codigo_linea_negocio = row['codigo_linea_negocio']
 
                 linea_negocio = LineaNegocio(
                     id=id_linea_negocio,

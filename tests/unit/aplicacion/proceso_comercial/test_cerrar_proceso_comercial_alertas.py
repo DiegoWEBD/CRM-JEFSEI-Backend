@@ -14,8 +14,11 @@ from app.dominio.exceptions.conflicto_en_accion_exception import (
 )
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
-from app.dominio.notificacion.repositorio_notificaciones import (
-    RepositorioNotificaciones,
+from app.dominio.historial_estado.historial_estado_proceso_comercial import (
+    HistorialEstadoProcesoComercial,
+)
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import (
+    RepositorioHistorialEstadoProcesosComerciales,
 )
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_FECHA, TIPOS_ALERTA_SLA
 from app.dominio.plan_pago.repositorio_planes_pago import RepositorioPlanesPago
@@ -51,8 +54,8 @@ def repositorio_planes_pago_mock():
 
 
 @pytest.fixture
-def repositorio_notificaciones_mock():
-    return MagicMock(spec=RepositorioNotificaciones)
+def repositorio_historial_mock():
+    return MagicMock(spec=RepositorioHistorialEstadoProcesosComerciales)
 
 
 @pytest.fixture
@@ -67,14 +70,14 @@ def use_case(
     repositorio_procesos_mock,
     repositorio_polizas_mock,
     repositorio_planes_pago_mock,
-    repositorio_notificaciones_mock,
+    repositorio_historial_mock,
     servicio_alertas_mock,
 ):
     return CerrarProcesoComercialUseCase(
         repositorio_procesos_comerciales=repositorio_procesos_mock,
         repositorio_planes_pago=repositorio_planes_pago_mock,
         repositorio_polizas=repositorio_polizas_mock,
-        repositorio_notificaciones=repositorio_notificaciones_mock,
+        repositorio_historial=repositorio_historial_mock,
         servicio_alertas=servicio_alertas_mock,
     )
 
@@ -87,7 +90,8 @@ class TestCerrarProcesoComercialAlertas:
             repositorio_procesos_mock, servicio_alertas_mock):
         use_case.ejecutar(id=1, ganado=False, observacion=None, usuario=crear_usuario_mock())
 
-        repositorio_procesos_mock.cerrar.assert_called_once()
+        proceso = repositorio_procesos_mock.buscar.return_value
+        repositorio_procesos_mock.guardar.assert_called_once_with(proceso, es_nuevo=False)
         servicio_alertas_mock.marcar_leidas.assert_called_once()
         args = servicio_alertas_mock.marcar_leidas.call_args.args
         assert args[0] == 1
@@ -102,6 +106,19 @@ class TestCerrarProcesoComercialAlertas:
             ['11111111-1'],
             {'evento': 'notificaciones_actualizadas', 'motivo': 'alertas_leidas_cambio_estado'},
         )
+
+    def test_registra_historial_del_cierre(self, mock_hub, use_case,
+            repositorio_procesos_mock, repositorio_historial_mock):
+        use_case.ejecutar(id=1, ganado=False, observacion='sin respuesta', usuario=crear_usuario_mock())
+
+        repositorio_historial_mock.registrar.assert_called_once()
+        historial = repositorio_historial_mock.registrar.call_args.args[0]
+        proceso = repositorio_procesos_mock.buscar.return_value
+        assert isinstance(historial, HistorialEstadoProcesoComercial)
+        assert historial.id_proceso_comercial == 1
+        assert historial.codigo_estado == 'PERDIDO'
+        assert historial.observacion == 'sin respuesta'
+        assert historial.fecha == proceso.fecha_cierre
 
     def test_sin_destinatarios_no_publica(self, mock_hub, use_case, servicio_alertas_mock):
         servicio_alertas_mock.marcar_leidas.return_value = []

@@ -2,6 +2,7 @@ from app.aplicacion.authorization.authorization_service_factory import Authoriza
 from app.aplicacion.plan_pago.use_cases.crear_plan_pago import CrearPlanPagoUseCase
 from app.aplicacion.plan_pago.use_cases.obtener_plan_pago_poliza import ObtenerPlanPagoPolizaUseCase
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.plan_pago.repositorio_planes_pago_postgres import RepositorioPlanesPagoPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
@@ -29,6 +30,6 @@ def get_crear_plan_pago_use_case():
         repositorio_planes_pago=repositorio_planes_pago,
         repositorio_polizas=repositorio_polizas,
         repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
-        repositorio_notificaciones=RepositorioNotificacionesPostgres(),
+        repositorio_historial_estado=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres())
     )

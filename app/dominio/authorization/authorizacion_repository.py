@@ -19,14 +19,6 @@ class AuthorizationRepository(ABC):
         pass
 
     @abstractmethod
-    def usuario_puede_crear_proceso_comercial(self, rut_usuario: str, id_prospecto: int) -> bool:
-        pass
-
-    @abstractmethod
-    def usuario_puede_solicitar_cotizacion(self, rut_usuario: str, id_proceso_comercial: int) -> bool:
-        pass
-
-    @abstractmethod
     def usuario_puede_ver_procesos_comerciales(self, rut_usuario: str, id_prospecto: int) -> bool:
         pass
 

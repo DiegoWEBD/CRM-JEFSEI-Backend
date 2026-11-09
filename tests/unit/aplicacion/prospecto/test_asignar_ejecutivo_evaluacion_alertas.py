@@ -11,6 +11,7 @@ from app.dominio.notificacion.tipos_alerta import (
     TIPO_ASIGNACION,
     TIPO_DESASIGNACION,
 )
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 
 MODULO = 'app.aplicacion.prospecto.use_cases.asignar_ejecutivo_evaluacion'
 
@@ -33,10 +34,12 @@ def _use_case(prospecto, rut_nuevo=None, generar_sla=None):
     repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = []
     if generar_sla is None:
         generar_sla = MagicMock()
+    repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
+    repo_procesos.obtener_procesos_comerciales.return_value = []
     uc = AsignarEjecutivoEvaluacionUseCase(
-        repo_prospectos, repo_usuarios, repo_notificaciones, generar_sla
+        repo_prospectos, repo_usuarios, repo_notificaciones, generar_sla, repo_procesos
     )
-    return uc, repo_prospectos, repo_notificaciones
+    return uc, repo_prospectos, repo_notificaciones, repo_procesos
 
 
 @pytest.mark.unit
@@ -50,7 +53,7 @@ class TestAsignarEjecutivoEvaluacionRefrescoAlertasSla:
 
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
         generar_sla = MagicMock()
-        uc, _, repo_notificaciones = _use_case(
+        uc, _, repo_notificaciones, _ = _use_case(
             prospecto, rut_nuevo='22222222-2', generar_sla=generar_sla
         )
         alerta = crear_notificacion_mock(id=1, rut_usuario='11111111-1', codigo_tipo='SLA_VENCIDO')
@@ -72,7 +75,7 @@ class TestAsignarEjecutivoEvaluacionRefrescoAlertasSla:
     def test_no_toca_sla_si_el_rut_no_cambia(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
         generar_sla = MagicMock()
-        uc, _, repo_notificaciones = _use_case(
+        uc, _, repo_notificaciones, _ = _use_case(
             prospecto, rut_nuevo='11111111-1', generar_sla=generar_sla
         )
 
@@ -91,7 +94,7 @@ class TestAsignarEjecutivoEvaluacionNotificacionesAsignacion:
 
     def test_crea_notificacion_asignacion_evaluacion_tecnica(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=None)
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='22222222-2')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='22222222-2')
 
         uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='22222222-2', asignado_por=MagicMock())
 
@@ -113,7 +116,7 @@ class TestAsignarEjecutivoEvaluacionNotificacionesAsignacion:
 
     def test_crea_desasignacion_solo_si_cambio(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='22222222-2')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='22222222-2')
 
         uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='22222222-2', asignado_por=MagicMock())
 
@@ -125,21 +128,49 @@ class TestAsignarEjecutivoEvaluacionNotificacionesAsignacion:
             f'{TIPO_DESASIGNACION}:PROSPECTO:1:evaluación técnica:'
         )
 
-    def test_asignacion_repite_en_invocacion_sin_cambio_de_rut(self, mock_hub):
+    def test_no_repite_asignacion_si_el_rut_no_cambia(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='11111111-1', asignado_por=MagicMock())
 
-        tipos = [c.args[0].codigo_tipo for c in repo_notificaciones.registrar.call_args_list]
-        assert tipos == [TIPO_ASIGNACION]
+        repo_notificaciones.registrar.assert_not_called()
 
     def test_sigue_notificando_asignacion_y_desasignacion(self, mock_hub):
         prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
-        uc, _, _ = _use_case(prospecto, rut_nuevo='22222222-2')
+        uc, *_ = _use_case(prospecto, rut_nuevo='22222222-2')
 
         uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='22222222-2', asignado_por=MagicMock())
 
         motivos = [c.args[1]['motivo'] for c in mock_hub.publicar_desde_hilo.call_args_list]
         assert 'asignacion_ejecutivo' in motivos
         assert 'desasignacion_ejecutivo' in motivos
+
+
+@pytest.mark.unit
+class TestAsignarEjecutivoEvaluacionProcesosAbiertos:
+
+    def test_reasigna_al_ejecutivo_en_procesos_abiertos_no_renovacion(self):
+        prospecto = _prospecto_mock(evaluacion_previo=None)
+        uc, _, _, repo_procesos = _use_case(prospecto, rut_nuevo='22222222-2')
+        proceso = MagicMock()
+        repo_procesos.obtener_procesos_comerciales.return_value = [proceso]
+
+        uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='22222222-2', asignado_por=MagicMock())
+
+        repo_procesos.obtener_procesos_comerciales.assert_called_once_with(
+            id_prospecto=1,
+            abiertos=True,
+            renovaciones=False,
+        )
+        assert proceso.ejecutivo_evaluacion == prospecto.ejecutivo_evaluacion_asignado
+        repo_procesos.guardar.assert_called_once_with(proceso)
+
+    def test_sin_cambio_de_rut_no_toca_los_procesos(self):
+        prospecto = _prospecto_mock(evaluacion_previo=MagicMock(rut='11111111-1'))
+        uc, _, _, repo_procesos = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(id_prospecto=1, rut_ej_evaluacion='11111111-1', asignado_por=MagicMock())
+
+        repo_procesos.obtener_procesos_comerciales.assert_not_called()
+        repo_procesos.guardar.assert_not_called()

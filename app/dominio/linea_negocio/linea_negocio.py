@@ -10,9 +10,9 @@ class LineaNegocio:
     def __init__(
         self, 
         nombre: str,
+        codigo: str,
         productos: list[Producto] = [],
         id: int | None = None,
-        codigo: str | None = None
     ):
         self.id = id
         self.nombre = nombre

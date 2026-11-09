@@ -254,6 +254,44 @@ class TestFrasesDeAccion:
 
         assert descripcion == 'El usuario 19995707-4 ha registrado al usuario María López (12356487-1)'
 
+    def test_registrar_recordatorio_propio(self, resolvedor):
+        _, descripcion = _construir(
+            'POST', '/recordatorios/',
+            {'titulo': 'Llamar al cliente', 'id_prospecto': 7}, resolvedor,
+        )
+
+        assert descripcion == (
+            'El usuario 19995707-4 ha registrado el recordatorio Llamar al cliente '
+            'para el prospecto Torre Las Condes (7)'
+        )
+
+    def test_registrar_recordatorio_con_destino(self, resolvedor):
+        _, descripcion = _construir(
+            'POST', '/recordatorios/',
+            {'titulo': 'Llamar al cliente', 'rut_usuario_destino': '22222222-2'}, resolvedor,
+        )
+
+        assert descripcion == (
+            'El usuario 19995707-4 ha registrado el recordatorio Llamar al cliente '
+            'para el usuario María López (22222222-2)'
+        )
+
+    def test_registrar_recordatorio_con_destino_y_prospecto(self, resolvedor):
+        _, descripcion = _construir(
+            'POST', '/recordatorios/',
+            {
+                'titulo': 'Llamar al cliente',
+                'rut_usuario_destino': '22222222-2',
+                'id_prospecto': 7,
+            },
+            resolvedor,
+        )
+
+        assert descripcion == (
+            'El usuario 19995707-4 ha registrado el recordatorio Llamar al cliente '
+            'para el usuario María López (22222222-2) en el prospecto Torre Las Condes (7)'
+        )
+
     def test_pagar_cuota(self, resolvedor):
         _, descripcion = _construir('POST', '/cuota/77/pagar', None, resolvedor)
 

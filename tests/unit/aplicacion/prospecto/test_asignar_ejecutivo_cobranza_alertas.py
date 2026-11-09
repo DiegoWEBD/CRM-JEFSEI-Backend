@@ -43,13 +43,14 @@ class TestAsignarEjecutivoCobranza:
         with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar(id_cliente=99, rut_ej_cobranza='11111111-1', asignado_por=MagicMock())
 
-    def test_sin_cliente_asociado_no_llama_al_repo_ni_notifica(self):
+    def test_sin_cliente_asociado_lanza_excepcion(self):
         prospecto = _prospecto_mock(id_cliente=None)
         uc, repo_prospectos, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
 
-        uc.ejecutar(id_cliente=5, rut_ej_cobranza='11111111-1', asignado_por=MagicMock())
+        with pytest.raises(RecursoNoEncontradoException):
+            uc.ejecutar(id_cliente=5, rut_ej_cobranza='11111111-1', asignado_por=MagicMock())
 
-        repo_prospectos.asignar_ejecutivo_cobranza.assert_not_called()
+        repo_prospectos.actualizar_prospecto.assert_not_called()
         repo_notificaciones.registrar.assert_not_called()
 
 
@@ -90,14 +91,13 @@ class TestAsignarEjecutivoCobranzaNotificaciones:
         assert desasignacion.rut_usuario == '33333333-3'
         assert desasignacion.dedupe_key.startswith(f'{TIPO_DESASIGNACION}:CLIENTE:5:cobranza:')
 
-    def test_asignacion_repite_en_invocacion_sin_cambio_de_rut(self, mock_hub):
+    def test_no_repite_asignacion_si_el_rut_no_cambia(self, mock_hub):
         prospecto = _prospecto_mock(cobranza_previo=MagicMock(rut='11111111-1'))
         uc, _, repo_notificaciones = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_ej_cobranza='11111111-1', asignado_por=MagicMock())
 
-        tipos = [c.args[0].codigo_tipo for c in repo_notificaciones.registrar.call_args_list]
-        assert tipos == [TIPO_ASIGNACION]
+        repo_notificaciones.registrar.assert_not_called()
 
     def test_nombre_entidad_usa_fallback_sin_riesgo(self, mock_hub):
         prospecto = _prospecto_mock(nombre_riesgo=None)

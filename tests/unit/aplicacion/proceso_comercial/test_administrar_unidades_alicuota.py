@@ -306,7 +306,13 @@ class TestUsuarioPuedeAdministrarAlicuotas:
         repositorio_prospectos = MagicMock()
         repositorio_prospectos.buscar_prospecto_por_proceso_comercial.return_value = prospecto
 
-        return AuthorizationService(MagicMock(), repositorio_prospectos, repositorio_usuarios)
+        return AuthorizationService(
+            MagicMock(),
+            repositorio_prospectos,
+            repositorio_usuarios,
+            MagicMock(),
+            MagicMock(),
+        )
 
     def test_evaluador_asignado_con_permiso_administra(self):
         assert self._service(permiso=True, evaluacion_asignado='1-1').usuario_puede_administrar_alicuotas(

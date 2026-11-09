@@ -6,12 +6,16 @@ from app.aplicacion.authorization.authorization_service import AuthorizationServ
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.poliza.use_cases.iniciar_renovacion_poliza import IniciarRenovacionPolizaUseCase
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS
+from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso_comercial import EstadoInformativoProcesoComercial
+from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
+from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 
 MODULO = 'app.aplicacion.poliza.use_cases.iniciar_renovacion_poliza'
 
@@ -22,12 +26,28 @@ class _Usuario:
 
 
 def _use_case(poliza_existe=True, autorizado=True, renovacion_existente=None):
+    repo_prospectos = MagicMock(spec=RepositorioProspectos)
+    prospecto = MagicMock()
+    prospecto.ejecutivo_renovacion_asignado = MagicMock(rut='22222222-2')
+    prospecto.asistente_renovacion_asignado = MagicMock(rut='33333333-3')
+    repo_prospectos.buscar.return_value = prospecto
+
     repo_polizas = MagicMock(spec=RepositorioPolizas)
     repo_polizas.buscar.return_value = MagicMock(spec=Poliza) if poliza_existe else None
 
     repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
     repo_procesos.buscar_renovacion_por_poliza_base.return_value = renovacion_existente
     repo_procesos.nuevo_renovacion.return_value = 77
+    proceso = MagicMock()
+    proceso.id_prospecto = 1
+    repo_procesos.buscar.return_value = proceso
+
+    repo_estados = MagicMock(spec=RepositorioEstadosProcesoComercial)
+    repo_estados.obtener_por_codigo.return_value = EstadoInformativoProcesoComercial(
+        codigo='OPORTUNIDAD_CREADA', nombre=''
+    )
+
+    repo_historial = MagicMock(spec=RepositorioHistorialEstadoProcesosComerciales)
 
     authorization_service = MagicMock(spec=AuthorizationService)
     authorization_service.usuario_puede_gestionar_renovacion.return_value = autorizado
@@ -36,9 +56,24 @@ def _use_case(poliza_existe=True, autorizado=True, renovacion_existente=None):
     servicio_alertas.marcar_leidas_renovacion.return_value = ['11111111-1']
 
     uc = IniciarRenovacionPolizaUseCase(
-        repo_polizas, repo_procesos, authorization_service, servicio_alertas
+        repo_prospectos,
+        repo_polizas,
+        repo_procesos,
+        repo_estados,
+        repo_historial,
+        authorization_service,
+        servicio_alertas,
     )
-    return uc, repo_polizas, repo_procesos, authorization_service, servicio_alertas
+    return (
+        uc,
+        repo_prospectos,
+        repo_polizas,
+        repo_procesos,
+        repo_estados,
+        repo_historial,
+        authorization_service,
+        servicio_alertas,
+    )
 
 
 @pytest.mark.unit
@@ -51,7 +86,7 @@ class TestIniciarRenovacionPoliza:
             uc.ejecutar('POL-001', _Usuario())
 
     def test_sin_permiso_no_inicia(self):
-        uc, _, repo_procesos, _, _ = _use_case(autorizado=False)
+        uc, _, _, repo_procesos, *_ = _use_case(autorizado=False)
 
         with pytest.raises(UsuarioNoAutorizadoException):
             uc.ejecutar('POL-001', _Usuario())
@@ -59,7 +94,7 @@ class TestIniciarRenovacionPoliza:
         repo_procesos.nuevo_renovacion.assert_not_called()
 
     def test_renovacion_ya_iniciada(self):
-        uc, _, repo_procesos, _, _ = _use_case(renovacion_existente=77)
+        uc, _, _, repo_procesos, *_ = _use_case(renovacion_existente=77)
 
         with pytest.raises(ConflictoEnAccionException):
             uc.ejecutar('POL-001', _Usuario())
@@ -68,7 +103,7 @@ class TestIniciarRenovacionPoliza:
 
     @patch(f'{MODULO}.hub')
     def test_crea_el_proceso_de_renovacion(self, hub_mock):
-        uc, _, repo_procesos, _, _ = _use_case()
+        uc, _, _, repo_procesos, *_ = _use_case()
 
         id_proceso = uc.ejecutar('POL-001', _Usuario(rut='11111111-1'))
 
@@ -76,8 +111,20 @@ class TestIniciarRenovacionPoliza:
         assert id_proceso == 77
 
     @patch(f'{MODULO}.hub')
+    def test_asigna_al_proceso_los_ejecutivos_de_renovacion_del_prospecto(self, hub_mock):
+        uc, repo_prospectos, _, repo_procesos, *_ = _use_case()
+        prospecto = repo_prospectos.buscar.return_value
+
+        uc.ejecutar('POL-001', _Usuario())
+
+        proceso = repo_procesos.buscar.return_value
+        assert proceso.ejecutivo_renovacion == prospecto.ejecutivo_renovacion_asignado
+        assert proceso.asistente_renovacion == prospecto.asistente_renovacion_asignado
+        repo_procesos.guardar.assert_called_once_with(proceso, es_nuevo=False)
+
+    @patch(f'{MODULO}.hub')
     def test_resuelve_las_alertas_de_renovacion(self, hub_mock):
-        uc, _, _, _, servicio_alertas = _use_case()
+        uc, *_, servicio_alertas = _use_case()
 
         uc.ejecutar('POL-001', _Usuario())
 
@@ -90,7 +137,7 @@ class TestIniciarRenovacionPoliza:
 
     @patch(f'{MODULO}.hub')
     def test_sin_alertas_marcadas_no_publica(self, hub_mock):
-        uc, _, _, _, servicio_alertas = _use_case()
+        uc, *_, servicio_alertas = _use_case()
         servicio_alertas.marcar_leidas_renovacion.return_value = []
 
         uc.ejecutar('POL-001', _Usuario())

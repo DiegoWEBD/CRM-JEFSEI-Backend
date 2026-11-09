@@ -12,9 +12,12 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.infraestructura.company_seguros.repositorio_company_seguros_postgres import RepositorioCompanySegurosPostgres
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.infraestructura.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial_postgres import RepositorioEstadosProcesoComercialPostgres
+from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_comerciales_postgres import RepositorioHistorialEstadoProcesosComercialesPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
+from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 
 
 def get_obtener_polizas_use_case():
@@ -52,11 +55,12 @@ def get_registrar_poliza_a_proceso_comercial_use_case():
 
 
     return RegistrarPolizaAProcesoComercialUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
         repositorio_polizas=repositorio_polizas,
         repositorio_companies=repositorio_companies,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         authorization_service=authorization_service,
-        repositorio_notificaciones=RepositorioNotificacionesPostgres(),
+        repositorio_historial_estados=RepositorioHistorialEstadoProcesosComercialesPostgres(),
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres())
     )
 
@@ -101,8 +105,11 @@ def get_iniciar_renovacion_poliza_use_case():
     repositorio_procesos_comerciales = RepositorioProcesosComercialesPostgres()
 
     return IniciarRenovacionPolizaUseCase(
+        repositorio_prospectos=RepositorioProspectosPostgres(),
         repositorio_polizas=repositorio_polizas,
         repositorio_procesos_comerciales=repositorio_procesos_comerciales,
         authorization_service=authorization_service,
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
+        repositorio_historial=RepositorioHistorialEstadoProcesosComercialesPostgres(),
+        repositorio_estados=RepositorioEstadosProcesoComercialPostgres()
     )

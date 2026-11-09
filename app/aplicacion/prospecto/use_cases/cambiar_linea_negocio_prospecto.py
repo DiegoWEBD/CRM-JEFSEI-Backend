@@ -127,7 +127,8 @@ class CambiarLineaNegocioProspectoUseCase:
         proceso.cerrado = True
         proceso.fecha_cierre = ahora
         proceso.motivo_cierre = MOTIVO_DESCARTE_CAMBIO_LINEA
-        self.repositorio_procesos_comerciales.actualizar(proceso)
+        
+        self.repositorio_procesos_comerciales.guardar(proceso, es_nuevo=False)
 
         self.repositorio_historial.registrar(
             HistorialEstadoProcesoComercial(

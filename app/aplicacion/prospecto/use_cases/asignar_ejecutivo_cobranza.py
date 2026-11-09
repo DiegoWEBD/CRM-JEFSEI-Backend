@@ -12,7 +12,7 @@ class AsignarEjecutivoCobranzaUseCase:
         self, 
         repositorio_prospectos: RepositorioProspectos,
         repositorio_usuarios: RepositorioUsuarios,
-        repositorio_notificaciones: RepositorioNotificaciones
+        repositorio_notificaciones: RepositorioNotificaciones,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
@@ -21,10 +21,13 @@ class AsignarEjecutivoCobranzaUseCase:
     def ejecutar(self, id_cliente: int, rut_ej_cobranza: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
 
-        if not prospecto or not prospecto.id:
+        if not prospecto or not prospecto.id or not prospecto.id_cliente:
             raise RecursoNoEncontradoException('Cliente no encontrado')
 
         rut_anterior = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
+
+        if rut_anterior == rut_ej_cobranza:
+            return
 
         if rut_ej_cobranza is not None:
             usuario = self.repositorio_usuarios.buscar(rut_ej_cobranza)
@@ -36,11 +39,7 @@ class AsignarEjecutivoCobranzaUseCase:
         else:
             prospecto.ejecutivo_cobranza_asignado = None
 
-        # Sin cliente asociado no hay asignación que guardar ni notificar.
-        if not prospecto.id_cliente:
-            return
-
-        self.repositorio_prospectos.asignar_ejecutivo_cobranza(prospecto, asignado_por)
+        self.repositorio_prospectos.actualizar_prospecto(prospecto)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

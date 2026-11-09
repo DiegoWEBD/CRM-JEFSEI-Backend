@@ -101,6 +101,34 @@ class RepositorioProductoPostgres(RepositorioProducto):
                     eliminado=row['eliminado'],
                 )
 
+    def obtener_por_codigo(self, codigo: str) -> Producto | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select id, nombre, id_linea_negocio, codigo, eliminado
+                    from Producto
+                    where codigo = %(codigo)s 
+                    and eliminado = false
+                '''
+
+                params = {'codigo': codigo}
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if not row:
+                    return None
+
+                return Producto(
+                    id=row['id'],
+                    nombre=row['nombre'],
+                    id_linea_negocio=row['id_linea_negocio'],
+                    codigo=row['codigo'],
+                    eliminado=row['eliminado'],
+                )
+    
+
     def crear(self, producto: Producto) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -169,7 +197,7 @@ class RepositorioProductoPostgres(RepositorioProducto):
                 cur.execute(query, params)
                 row = cur.fetchone()
 
-                return row['existe']
+                return row['existe'] # type: ignore
 
     def eliminar(self, id: int) -> bool:
         with obtener_conexion() as conn:

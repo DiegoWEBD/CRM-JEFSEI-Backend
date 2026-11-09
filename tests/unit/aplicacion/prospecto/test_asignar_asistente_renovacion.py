@@ -11,6 +11,7 @@ from app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion import (
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import TIPO_ASIGNACION, TIPO_DESASIGNACION
+from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 
 MODULO = 'app.aplicacion.prospecto.use_cases.asignar_asistente_renovacion'
 
@@ -32,10 +33,12 @@ def _use_case(prospecto, rut_nuevo=None):
         repo_usuarios.buscar.return_value = MagicMock(rut=rut_nuevo)
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
     refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
+    repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
+    repo_procesos.obtener_procesos_comerciales.return_value = []
     uc = AsignarAsistenteRenovacionUseCase(
-        repo_prospectos, repo_usuarios, repo_notificaciones, refrescar
+        repo_prospectos, repo_usuarios, repo_notificaciones, refrescar, repo_procesos
     )
-    return uc, repo_prospectos, repo_notificaciones, refrescar
+    return uc, repo_prospectos, repo_notificaciones, refrescar, repo_procesos
 
 
 @pytest.mark.unit
@@ -44,7 +47,9 @@ class TestAsignarAsistenteRenovacion:
     def test_cliente_no_encontrado_lanza_excepcion(self):
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = None
-        uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, MagicMock(), MagicMock(), MagicMock())
+        uc = AsignarAsistenteRenovacionUseCase(
+            repo_prospectos, MagicMock(), MagicMock(), MagicMock(), MagicMock()
+        )
 
         with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar(id_cliente=99, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
@@ -55,7 +60,9 @@ class TestAsignarAsistenteRenovacion:
         repo_prospectos.buscar_cliente.return_value = prospecto
         repo_usuarios = MagicMock()
         repo_usuarios.buscar.return_value = None
-        uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, repo_usuarios, MagicMock(), MagicMock())
+        uc = AsignarAsistenteRenovacionUseCase(
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+        )
 
         with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar(id_cliente=5, rut_as_renovacion='99999999-9', asignado_por=MagicMock())
@@ -68,38 +75,43 @@ class TestAsignarAsistenteRenovacion:
         repo_prospectos.buscar_cliente.return_value = prospecto
         repo_usuarios = MagicMock()
         repo_usuarios.buscar.return_value = usuario
-        uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, repo_usuarios, MagicMock(), MagicMock())
+        uc = AsignarAsistenteRenovacionUseCase(
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+        )
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
         assert prospecto.asistente_renovacion_asignado == usuario
-        repo_prospectos.asignar_asistente_renovacion.assert_called_once()
+        repo_prospectos.actualizar_prospecto.assert_called_once_with(prospecto)
 
     def test_desasignar_con_none(self):
-        prospecto = _prospecto_mock()
+        prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='33333333-3'))
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = prospecto
         repo_usuarios = MagicMock()
-        uc = AsignarAsistenteRenovacionUseCase(repo_prospectos, repo_usuarios, MagicMock(), MagicMock())
+        uc = AsignarAsistenteRenovacionUseCase(
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+        )
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion=None, asignado_por=MagicMock())
 
         assert prospecto.asistente_renovacion_asignado is None
-        repo_prospectos.asignar_asistente_renovacion.assert_called_once()
+        repo_prospectos.actualizar_prospecto.assert_called_once_with(prospecto)
 
-    def test_sin_cliente_asociado_no_llama_al_repo_ni_notifica(self):
+    def test_sin_cliente_asociado_lanza_excepcion(self):
         prospecto = _prospecto_mock(id_cliente=None)
-        uc, repo_prospectos, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, repo_prospectos, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
-        uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
+        with pytest.raises(RecursoNoEncontradoException):
+            uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
-        repo_prospectos.asignar_asistente_renovacion.assert_not_called()
+        repo_prospectos.actualizar_prospecto.assert_not_called()
         repo_notificaciones.registrar.assert_not_called()
 
     @pytest.mark.parametrize(
         'previo, nuevo, esperados',
         [
-            # (asistente previo, RUT nuevo, [(RUT destino, motivo)])
+            # (asistente previo, RUT nuevo, [(RUT destino, motivo)]),
             ('33333333-3', '11111111-1', [('11111111-1', 'asignacion_ejecutivo'),
                                            ('33333333-3', 'desasignacion_ejecutivo')]),
             ('33333333-3', None,           [('33333333-3', 'desasignacion_ejecutivo')]),
@@ -112,7 +124,7 @@ class TestAsignarAsistenteRenovacion:
         """Verifica que cada usuario correcto recibe la notificación de asignación o desasignación."""
         asistente_previo = MagicMock(rut=previo) if previo else None
         prospecto = _prospecto_mock(asistente_previo=asistente_previo)
-        uc, _, _, _ = _use_case(prospecto, rut_nuevo=nuevo)
+        uc, *_ = _use_case(prospecto, rut_nuevo=nuevo)
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion=nuevo, asignado_por=MagicMock())
 
@@ -131,7 +143,7 @@ class TestAsignarAsistenteRenovacionNotificaciones:
 
     def test_crea_notificacion_asignacion_cliente(self, mock_hub):
         prospecto = _prospecto_mock(asistente_previo=None)
-        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, *_ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -154,7 +166,7 @@ class TestAsignarAsistenteRenovacionNotificaciones:
 
     def test_crea_desasignacion_solo_si_cambio(self, mock_hub):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='33333333-3'))
-        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, *_ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -166,14 +178,13 @@ class TestAsignarAsistenteRenovacionNotificaciones:
             f'{TIPO_DESASIGNACION}:CLIENTE:5:asistencia de renovación:'
         )
 
-    def test_asignacion_repite_en_invocacion_sin_cambio_de_rut(self, mock_hub):
+    def test_no_repite_asignacion_si_el_rut_no_cambia(self, mock_hub):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='11111111-1'))
-        uc, _, repo_notificaciones, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, repo_notificaciones, *_ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
-        tipos = [c.args[0].codigo_tipo for c in repo_notificaciones.registrar.call_args_list]
-        assert tipos == [TIPO_ASIGNACION]
+        repo_notificaciones.registrar.assert_not_called()
 
 
 @pytest.mark.unit
@@ -181,18 +192,18 @@ class TestAsignarAsistenteRenovacionRefrescoAlertas:
 
     def test_con_cambio_de_rut_refresca_alertas_de_renovacion(self):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='33333333-3'))
-        uc, repo_prospectos, _, refrescar = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, repo_prospectos, _, refrescar, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
         # Tras guardar la asignación, se eliminan las alertas del anterior y se
         # re-evalúan al tiro para crear las del nuevo destinatario.
-        repo_prospectos.asignar_asistente_renovacion.assert_called_once()
+        repo_prospectos.actualizar_prospecto.assert_called_once_with(prospecto)
         refrescar.ejecutar.assert_called_once_with(5)
 
     def test_sin_cambio_de_rut_no_refresca(self):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='11111111-1'))
-        uc, _, _, refrescar = _use_case(prospecto, rut_nuevo='11111111-1')
+        uc, _, _, refrescar, _ = _use_case(prospecto, rut_nuevo='11111111-1')
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
 
@@ -200,8 +211,37 @@ class TestAsignarAsistenteRenovacionRefrescoAlertas:
 
     def test_desasignacion_tambien_refresca(self):
         prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='33333333-3'))
-        uc, _, _, refrescar = _use_case(prospecto, rut_nuevo=None)
+        uc, _, _, refrescar, _ = _use_case(prospecto, rut_nuevo=None)
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion=None, asignado_por=MagicMock())
 
         refrescar.ejecutar.assert_called_once_with(5)
+
+
+@pytest.mark.unit
+class TestAsignarAsistenteRenovacionProcesosAbiertos:
+
+    def test_reasigna_al_asistente_en_procesos_de_renovacion_abiertos(self):
+        prospecto = _prospecto_mock(asistente_previo=None)
+        uc, _, _, _, repo_procesos = _use_case(prospecto, rut_nuevo='11111111-1')
+        proceso = MagicMock()
+        repo_procesos.obtener_procesos_comerciales.return_value = [proceso]
+
+        uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
+
+        repo_procesos.obtener_procesos_comerciales.assert_called_once_with(
+            id_prospecto=1,
+            abiertos=True,
+            renovaciones=True,
+        )
+        assert proceso.asistente_renovacion == prospecto.asistente_renovacion_asignado
+        repo_procesos.guardar.assert_called_once_with(proceso)
+
+    def test_sin_cambio_de_rut_no_toca_los_procesos(self):
+        prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='11111111-1'))
+        uc, _, _, _, repo_procesos = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
+
+        repo_procesos.obtener_procesos_comerciales.assert_not_called()
+        repo_procesos.guardar.assert_not_called()

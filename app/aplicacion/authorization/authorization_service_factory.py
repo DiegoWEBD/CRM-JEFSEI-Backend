@@ -1,6 +1,8 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.infraestructura.authorization.authorization_repository_postgres import AuthorizationRepositoryPostgres
+from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
+from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
 
@@ -11,5 +13,7 @@ class AuthorizationServiceFactory:
         return AuthorizationService(
             authorization_repository=AuthorizationRepositoryPostgres(),
             repositorio_usuarios=RepositorioUsuariosPostgres(),
-            repositorio_prospectos=RepositorioProspectosPostgres()
+            repositorio_prospectos=RepositorioProspectosPostgres(),
+            repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+            repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres()
         )

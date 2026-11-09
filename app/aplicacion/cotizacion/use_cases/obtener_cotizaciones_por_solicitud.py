@@ -4,6 +4,7 @@ from app.dominio.cotizacion.repositorio_cotizaciones import RepositorioCotizacio
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
+from app.dominio.usuario.usuario import Usuario
 
 
 class ObtenerCotizacionesPorSolicitudUseCase:
@@ -18,12 +19,12 @@ class ObtenerCotizacionesPorSolicitudUseCase:
         self.authorization_service = authorization_service
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
 
-    def ejecutar(self, id_solicitud: int, rut_usuario: str | None) -> list[Cotizacion]:
+    def ejecutar(self, id_solicitud: int, usuario: Usuario) -> list[Cotizacion]:
 
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
 
-        if rut_usuario and not self.authorization_service.usuario_puede_ver_solicitud_cotizacion(rut_usuario, id_solicitud):
+        if usuario.rut and not self.authorization_service.usuario_puede_ver_cotizaciones(usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
 
         return self.repositorio_cotizaciones.obtener_por_solicitud(id_solicitud)

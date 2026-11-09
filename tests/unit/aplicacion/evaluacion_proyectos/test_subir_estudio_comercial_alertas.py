@@ -11,6 +11,7 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
     RepositorioProcesosComerciales,
@@ -75,7 +76,8 @@ class TestSubirEstudioComercialAlertas:
     def test_sin_proceso_resuelto_no_marca_ni_publica(self, mock_hub):
         uc, _, repo_procesos, servicio_alertas = _use_case(proceso=None)
 
-        uc.ejecutar(contenido_archivo=b'%PDF-1.4', id_solicitud=3, usuario=MagicMock(rut='99999999-9'))
+        with pytest.raises(ConflictoEnAccionException):
+            uc.ejecutar(contenido_archivo=b'%PDF-1.4', id_solicitud=3, usuario=MagicMock(rut='99999999-9'))
 
         repo_procesos.buscar_por_solicitud_cotizacion.assert_called_once_with(3)
         servicio_alertas.marcar_leidas.assert_not_called()

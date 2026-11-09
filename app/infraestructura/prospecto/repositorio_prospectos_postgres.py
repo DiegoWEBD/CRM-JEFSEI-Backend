@@ -212,6 +212,27 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 return row['id']
 
+
+    def crear_cliente(self, prospecto: Prospecto) -> int | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into Cliente (id_prospecto)
+                    values (%(id_prospecto)s)
+                    returning id
+                '''
+
+                params = {
+                    'id_prospecto': prospecto.id
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+                
+                return row['id'] if row else None
+    
+
     def actualizar_prospecto(self, prospecto: Prospecto) -> None:
         if prospecto.id is None:
             return
@@ -230,7 +251,9 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     comuna = %(comuna)s,
                     observaciones = %(observaciones)s,
                     informacion_completa = %(informacion_completa)s,
-                    id_linea_negocio = %(id_linea_negocio)s
+                    id_linea_negocio = %(id_linea_negocio)s,
+                    rut_ej_comercial_asignado = %(rut_ej_comercial_asignado)s,
+                    rut_ej_evaluacion_asignado = %(rut_ej_evaluacion_asignado)s
                     where id = %(id)s
                 '''
 
@@ -245,7 +268,27 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     'observaciones': prospecto.observaciones,
                     'informacion_completa': informacion_completa_prospecto(prospecto),
                     'id': prospecto.id,
-                    'id_linea_negocio': prospecto.linea_negocio.id
+                    'id_linea_negocio': prospecto.linea_negocio.id,
+                    'rut_ej_comercial_asignado': prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None,
+                    'rut_ej_evaluacion_asignado': prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None,
+                }
+
+                cur.execute(query, params)
+
+                # Actualización de ejecutivos en cliente
+                query = '''
+                    update Cliente
+                    set rut_ej_cobranza_asignado = %(rut_ej_cobranza_asignado)s,
+                    rut_ej_renovacion_asignado = %(rut_ej_renovacion_asignado)s,
+                    rut_as_renovacion_asignado = %(rut_as_renovacion_asignado)s
+                    where id_prospecto = %(id_prospecto)s
+                '''
+
+                params = {
+                    'rut_ej_cobranza_asignado': prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None,
+                    'rut_ej_renovacion_asignado': prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None,
+                    'rut_as_renovacion_asignado': prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None,
+                    'id_prospecto': prospecto.id
                 }
 
                 cur.execute(query, params)
@@ -354,6 +397,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -390,6 +434,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -422,6 +468,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -458,6 +505,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -491,6 +540,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -527,6 +577,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -561,6 +613,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.updated_at as prospecto_updated_at,
@@ -599,6 +652,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join PlanificacionProspecto PP
@@ -688,7 +743,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 row = cur.fetchone()
 
                 return DictRowProspectoAdapter(row).to_prospecto() if row else None
-            
+                
             
     def buscar_prospecto_condominio(self, id: int) -> ProspectoCondominio | None:
         with obtener_conexion() as conn:
@@ -729,6 +784,7 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     P.rut_ej_evaluacion_asignado, EJ_EV.nombre as nombre_ej_evaluacion_asignado,
                     CL.rut_ej_cobranza_asignado, EJ_CB.nombre as nombre_ej_cobranza_asignado,
                     CL.rut_ej_renovacion_asignado, EJ_RN.nombre as nombre_ej_renovacion_asignado,
+                    CL.rut_as_renovacion_asignado, AS_RN.nombre as nombre_as_renovacion_asignado,
                     P.region, P.comuna,
                     P.correo_contacto, P.observaciones,
                     P.informacion_completa,
@@ -789,6 +845,8 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                     on CL.rut_ej_cobranza_asignado = EJ_CB.rut
                     left join Usuario EJ_RN
                     on CL.rut_ej_renovacion_asignado = EJ_RN.rut
+                    left join Usuario AS_RN
+                    on CL.rut_as_renovacion_asignado = AS_RN.rut
                     inner join LineaNegocio LN
                     on P.id_linea_negocio = LN.id
                     left join AdministradorCondominio AC
@@ -1184,74 +1242,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
             for row in rows
         ]
                 
-    def asignar_ejecutivo_comercial(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id:
-            return
-
-        rut = prospecto.ejecutivo_comercial_asignado.rut if prospecto.ejecutivo_comercial_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Prospecto
-                    set rut_ej_comercial_asignado = %(rut_ej_comercial)s
-                    where id = %(id_prospecto)s
-                '''
-                params = {
-                    'rut_ej_comercial': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_comercial = %(rut_ej_comercial)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_comercial': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-
-    def asignar_ejecutivo_evaluacion_proyectos(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id:
-            return
-
-        rut = prospecto.ejecutivo_evaluacion_asignado.rut if prospecto.ejecutivo_evaluacion_asignado else None
-        
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Prospecto
-                    set rut_ej_evaluacion_asignado = %(rut_ej_evaluacion)s
-                    where id = %(id_prospecto)s
-                '''
-                params = {
-                    'rut_ej_evaluacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_evaluacion = %(rut_ej_evaluacion)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_evaluacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
 
     def asignar_administrador_condominio(self, prospecto: ProspectoCondominio, id_administrador: int) -> None:
         with obtener_conexion() as conn:
@@ -1265,82 +1255,6 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
                 params = {
                     'id_administrador': id_administrador,
                     'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-    def asignar_ejecutivo_cobranza(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.ejecutivo_cobranza_asignado.rut if prospecto.ejecutivo_cobranza_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_ej_cobranza_asignado = %(rut_ej_cobranza)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_ej_cobranza': rut,
-                    'id_cliente': prospecto.id_cliente
-                }
-
-                cur.execute(query, params)
-
-    def asignar_ejecutivo_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.ejecutivo_renovacion_asignado.rut if prospecto.ejecutivo_renovacion_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_ej_renovacion_asignado = %(rut_ej_renovacion)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_ej_renovacion': rut,
-                    'id_cliente': prospecto.id_cliente
-                }
-
-                cur.execute(query, params)
-
-                query = '''
-                    update ProcesoComercial
-                    set rut_ej_renovacion = %(rut_ej_renovacion)s
-                    where id_prospecto = %(id_prospecto)s
-                    and cerrado = false
-                '''
-                params = {
-                    'rut_ej_renovacion': rut,
-                    'id_prospecto': prospecto.id
-                }
-
-                cur.execute(query, params)
-
-    def asignar_asistente_renovacion(self, prospecto: Prospecto, asignado_por: Usuario) -> None:
-        if not prospecto.id_cliente:
-            return
-
-        rut = prospecto.asistente_renovacion_asignado.rut if prospecto.asistente_renovacion_asignado else None
-
-        with obtener_conexion() as conn:
-            with conn.cursor() as cur:
-
-                query = '''
-                    update Cliente
-                    set rut_as_renovacion_asignado = %(rut_as_renovacion)s
-                    where id = %(id_cliente)s
-                '''
-                params = {
-                    'rut_as_renovacion': rut,
-                    'id_cliente': prospecto.id_cliente
                 }
 
                 cur.execute(query, params)

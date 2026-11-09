@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.aplicacion.proceso_comercial.dto.proceso_comercial_resumen import ProcesoComercialResumen
+from app.aplicacion.proceso_comercial.dto.oportunidades_contadores import OportunidadesContadores
 
 
 @dataclass
@@ -8,10 +8,11 @@ class ProspectoResumen:
     id: int
     rut_riesgo: str
     nombre_riesgo: str
+    nombre_fantasia: str | None
     nombre_administrador: str | None
     linea_negocio: str
     ejecutivo_comercial: str | None
     id_cliente: int | None
-    procesos_comerciales: list[ProcesoComercialResumen]
+    oportunidades: OportunidadesContadores
     estado_general_cliente: str
     comuna: str

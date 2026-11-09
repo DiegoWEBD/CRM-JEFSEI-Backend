@@ -56,7 +56,9 @@ def obtener_prospectos(
 
     if puede_ver_todos:
         return consulta_prospectos_service.obtener_todos(
-            rut_usuario=filtros.rut_usuario,
+            usuario=usuario,
+            oportunidades_todas=True,
+            rut_usuario_filtro=filtros.rut_usuario,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,
             pagina=filtros.pagina,
@@ -69,7 +71,9 @@ def obtener_prospectos(
         if filtros.rut_usuario is not None:
             raise UsuarioNoAutorizadoException
         return consulta_prospectos_service.obtener_todos(
-            rut_usuario=usuario.rut,
+            usuario=usuario,
+            oportunidades_todas=False,
+            rut_usuario_filtro=usuario.rut,
             filtro=filtros.filtro,
             texto_busqueda=filtros.texto_busqueda,
             pagina=filtros.pagina,
@@ -111,11 +115,9 @@ def obtener_procesos_comerciales_prospecto(
     usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_PROCESOS_COMERCIALES', 'ADMINISTRAR_PROCESOS_COMERCIALES_PROPIOS')),
     use_case: ObtenerProcesosComercialesUseCase = Depends(get_obtener_procesos_comerciales_use_case)
 ):
-    puede_ver_todos = usuario_tiene_permiso('ADMINISTRAR_PROCESOS_COMERCIALES', usuario)
-
     procesos = use_case.ejecutar(
         id_prospecto=id,
-        rut_usuario=usuario.rut if not puede_ver_todos else None,
+        usuario=usuario,
         abiertos=abiertos
     )
 

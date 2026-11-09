@@ -7,7 +7,7 @@ from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 class RepositorioProcesosComerciales(ABC):
     
     @abstractmethod
-    def nuevo(self, tipo: str, id_prospecto: int, rut_usuario: str) -> int | None:
+    def guardar(self, proceso: ProcesoComercial, es_nuevo: bool = False) -> ProcesoComercial:
         pass
 
     @abstractmethod
@@ -51,7 +51,12 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
-    def obtener_procesos_comerciales(self, id_prospecto: int | None = None, abiertos: bool | None = None) -> list[ProcesoComercial]:
+    def obtener_procesos_comerciales(
+        self, 
+        id_prospecto: int | None = None, 
+        abiertos: bool | None = None,
+        renovaciones: bool | None = None,
+    ) -> list[ProcesoComercial]:
         pass
 
     @abstractmethod
@@ -72,28 +77,9 @@ class RepositorioProcesosComerciales(ABC):
         pass
 
     @abstractmethod
-    def cerrar(self, id: int, ganado: bool, observacion: str | None, rut_usuario: str):
-        pass
-
-    @abstractmethod
     def actualizar_fecha_estimada_cierre(self, id: int, fecha: datetime | None):
         pass
 
     @abstractmethod
     def actualizar_probabilidad_cierre_ejecutivo(self, id: int, probabilidad: float | None):
-        pass
-
-    @abstractmethod
-    def cambiar_estado_manual(
-        self,
-        id: int,
-        codigo_estado_destino: str,
-        observacion: str | None,
-        rut_usuario: str,
-    ):
-        """Cambia el estado del proceso validando la transición manual."""
-        pass
-
-    @abstractmethod
-    def actualizar(self, proceso: ProcesoComercial):
         pass

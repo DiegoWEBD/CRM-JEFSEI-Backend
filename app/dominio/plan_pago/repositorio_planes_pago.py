@@ -17,7 +17,7 @@ class RepositorioPlanesPago(ABC):
         pass
 
     @abstractmethod
-    def registrar_plan_pago_poliza(self, poliza: Poliza, plan_pago: PlanPago, rut_usuario: str) -> None:
+    def registrar_plan_pago_poliza(self, poliza: Poliza, plan_pago: PlanPago) -> None:
         pass
 
     @abstractmethod

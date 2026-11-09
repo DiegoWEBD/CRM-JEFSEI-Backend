@@ -139,7 +139,7 @@ class TestCambiarLineaNegocioProspecto:
             repositorio_procesos_mock, usuario):
         use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
-        assert repositorio_procesos_mock.actualizar.call_count == 2
+        assert repositorio_procesos_mock.guardar.call_count == 2
         for proceso in repositorio_procesos_mock.obtener_procesos_comerciales.return_value:
             assert proceso.descartado is True
             assert proceso.cerrado is True
@@ -168,7 +168,7 @@ class TestCambiarLineaNegocioProspecto:
     def test_descarta_antes_de_cambiar_la_linea(self, mock_hub, use_case,
             repositorio_procesos_mock, repositorio_prospectos_mock, usuario):
         orden = []
-        repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
+        repositorio_procesos_mock.guardar.side_effect = lambda p, es_nuevo=False: orden.append('descarte')
         repositorio_prospectos_mock.actualizar_prospecto.side_effect = lambda p: orden.append('linea')
 
         use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
@@ -203,7 +203,7 @@ class TestCambiarLineaNegocioProspecto:
     def test_reevalua_tras_persistir_cada_descarte(self, mock_hub, use_case,
             repositorio_procesos_mock, reevaluar_alertas_mock, usuario):
         orden = []
-        repositorio_procesos_mock.actualizar.side_effect = lambda p: orden.append('descarte')
+        repositorio_procesos_mock.guardar.side_effect = lambda p, es_nuevo=False: orden.append('descarte')
 
         def _reevaluar(id, ahora):
             orden.append('reevaluar')
@@ -254,7 +254,7 @@ class TestCambiarLineaNegocioProspecto:
         resultado = use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         assert resultado == 0
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         prospecto = repositorio_prospectos_mock.buscar.return_value
         repositorio_prospectos_mock.actualizar_prospecto.assert_called_once_with(prospecto)
@@ -268,7 +268,7 @@ class TestCambiarLineaNegocioProspecto:
             use_case.ejecutar(id=99, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 
@@ -284,7 +284,7 @@ class TestCambiarLineaNegocioProspecto:
             use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 
@@ -298,7 +298,7 @@ class TestCambiarLineaNegocioProspecto:
         with pytest.raises(UsuarioNoAutorizadoException):
             use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 
     def test_linea_de_negocio_inexistente_no_descarta(self, mock_hub, use_case,
@@ -310,7 +310,7 @@ class TestCambiarLineaNegocioProspecto:
             use_case.ejecutar(id=1, codigo_linea_negocio='lineas_comerciales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 
@@ -326,7 +326,7 @@ class TestCambiarLineaNegocioProspecto:
             use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
 
         repositorio_procesos_mock.obtener_procesos_comerciales.assert_not_called()
-        repositorio_procesos_mock.actualizar.assert_not_called()
+        repositorio_procesos_mock.guardar.assert_not_called()
         repositorio_historial_mock.registrar.assert_not_called()
         repositorio_prospectos_mock.actualizar_prospecto.assert_not_called()
 

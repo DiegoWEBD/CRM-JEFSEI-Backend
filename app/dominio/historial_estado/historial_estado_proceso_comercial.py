@@ -7,7 +7,7 @@ class HistorialEstadoProcesoComercial:
         id_proceso_comercial: int,
         codigo_estado: str,
         rut_registrado_por: str,
-        fecha: datetime = datetime.now(tz=timezone.utc),
+        fecha: datetime,
         observacion: str | None = None,
     ):
         self.id_proceso_comercial = id_proceso_comercial

@@ -6,8 +6,8 @@ class EstadoInformativoProcesoComercial:
     def __init__(
         self, 
         codigo: str, 
-        etapa: EtapaProcesoComercial, 
         nombre: str,
+        etapa: EtapaProcesoComercial = EtapaProcesoComercial(codigo='', nombre='', sigiuente_etapa=None), 
         probabilidad_cierre: float | None = None,
         rol_responsable: str | None = None,
         nombre_rol_responsable: str | None = None,

@@ -179,7 +179,7 @@ class TestCrearProductoUseCase:
         repositorio_mock.existe_por_nombre_y_linea_negocio.return_value = False
         repositorio_mock.crear.return_value = True
         repositorio_linea_negocio_mock.obtener_por_id.return_value = LineaNegocio(
-            id=10, nombre="Líneas Comerciales"
+            id=10, nombre="Líneas Comerciales", codigo="lineas_comerciales"
         )
 
         uc = CrearProductoUseCase(repositorio_mock, repositorio_linea_negocio_mock)

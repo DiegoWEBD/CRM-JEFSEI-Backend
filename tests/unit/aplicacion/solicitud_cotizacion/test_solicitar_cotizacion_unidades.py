@@ -8,7 +8,9 @@ from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.dto.soli
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import (
     SolicitarCotizacionUseCase,
 )
-from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso_comercial import EstadoInformativoProcesoComercial
+from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
+from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import (
     RepositorioSolicitudesCotizacion,
@@ -32,7 +34,11 @@ def _use_case():
     repo_procesos.buscar.return_value = MagicMock(id=42)
     authorization = MagicMock()
     authorization.usuario_puede_solicitar_cotizacion.return_value = True
-    repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
+    repo_estados = MagicMock(spec=RepositorioEstadosProcesoComercial)
+    repo_estados.obtener_por_codigo.return_value = EstadoInformativoProcesoComercial(
+        codigo='COTIZACION_SOLICITADA_COMPANY', nombre=''
+    )
+    repo_historial = MagicMock(spec=RepositorioHistorialEstadoProcesosComerciales)
     servicio_alertas = MagicMock()
     servicio_alertas.marcar_leidas.return_value = []
 
@@ -40,7 +46,8 @@ def _use_case():
         repo_solicitudes,
         repo_procesos,
         authorization,
-        repo_notificaciones,
+        repo_estados,
+        repo_historial,
         servicio_alertas,
     )
     return uc, repo_solicitudes
