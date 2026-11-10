@@ -60,12 +60,17 @@ class IniciarRenovacionPolizaUseCase:
         if id_proceso_comercial is None:
             raise RecursoNoEncontradoException(f'Error al crear el proceso de renovación de la póliza {numero_poliza}')
 
+        print(f'ID proceso: {id_proceso_comercial}')
         proceso = self.repositorio_procesos_comerciales.buscar(id_proceso_comercial)
+        print(f'Proceso: {proceso}')
 
         if not proceso:
             raise RecursoNoEncontradoException(f'Error al crear el proceso de renovación de la póliza {numero_poliza}')
 
+        print(f'ID prospecto: {proceso.id_prospecto}')
         prospecto = self.repositorio_prospectos.buscar(proceso.id_prospecto)
+        print(f'Prospecto: {prospecto}')
+
 
         if not prospecto:
             raise RecursoNoEncontradoException(f'Error al crear el proceso de renovación de la póliza {numero_poliza}')
