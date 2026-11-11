@@ -14,14 +14,16 @@ class ProcesoAlertableSla:
         nombre_prospecto: str | None,
         fecha_ingreso_estado: datetime,
         dias_limite: int | None,
-        rol_responsable: str | None,
         rut_ej_comercial: str | None,
         rut_ej_evaluacion: str | None,
         cerrado: bool,
         nombre_producto: str | None,
+        renovacion: bool = False,
+        rut_ej_renovacion: str | None = None,
+        rut_as_renovacion: str | None = None,
         codigo_siguiente_estado: str | None = None,
         nombre_siguiente_estado: str | None = None,
-        rol_responsable_siguiente: str | None = None,
+        roles_responsables: list[str] | None = None,
         accion_requerida: str | None = None,
     ):
         self.id_proceso_comercial = id_proceso_comercial
@@ -32,15 +34,23 @@ class ProcesoAlertableSla:
         self.nombre_prospecto = nombre_prospecto
         self.fecha_ingreso_estado = fecha_ingreso_estado
         self.dias_limite = dias_limite
-        self.rol_responsable = rol_responsable
         self.rut_ej_comercial = rut_ej_comercial
         self.rut_ej_evaluacion = rut_ej_evaluacion
         self.cerrado = cerrado
         self.nombre_producto = nombre_producto
+        # La oportunidad es de renovación: determina qué responsables
+        # de la transición principal reciben las alertas SLA.
+        self.renovacion = renovacion
+        self.rut_ej_renovacion = rut_ej_renovacion
+        self.rut_as_renovacion = rut_as_renovacion
         # Datos del siguiente estado (destino de la transición principal).
         # NULL = sin transición principal -> no genera alertas SLA.
         self.codigo_siguiente_estado = codigo_siguiente_estado
         self.nombre_siguiente_estado = nombre_siguiente_estado
-        self.rol_responsable_siguiente = rol_responsable_siguiente
+        # Roles responsables de la transición principal del estado
+        # actual, filtrados por el tipo de oportunidad (renovacion).
+        # Vacío = sin transición principal o sin responsables -> no
+        # genera alertas SLA.
+        self.roles_responsables = roles_responsables or []
         # Acción que se requiere para completar la transición (texto libre).
         self.accion_requerida = accion_requerida

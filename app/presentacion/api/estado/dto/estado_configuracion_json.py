@@ -7,6 +7,4 @@ class EstadoConfiguracionJson(BaseModel):
     codigo_etapa: str
     nombre_etapa: str
     probabilidad_cierre: float
-    rol_responsable: str | None
-    nombre_rol_responsable: str | None
     cantidad_transiciones: int

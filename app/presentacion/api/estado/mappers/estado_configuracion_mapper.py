@@ -17,8 +17,6 @@ class EstadoConfiguracionMapper:
             nombre=estado.nombre,
             codigo_etapa=estado.etapa.codigo,
             nombre_etapa=estado.etapa.nombre,
-            probabilidad_cierre=estado.probabilidad_cierre or 0.0,
-            rol_responsable=estado.rol_responsable,
-            nombre_rol_responsable=estado.nombre_rol_responsable,
+            probabilidad_cierre=estado.probabilidad_cierre,
             cantidad_transiciones=estado.cantidad_transiciones,
         )

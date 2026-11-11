@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
     RefrescarAlertasRenovacionUseCase,
 )
@@ -35,8 +36,14 @@ def _use_case(prospecto, rut_nuevo=None):
     refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
     repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
     repo_procesos.obtener_procesos_comerciales.return_value = []
+    generar_alertas_sla = MagicMock(spec=GenerarAlertasSlaUseCase)
     uc = AsignarEjecutivoRenovacionUseCase(
-        repo_prospectos, repo_usuarios, repo_notificaciones, refrescar, repo_procesos
+        repo_prospectos,
+        repo_usuarios,
+        repo_notificaciones,
+        refrescar,
+        repo_procesos,
+        generar_alertas_sla,
     )
     return uc, repo_prospectos, repo_notificaciones, refrescar, repo_procesos
 
@@ -48,7 +55,7 @@ class TestAsignarEjecutivoRenovacion:
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = None
         uc = AsignarEjecutivoRenovacionUseCase(
-            repo_prospectos, MagicMock(), MagicMock(), MagicMock(), MagicMock()
+            repo_prospectos, MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
         )
 
         with pytest.raises(RecursoNoEncontradoException):
@@ -153,6 +160,57 @@ class TestAsignarEjecutivoRenovacionRefrescoAlertas:
         uc.ejecutar(id_cliente=5, rut_ej_renovacion=None, asignado_por=MagicMock())
 
         refrescar.ejecutar.assert_called_once_with(5)
+
+
+@pytest.mark.unit
+class TestAsignarEjecutivoRenovacionRefrescoAlertasSla:
+
+    def test_con_cambio_de_rut_refresca_alertas_sla_del_rol(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
+        uc, _, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        alerta = MagicMock(rut_usuario='33333333-3')
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta]
+
+        with patch(f'{MODULO}.hub'):
+            uc.ejecutar(
+                id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock()
+            )
+
+        # Las alertas SLA de las oportunidades de renovación responsables
+        # del ejecutivo de renovación se eliminan y se re-evalúan al tiro.
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_called_once_with(
+            1, 'EJECUTIVO_RENOVACION'
+        )
+        repo_notificaciones.eliminar.assert_called_once_with(alerta)
+        uc.generar_alertas_sla.ejecutar.assert_called_once()
+
+    def test_alertas_sla_del_nuevo_destinatario_no_se_tocan(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='33333333-3'))
+        uc, _, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        alerta_propia = MagicMock(rut_usuario='11111111-1')
+        alerta_ajena = MagicMock(rut_usuario='33333333-3')
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [
+            alerta_propia,
+            alerta_ajena,
+        ]
+
+        with patch(f'{MODULO}.hub'):
+            uc.ejecutar(
+                id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock()
+            )
+
+        repo_notificaciones.eliminar.assert_called_once_with(alerta_ajena)
+
+    def test_sin_cambio_de_rut_no_refresca_alertas_sla(self):
+        prospecto = _prospecto_mock(renovacion_previa=MagicMock(rut='11111111-1'))
+        uc, _, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(
+            id_cliente=5, rut_ej_renovacion='11111111-1', asignado_por=MagicMock()
+        )
+
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_not_called()
+        uc.generar_alertas_sla.ejecutar.assert_not_called()
 
 
 @pytest.mark.unit

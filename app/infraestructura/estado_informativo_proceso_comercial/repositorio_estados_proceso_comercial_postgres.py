@@ -20,8 +20,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 sigiuente_etapa=None,
             ),
             probabilidad_cierre=row['probabilidad_cierre'],
-            rol_responsable=row['rol_responsable'],
-            nombre_rol_responsable=row['nombre_rol_responsable'],
             cantidad_transiciones=row['cantidad_transiciones'],
         )
 
@@ -75,8 +73,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     E.codigo_etapa,
                     ET.nombre as nombre_etapa,
                     E.probabilidad_cierre,
-                    E.rol_responsable,
-                    R.nombre as nombre_rol_responsable,
                     (
                         select count(*)
                         from TransicionEstadoProcesoComercial T
@@ -85,8 +81,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     from EstadoInformativoProcesoComercial E
                     inner join EtapaProcesoComercial ET
                     on E.codigo_etapa = ET.codigo
-                    left join Rol R
-                    on E.rol_responsable = R.codigo
                     {where_clause}
                     order by ET.orden nulls last,
                     E.codigo_etapa,
@@ -109,8 +103,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     E.codigo_etapa,
                     ET.nombre as nombre_etapa,
                     E.probabilidad_cierre,
-                    E.rol_responsable,
-                    R.nombre as nombre_rol_responsable,
                     (
                         select count(*)
                         from TransicionEstadoProcesoComercial T
@@ -119,8 +111,6 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                     from EstadoInformativoProcesoComercial E
                     inner join EtapaProcesoComercial ET
                     on E.codigo_etapa = ET.codigo
-                    left join Rol R
-                    on E.rol_responsable = R.codigo
                     where E.codigo = %(codigo)s
                 '''
 
@@ -163,14 +153,27 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
             with conn.cursor() as cur:
 
                 query = '''
-                    select T.codigo_estado_origen,
+                    select T.id,
+                    T.codigo_estado_origen,
                     T.codigo_estado_destino,
                     EO.nombre as nombre_estado_origen,
                     ED.nombre as nombre_estado_destino,
                     T.es_manual,
                     T.es_principal,
                     T.accion_requerida,
-                    T.dias_limite
+                    T.dias_limite,
+                    (
+                        select array_agg(RRT.codigo_rol)
+                        from RolResponsableTransicion RRT
+                        where RRT.id_transicion = T.id
+                        and RRT.renovacion = false
+                    ) as roles_responsables_nuevas,
+                    (
+                        select array_agg(RRT.codigo_rol)
+                        from RolResponsableTransicion RRT
+                        where RRT.id_transicion = T.id
+                        and RRT.renovacion = true
+                    ) as roles_responsables_renovacion
                     from TransicionEstadoProcesoComercial T
                     inner join EstadoInformativoProcesoComercial EO
                     on T.codigo_estado_origen = EO.codigo
@@ -194,14 +197,27 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
             with conn.cursor() as cur:
 
                 query = '''
-                    select T.codigo_estado_origen,
+                    select T.id,
+                    T.codigo_estado_origen,
                     T.codigo_estado_destino,
                     EO.nombre as nombre_estado_origen,
                     ED.nombre as nombre_estado_destino,
                     T.es_manual,
                     T.es_principal,
                     T.accion_requerida,
-                    T.dias_limite
+                    T.dias_limite,
+                    (
+                        select array_agg(RRT.codigo_rol)
+                        from RolResponsableTransicion RRT
+                        where RRT.id_transicion = T.id
+                        and RRT.renovacion = false
+                    ) as roles_responsables_nuevas,
+                    (
+                        select array_agg(RRT.codigo_rol)
+                        from RolResponsableTransicion RRT
+                        where RRT.id_transicion = T.id
+                        and RRT.renovacion = true
+                    ) as roles_responsables_renovacion
                     from TransicionEstadoProcesoComercial T
                     inner join EstadoInformativoProcesoComercial EO
                     on T.codigo_estado_origen = EO.codigo
@@ -345,3 +361,41 @@ class RepositorioEstadosProcesoComercialPostgres(RepositorioEstadosProcesoComerc
                 conn.commit()
 
                 return cur.rowcount > 0
+
+    def reemplazar_roles_responsables(
+        self, id_transicion: int, renovacion: bool, roles: list[str]
+    ) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                # Reemplazo completo de los responsables de la transición
+                # para el tipo de oportunidad dado. Solo las transiciones
+                # principales tienen responsables: el caso de uso lo
+                # garantiza antes de llegar acá.
+                query = '''
+                    delete from RolResponsableTransicion
+                    where id_transicion = %(id_transicion)s
+                    and renovacion = %(renovacion)s
+                '''
+
+                params = {
+                    'id_transicion': id_transicion,
+                    'renovacion': renovacion,
+                }
+
+                cur.execute(query, params)
+
+                if roles:
+                    query = '''
+                        insert into RolResponsableTransicion
+                        (codigo_rol, renovacion, id_transicion)
+                        select R.codigo_rol, %(renovacion)s, %(id_transicion)s
+                        from unnest(%(roles)s::text[]) as R(codigo_rol)
+                        on conflict do nothing
+                    '''
+
+                    cur.execute(query, params | {'roles': roles})
+
+                conn.commit()
+
+                return True

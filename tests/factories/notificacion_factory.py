@@ -58,18 +58,23 @@ def crear_proceso_alertable_sla_mock(
     nombre_producto: str | None = "Producto Test",
     dias_transcurridos: float = 7,
     dias_limite: int | None = 10,
-    rol_responsable: str | None = "EJECUTIVO_COMERCIAL",
     rut_ej_comercial: str | None = "11111111-1",
     rut_ej_evaluacion: str | None = "22222222-2",
     cerrado: bool = False,
     ahora: datetime | None = None,
     codigo_siguiente_estado: str | None = "ESTADO_SIGUIENTE",
     nombre_siguiente_estado: str | None = "Estado Siguiente",
-    rol_responsable_siguiente: str | None = "EJECUTIVO_COMERCIAL",
+    roles_responsables: list[str] | None = None,
     accion_requerida: str | None = None,
+    renovacion: bool = False,
+    rut_ej_renovacion: str | None = "33333333-3",
+    rut_as_renovacion: str | None = "44444444-4",
 ) -> ProcesoAlertableSla:
     if ahora is None:
         ahora = AHORA_REF
+
+    if roles_responsables is None:
+        roles_responsables = ["EJECUTIVO_COMERCIAL"]
 
     return ProcesoAlertableSla(
         id_proceso_comercial=id_proceso_comercial,
@@ -80,15 +85,17 @@ def crear_proceso_alertable_sla_mock(
         nombre_prospecto=nombre_prospecto,
         fecha_ingreso_estado=ahora - timedelta(days=dias_transcurridos),
         dias_limite=dias_limite,
-        rol_responsable=rol_responsable,
         rut_ej_comercial=rut_ej_comercial,
         rut_ej_evaluacion=rut_ej_evaluacion,
         cerrado=cerrado,
         codigo_siguiente_estado=codigo_siguiente_estado,
         nombre_siguiente_estado=nombre_siguiente_estado,
-        rol_responsable_siguiente=rol_responsable_siguiente,
+        roles_responsables=roles_responsables,
         accion_requerida=accion_requerida,
         nombre_producto=nombre_producto,
+        renovacion=renovacion,
+        rut_ej_renovacion=rut_ej_renovacion,
+        rut_as_renovacion=rut_as_renovacion,
     )
 
 

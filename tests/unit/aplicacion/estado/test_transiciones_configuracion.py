@@ -10,6 +10,7 @@ from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proces
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.rol.repositorio_roles import RepositorioRoles
 from tests.factories.notificacion_factory import crear_notificacion_mock
 from tests.factories.transicion_factory import crear_transicion_mock
 
@@ -29,6 +30,11 @@ def repositorio_notificaciones_mock():
 @pytest.fixture
 def generar_alertas_sla_mock():
     return MagicMock(spec=GenerarAlertasSlaUseCase)
+
+
+@pytest.fixture
+def repositorio_roles_mock():
+    return MagicMock(spec=RepositorioRoles)
 
 
 def _estado_mock(**kwargs):
@@ -118,11 +124,13 @@ class TestActualizarTransicionUseCase:
         repositorio_mock,
         repositorio_notificaciones_mock,
         generar_alertas_sla_mock,
+        repositorio_roles_mock,
     ):
         return ActualizarTransicionUseCase(
             repositorio_estados=repositorio_mock,
             repositorio_notificaciones=repositorio_notificaciones_mock,
             generar_alertas_sla=generar_alertas_sla_mock,
+            repositorio_roles=repositorio_roles_mock,
         )
 
     def test_actualizar_secundaria_actualiza_es_manual_y_accion(
@@ -429,6 +437,140 @@ class TestActualizarTransicionUseCase:
         repositorio_notificaciones_mock.eliminar.assert_called_once()
         generar_alertas_sla_mock.ejecutar.assert_called_once_with()
         hub_mock.publicar_desde_hilo.assert_not_called()
+
+    def test_actualizar_principal_con_cambio_de_responsables_reevalua_sla(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+        repositorio_roles_mock,
+    ):
+        """Cambiar los responsables de la transición principal re-evalúa las
+        alertas SLA del estado igual que un cambio de días límite."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+            roles_responsables_nuevas=['EJECUTIVO_COMERCIAL'],
+            roles_responsables_renovacion=['EJECUTIVO_RENOVACION'],
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+        repositorio_roles_mock.obtener_todos.return_value = [
+            MagicMock(codigo='EJECUTIVO_COMERCIAL'),
+            MagicMock(codigo='GERENTE_COMERCIAL'),
+            MagicMock(codigo='EJECUTIVO_RENOVACION'),
+            MagicMock(codigo='ASISTENTE_RENOVACION'),
+        ]
+        repositorio_notificaciones_mock.obtener_todas.return_value = []
+
+        with patch(MODULO_ACTUALIZAR_TRANSICION):
+            resultado = use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                dias_limite=10,
+                roles_responsables_nuevas=['GERENTE_COMERCIAL'],
+                roles_responsables_renovacion=[
+                    'EJECUTIVO_RENOVACION',
+                    'ASISTENTE_RENOVACION',
+                ],
+            )
+
+        assert resultado is True
+        repositorio_mock.reemplazar_roles_responsables.assert_any_call(
+            7, False, ['GERENTE_COMERCIAL']
+        )
+        repositorio_mock.reemplazar_roles_responsables.assert_any_call(
+            7, True, ['EJECUTIVO_RENOVACION', 'ASISTENTE_RENOVACION']
+        )
+        generar_alertas_sla_mock.ejecutar.assert_called_once_with()
+
+    def test_actualizar_principal_responsables_sin_cambio_no_reevalua(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_notificaciones_mock,
+        generar_alertas_sla_mock,
+        repositorio_roles_mock,
+    ):
+        """Un guardado idéntico de responsables no debe borrar alertas ni
+        re-notificar."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+            roles_responsables_nuevas=['EJECUTIVO_COMERCIAL'],
+        )
+        repositorio_mock.actualizar_transicion.return_value = True
+        repositorio_roles_mock.obtener_todos.return_value = [
+            MagicMock(codigo='EJECUTIVO_COMERCIAL'),
+        ]
+
+        resultado = use_case.ejecutar(
+            codigo_estado_origen='ESTADO_ORIGEN',
+            codigo_estado_destino='ESTADO_DESTINO',
+            es_manual=True,
+            accion_requerida=None,
+            dias_limite=10,
+            roles_responsables_nuevas=['EJECUTIVO_COMERCIAL'],
+        )
+
+        assert resultado is True
+        repositorio_mock.reemplazar_roles_responsables.assert_not_called()
+        repositorio_notificaciones_mock.obtener_todas.assert_not_called()
+        generar_alertas_sla_mock.ejecutar.assert_not_called()
+
+    @pytest.mark.parametrize(
+        'campo',
+        ['roles_responsables_nuevas', 'roles_responsables_renovacion'],
+    )
+    def test_actualizar_secundaria_con_responsables_lanza_conflicto(
+        self, campo, use_case, repositorio_mock
+    ):
+        """Solo las transiciones principales pueden tener responsables."""
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=False,
+            dias_limite=None,
+        )
+
+        with pytest.raises(ConflictoEnAccionException):
+            use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                **{campo: ['EJECUTIVO_COMERCIAL']},
+            )
+
+        repositorio_mock.actualizar_transicion.assert_not_called()
+        repositorio_mock.reemplazar_roles_responsables.assert_not_called()
+
+    def test_responsables_con_rol_inexistente_lanza_conflicto(
+        self,
+        use_case,
+        repositorio_mock,
+        repositorio_roles_mock,
+    ):
+        repositorio_mock.obtener_transicion.return_value = crear_transicion_mock(
+            es_principal=True,
+            dias_limite=10,
+        )
+        repositorio_roles_mock.obtener_todos.return_value = [
+            MagicMock(codigo='EJECUTIVO_COMERCIAL'),
+        ]
+
+        with pytest.raises(ConflictoEnAccionException):
+            use_case.ejecutar(
+                codigo_estado_origen='ESTADO_ORIGEN',
+                codigo_estado_destino='ESTADO_DESTINO',
+                es_manual=True,
+                accion_requerida=None,
+                dias_limite=10,
+                roles_responsables_nuevas=['EJECUTIVO_COMERCIAL', 'ROL_INEXISTENTE'],
+            )
+
+        repositorio_mock.reemplazar_roles_responsables.assert_not_called()
+        repositorio_mock.actualizar_transicion.assert_not_called()
 
 
 @pytest.mark.unit

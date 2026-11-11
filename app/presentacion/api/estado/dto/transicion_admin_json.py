@@ -11,3 +11,7 @@ class TransicionAdminJson(BaseModel):
     accion_requerida: str | None
     # SLA de permanencia: solo en la transición principal (NULL en secundarias).
     dias_limite: int | None
+    # Roles responsables de las alertas SLA, por tipo de oportunidad:
+    # solo en la transición principal (vacíos en secundarias).
+    roles_responsables_nuevas: list[str] = []
+    roles_responsables_renovacion: list[str] = []

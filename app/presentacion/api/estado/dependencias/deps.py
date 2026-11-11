@@ -9,6 +9,7 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.infraestructura.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial_postgres import RepositorioEstadosProcesoComercialPostgres
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
+from app.infraestructura.rol.repositorio_roles_postgres import RepositorioRolesPostgres
 
 
 def get_obtener_transiciones_manuales_use_case():
@@ -62,6 +63,7 @@ def get_actualizar_transicion_use_case():
             repositorio_notificaciones,
             ServicioAlertasProceso(repositorio_notificaciones),
         ),
+        repositorio_roles=RepositorioRolesPostgres(),
     )
 
 

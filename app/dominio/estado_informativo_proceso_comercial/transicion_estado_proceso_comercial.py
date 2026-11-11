@@ -10,7 +10,11 @@ class TransicionEstadoProcesoComercial:
         accion_requerida: str | None,
         nombre_estado_origen: str | None = None,
         dias_limite: int | None = None,
+        id: int | None = None,
+        roles_responsables_nuevas: list[str] | None = None,
+        roles_responsables_renovacion: list[str] | None = None,
     ):
+        self.id = id
         self.codigo_estado_origen = codigo_estado_origen
         self.codigo_estado_destino = codigo_estado_destino
         self.nombre_estado_destino = nombre_estado_destino
@@ -22,3 +26,8 @@ class TransicionEstadoProcesoComercial:
         # Vive solo en la transición principal (NULL en las secundarias):
         # es el dato que usa el sistema de alertas SLA.
         self.dias_limite = dias_limite
+        # Roles responsables de las alertas SLA de la transición,
+        # separados por tipo de oportunidad (solo transiciones
+        # principales; las secundarias nunca tienen responsables).
+        self.roles_responsables_nuevas = roles_responsables_nuevas or []
+        self.roles_responsables_renovacion = roles_responsables_renovacion or []

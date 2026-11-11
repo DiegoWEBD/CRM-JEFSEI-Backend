@@ -10,8 +10,12 @@ def crear_transicion_mock(
     es_principal: bool = False,
     accion_requerida: str | None = None,
     dias_limite: int | None = None,
+    id: int | None = 7,
+    roles_responsables_nuevas: list[str] | None = None,
+    roles_responsables_renovacion: list[str] | None = None,
 ) -> TransicionEstadoProcesoComercial:
     return TransicionEstadoProcesoComercial(
+        id=id,
         codigo_estado_origen=codigo_estado_origen,
         codigo_estado_destino=codigo_estado_destino,
         nombre_estado_destino=nombre_estado_destino,
@@ -20,4 +24,6 @@ def crear_transicion_mock(
         es_principal=es_principal,
         accion_requerida=accion_requerida,
         dias_limite=dias_limite,
+        roles_responsables_nuevas=roles_responsables_nuevas,
+        roles_responsables_renovacion=roles_responsables_renovacion,
     )
