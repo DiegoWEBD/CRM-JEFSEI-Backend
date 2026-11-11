@@ -67,13 +67,5 @@ class AuthorizationRepository(ABC):
         pass
 
     @abstractmethod
-    def usuario_puede_ver_estudios_comerciales(self, rut_usuario: str, id_solicitud: int) -> bool:
-        pass
-
-    @abstractmethod
-    def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
-        pass
-
-    @abstractmethod
     def usuario_puede_marcar_pago_cuota(self, usuario: Usuario, cuota: Cuota) -> bool:
         pass

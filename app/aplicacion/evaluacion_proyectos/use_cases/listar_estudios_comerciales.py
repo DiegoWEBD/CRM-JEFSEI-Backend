@@ -23,7 +23,7 @@ class ListarEstudiosComercialesUseCase:
         if not self.repositorio_solicitudes.buscar(id_solicitud):
             raise RecursoNoEncontradoException("Solicitud no encontrada")
 
-        if not self.authorization_service.usuario_puede_ver_estudios_comerciales(usuario.rut, id_solicitud):
+        if not self.authorization_service.usuario_puede_ver_estudios_comerciales(usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
     
         return self.repositorio_estudios.listar_por_id_solicitud(id_solicitud)

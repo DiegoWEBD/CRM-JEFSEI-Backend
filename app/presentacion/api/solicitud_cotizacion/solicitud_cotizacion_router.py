@@ -290,7 +290,7 @@ def descargar_archivo_estudio(
     authorization_service: AuthorizationService = Depends(get_authorization_service),
     repositorio: RepositorioEstudiosComerciales = Depends(get_repositorio_estudios)
 ):
-    if not authorization_service.usuario_puede_descargar_estudio_comercial(usuario.rut, id):
+    if not authorization_service.usuario_puede_descargar_estudio_comercial(usuario, id):
         raise UsuarioNoAutorizadoException
 
     estudios = repositorio.listar_por_id_solicitud(id)

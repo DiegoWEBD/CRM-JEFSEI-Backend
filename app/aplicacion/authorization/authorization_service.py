@@ -84,11 +84,55 @@ class AuthorizationService:
     def usuario_puede_subir_estudio_comercial_a_solicitud(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_subir_estudio_comercial_a_solicitud(rut_usuario, id_solicitud)
 
-    def usuario_puede_ver_estudios_comerciales(self, rut_usuario: str, id_solicitud: int) -> bool:
-        return self.authorization_repository.usuario_puede_ver_estudios_comerciales(rut_usuario, id_solicitud)
+    def usuario_puede_ver_estudios_comerciales(self, usuario: Usuario, id_solicitud: int) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ESTUDIOS_COMERCIALES_TODOS'):
+            return True
 
-    def usuario_puede_descargar_estudio_comercial(self, rut_usuario: str, id_solicitud: int) -> bool:
-        return self.authorization_repository.usuario_puede_descargar_estudio_comercial(rut_usuario, id_solicitud)
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ESTUDIOS_COMERCIALES_PROPIOS'):
+            return False
+
+        solicitud = self.repositorio_solicitudes_cotizacion.buscar(id_solicitud)
+
+        if not solicitud or not solicitud.id:
+            return False
+
+        proceso = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(solicitud.id)
+        
+        if not proceso:
+            return False
+
+        if proceso.renovacion:
+            return proceso.ejecutivo_renovacion.rut == usuario.rut if proceso.ejecutivo_renovacion else False
+
+        return any([
+            proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut,
+            proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut
+        ])
+
+    def usuario_puede_descargar_estudio_comercial(self, usuario: Usuario, id_solicitud: int) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ESTUDIOS_COMERCIALES_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ESTUDIOS_COMERCIALES_PROPIOS'):
+            return False
+
+        solicitud = self.repositorio_solicitudes_cotizacion.buscar(id_solicitud)
+
+        if not solicitud or not solicitud.id:
+            return False
+
+        proceso = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(solicitud.id)
+        
+        if not proceso:
+            return False
+
+        if proceso.renovacion:
+            return proceso.ejecutivo_renovacion.rut == usuario.rut if proceso.ejecutivo_renovacion else False
+
+        return any([
+            proceso.ejecutivo_comercial and proceso.ejecutivo_comercial.rut == usuario.rut,
+            proceso.ejecutivo_evaluacion and proceso.ejecutivo_evaluacion.rut == usuario.rut
+        ])
 
     def usuario_puede_ver_cotizaciones(self, usuario: Usuario, id_solicitud: int) -> bool:
         if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_COTIZACIONES_GLOBAL'):
