@@ -53,12 +53,14 @@ class TestBuscarNotificacionesSlaPorRol:
         query, params = cursor.execute.call_args.args
         query_str = str(query)
         assert 'inner join TransicionEstadoProcesoComercial T' in query_str
-        assert 'inner join EstadoInformativoProcesoComercial EI_SIGUIENTE' in query_str
+        assert 'inner join RolResponsableTransicion RRT' in query_str
+        assert 'RRT.id_transicion = T.id' in query_str
+        assert 'RRT.renovacion = PC.renovacion' in query_str
         assert "N.entidad_tipo = 'PROCESO_COMERCIAL'" in query_str
         assert 'N.leida = false' in query_str
         assert 'PC.id_prospecto = %(id_prospecto)s' in query_str
         assert 'PC.cerrado = false' in query_str
-        assert 'EI_SIGUIENTE.rol_responsable = %(rol)s' in query_str
+        assert 'RRT.codigo_rol = %(rol)s' in query_str
         assert "'SLA_POR_VENCER'" in query_str
         assert "'SLA_VENCIDO'" in query_str
         assert params == {'id_prospecto': 7, 'rol': 'EJECUTIVO_COMERCIAL'}

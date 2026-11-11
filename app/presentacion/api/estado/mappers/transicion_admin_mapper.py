@@ -21,4 +21,6 @@ class TransicionAdminMapper:
             es_principal=t.es_principal,
             accion_requerida=t.accion_requerida,
             dias_limite=t.dias_limite,
+            roles_responsables_nuevas=t.roles_responsables_nuevas,
+            roles_responsables_renovacion=t.roles_responsables_renovacion,
         )

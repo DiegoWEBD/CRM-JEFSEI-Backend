@@ -148,7 +148,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="EJECUTIVO_COMERCIAL",
+            roles_responsables=["EJECUTIVO_COMERCIAL"],
             rut_ej_comercial="11111111-1",
             rut_ej_evaluacion="22222222-2",
             ahora=AHORA_REF,
@@ -164,7 +164,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="EJECUTIVO_EVALUACION_PROYECTOS",
+            roles_responsables=["EJECUTIVO_EVALUACION_PROYECTOS"],
             rut_ej_comercial="11111111-1",
             rut_ej_evaluacion="22222222-2",
             ahora=AHORA_REF,
@@ -182,7 +182,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="GERENTE_COMERCIAL",
+            roles_responsables=["GERENTE_COMERCIAL"],
             rut_ej_comercial="11111111-1",
             rut_ej_evaluacion="22222222-2",
             ahora=AHORA_REF,
@@ -205,7 +205,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="GERENTE_COMERCIAL",
+            roles_responsables=["GERENTE_COMERCIAL"],
             ahora=AHORA_REF,
         )
         repositorio_mock.obtener_ruts_por_roles.return_value = {
@@ -223,7 +223,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="GERENTE_COMERCIAL",
+            roles_responsables=["GERENTE_COMERCIAL"],
             ahora=AHORA_REF,
         )
         repositorio_mock.obtener_ruts_por_roles.return_value = {
@@ -236,12 +236,90 @@ class TestGenerarAlertasSlaDestinatarios:
         assert creadas == []
         repositorio_mock.registrar.assert_not_called()
 
-    def test_estado_sin_rol_responsable_siguiente_no_genera(self, repositorio_mock):
-        # Sin transición principal (rol_responsable_siguiente = None) -> sin alerta.
+    def test_varios_responsables_generan_una_alerta_por_destinatario(self, repositorio_mock):
+        # Una transición puede tener más de un responsable (p. ej. una
+        # transición de renovación con EJECUTIVO_RENOVACION y
+        # ASISTENTE_RENOVACION): cada destinatario recibe su alerta.
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente=None,
+            roles_responsables=["EJECUTIVO_COMERCIAL", "GERENTE_COMERCIAL"],
+            rut_ej_comercial="11111111-1",
+            ahora=AHORA_REF,
+        )
+        repositorio_mock.obtener_ruts_por_roles.return_value = {
+            'GERENTE_COMERCIAL': ['33333333-3'],
+        }
+        uc = _use_case(repositorio_mock, proceso)
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        ruts = {n.rut_usuario for n in creadas}
+        assert ruts == {'11111111-1', '33333333-3'}
+
+    def test_mismo_usuario_en_varios_roles_no_se_duplica(self, repositorio_mock):
+        # El mismo usuario puede responder por más de un rol: recibe una
+        # sola alerta.
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11,
+            dias_limite=10,
+            roles_responsables=["EJECUTIVO_COMERCIAL", "GERENTE_COMERCIAL"],
+            rut_ej_comercial="33333333-3",
+            ahora=AHORA_REF,
+        )
+        repositorio_mock.obtener_ruts_por_roles.return_value = {
+            'GERENTE_COMERCIAL': ['33333333-3'],
+        }
+        uc = _use_case(repositorio_mock, proceso)
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert len(creadas) == 1
+        assert creadas[0].rut_usuario == "33333333-3"
+
+    def test_rol_ejecutivo_renovacion_dirige_al_asignado_al_cliente(self, repositorio_mock):
+        # Los roles de renovación se resuelven con los responsables
+        # asignados al cliente (no por fan-out).
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11,
+            dias_limite=10,
+            renovacion=True,
+            roles_responsables=["EJECUTIVO_RENOVACION", "ASISTENTE_RENOVACION"],
+            rut_ej_renovacion="55555555-5",
+            rut_as_renovacion="66666666-6",
+            ahora=AHORA_REF,
+        )
+        uc = _use_case(repositorio_mock, proceso)
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        ruts = {n.rut_usuario for n in creadas}
+        assert ruts == {'55555555-5', '66666666-6'}
+        repositorio_mock.obtener_ruts_por_roles.assert_not_called()
+
+    def test_rol_renovacion_sin_asignado_no_genera(self, repositorio_mock):
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11,
+            dias_limite=10,
+            renovacion=True,
+            roles_responsables=["EJECUTIVO_RENOVACION"],
+            rut_ej_renovacion=None,
+            ahora=AHORA_REF,
+        )
+        uc = _use_case(repositorio_mock, proceso)
+
+        creadas = uc.ejecutar(ahora=AHORA_REF)
+
+        assert creadas == []
+        repositorio_mock.registrar.assert_not_called()
+
+    def test_estado_sin_responsables_no_genera(self, repositorio_mock):
+        # Sin transición principal o sin responsables (roles_responsables
+        # vacío) -> sin destinatario -> sin alerta.
+        proceso = crear_proceso_alertable_sla_mock(
+            dias_transcurridos=11,
+            dias_limite=10,
+            roles_responsables=[],
             ahora=AHORA_REF,
         )
         uc = _use_case(repositorio_mock, proceso)
@@ -255,7 +333,7 @@ class TestGenerarAlertasSlaDestinatarios:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="EJECUTIVO_COMERCIAL",
+            roles_responsables=["EJECUTIVO_COMERCIAL"],
             rut_ej_comercial=None,
             ahora=AHORA_REF,
         )
@@ -478,7 +556,7 @@ class TestGenerarAlertasSlaPublicacion:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=11,
             dias_limite=10,
-            rol_responsable_siguiente="EJECUTIVO_COMERCIAL",
+            roles_responsables=["EJECUTIVO_COMERCIAL"],
             rut_ej_comercial="11111111-1",
             ahora=AHORA_REF,
         )
@@ -649,7 +727,7 @@ class TestGenerarAlertasSlaTramos:
         proceso = crear_proceso_alertable_sla_mock(
             dias_transcurridos=13,
             dias_limite=10,
-            rol_responsable_siguiente="GERENTE_COMERCIAL",
+            roles_responsables=["GERENTE_COMERCIAL"],
             ahora=AHORA_REF,
         )
         repositorio_mock.obtener_ruts_por_roles.return_value = {

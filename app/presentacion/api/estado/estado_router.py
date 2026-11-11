@@ -125,6 +125,8 @@ def actualizar_transicion(
         es_manual=request.es_manual,
         accion_requerida=request.accion_requerida,
         dias_limite=request.dias_limite,
+        roles_responsables_nuevas=request.roles_responsables_nuevas,
+        roles_responsables_renovacion=request.roles_responsables_renovacion,
     )
 
     if not actualizado:

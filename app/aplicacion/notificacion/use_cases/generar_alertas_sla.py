@@ -8,8 +8,10 @@ from app.dominio.notificacion.notificacion import Notificacion
 from app.dominio.notificacion.proceso_alertable_sla import ProcesoAlertableSla
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import (
+    ROL_ASISTENTE_RENOVACION,
     ROL_EJECUTIVO_COMERCIAL,
     ROL_EJECUTIVO_EVALUACION_PROYECTOS,
+    ROL_EJECUTIVO_RENOVACION,
 )
 from app.dominio.sla.formato_sla import dias_decimales, formatear_dias_horas
 
@@ -25,10 +27,14 @@ TRAMO_VENCIDO = 100
 PASO_RECORDATORIO_PORCENTAJE = 30
 
 # Mapa rol_responsable -> campo del proceso que contiene al destinatario asignado.
-# Roles fuera de este mapa se resuelven vía fan-out (todos los usuarios activos con ese rol).
+# Los roles de renovación se resuelven con los responsables asignados al
+# cliente; los demás roles fuera de este mapa se resuelven vía fan-out
+# (todos los usuarios activos con ese rol).
 CAMPO_POR_ROL: dict[str, str] = {
     ROL_EJECUTIVO_COMERCIAL: 'rut_ej_comercial',
     ROL_EJECUTIVO_EVALUACION_PROYECTOS: 'rut_ej_evaluacion',
+    ROL_EJECUTIVO_RENOVACION: 'rut_ej_renovacion',
+    ROL_ASISTENTE_RENOVACION: 'rut_as_renovacion',
 }
 
 
@@ -99,8 +105,9 @@ class GenerarAlertasSlaUseCase:
         if proceso.dias_limite is None or proceso.dias_limite <= 0:
             return []
 
-        # Sin transición principal -> sin destinatario -> sin alerta.
-        if proceso.rol_responsable_siguiente is None:
+        # Sin transición principal o sin responsables asignados -> sin
+        # destinatario -> sin alerta.
+        if not proceso.roles_responsables:
             return []
 
         destinatarios = self._resolver_destinatarios(proceso)
@@ -208,27 +215,42 @@ class GenerarAlertasSlaUseCase:
     def _resolver_destinatarios(self, proceso: ProcesoAlertableSla) -> list[str]:
         """Resuelve los RUTs destinatarios de la alerta.
 
-        El rol consultado es el del SIGUIENTE estado (destino de la transición
-        principal del estado actual).  Si el rol tiene asignación por proceso
-        (EJECUTIVO_COMERCIAL, EJECUTIVO_EVALUACION_PROYECTOS), se usa el RUT
-        asignado.  Para otros roles se hace fan-out a todos los usuarios activos
-        con ese rol.
+        Los roles consultados son los responsables de la transición
+        principal del estado actual, filtrados por el tipo de oportunidad
+        (renovación o nueva). Puede haber más de un responsable. Si un rol
+        tiene asignación (EJECUTIVO_COMERCIAL, EJECUTIVO_EVALUACION_PROYECTOS
+        y los roles de renovación, que se resuelven con los responsables
+        asignados al cliente), se usa el RUT asignado; para otros roles se
+        hace fan-out a todos los usuarios activos con ese rol. El resultado
+        se devuelve sin RUTs duplicados.
         """
-        rol = proceso.rol_responsable_siguiente
-        if rol is None:
-            return []
+        ruts: list[str] = []
 
-        campo = CAMPO_POR_ROL.get(rol)
-        if campo is not None:
-            rut = getattr(proceso, campo, None)
-            return [rut] if rut else []
+        roles_fan_out = [
+            rol for rol in proceso.roles_responsables if rol not in CAMPO_POR_ROL
+        ]
+        faltantes = [
+            rol for rol in roles_fan_out if rol not in self._cache_ruts_por_rol
+        ]
 
-        # Fan-out: buscar todos los usuarios activos con el rol.
-        if rol not in self._cache_ruts_por_rol:
-            self._cache_ruts_por_rol = self.repositorio_notificaciones.obtener_ruts_por_roles(
-                [rol]
+        if faltantes:
+            # Cache de fan-out por rol: cada rol se consulta una sola vez
+            # por ejecución.
+            self._cache_ruts_por_rol.update(
+                self.repositorio_notificaciones.obtener_ruts_por_roles(faltantes)
             )
-        return self._cache_ruts_por_rol.get(rol, [])
+
+        for rol in proceso.roles_responsables:
+            campo = CAMPO_POR_ROL.get(rol)
+
+            if campo is not None:
+                rut = getattr(proceso, campo, None)
+                if rut:
+                    ruts.append(rut)
+            else:
+                ruts.extend(self._cache_ruts_por_rol.get(rol, []))
+
+        return list(dict.fromkeys(ruts))
 
     @staticmethod
     def _nombre_proceso(proceso: ProcesoAlertableSla) -> str:

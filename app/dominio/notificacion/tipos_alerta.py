@@ -50,3 +50,8 @@ TIPO_DESASIGNACION = 'DESASIGNACION_EJECUTIVO'
 # Roles con asignación por proceso (dueños de alertas por estado).
 ROL_EJECUTIVO_COMERCIAL = 'EJECUTIVO_COMERCIAL'
 ROL_EJECUTIVO_EVALUACION_PROYECTOS = 'EJECUTIVO_EVALUACION_PROYECTOS'
+
+# Roles de renovacion con asignacion por cliente (duenos de las
+# alertas de las oportunidades de renovacion).
+ROL_EJECUTIVO_RENOVACION = 'EJECUTIVO_RENOVACION'
+ROL_ASISTENTE_RENOVACION = 'ASISTENTE_RENOVACION'

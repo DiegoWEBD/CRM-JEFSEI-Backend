@@ -1,10 +1,14 @@
+from datetime import datetime, timezone
+
 from app.aplicacion.notificacion.notificacion_factory import NotificacionFactory
+from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
     RefrescarAlertasRenovacionUseCase,
 )
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.notificacion.tipos_alerta import ROL_EJECUTIVO_RENOVACION
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
@@ -19,12 +23,14 @@ class AsignarEjecutivoRenovacionUseCase:
         repositorio_notificaciones: RepositorioNotificaciones,
         refrescar_alertas_renovacion: RefrescarAlertasRenovacionUseCase,
         repositorio_procesos: RepositorioProcesosComerciales,
+        generar_alertas_sla: GenerarAlertasSlaUseCase,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
         self.repositorio_notificaciones = repositorio_notificaciones
         self.refrescar_alertas_renovacion = refrescar_alertas_renovacion
         self.repositorio_procesos = repositorio_procesos
+        self.generar_alertas_sla = generar_alertas_sla
 
     def ejecutar(self, id_cliente: int, rut_ej_renovacion: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar_cliente(id_cliente)
@@ -67,6 +73,12 @@ class AsignarEjecutivoRenovacionUseCase:
         # crea nada (sin destinatario), igual que en cierre y SLA.
         self.refrescar_alertas_renovacion.ejecutar(prospecto.id_cliente)
 
+        # Las alertas SLA no leídas de las oportunidades de renovación
+        # responsables del ejecutivo de renovación se eliminan y se
+        # re-evalúan al tiro: el nuevo responsable las recibe creadas
+        # ahora, no transferidas.
+        self._refrescar_alertas_sla(prospecto.id, rut_ej_renovacion)
+
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).
         if rut_ej_renovacion is not None:
@@ -103,4 +115,40 @@ class AsignarEjecutivoRenovacionUseCase:
             hub.publicar_desde_hilo(
                 [rut_anterior],
                 {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'desasignacion_ejecutivo'},
+            )
+
+    def _refrescar_alertas_sla(self, id_prospecto: int, nuevo_rut: str | None) -> None:
+        """Elimina las alertas SLA no leídas del rol que ya no corresponden y las
+        re-evalúa al tiro.
+
+        No se reasignan (transferir la fila con su antigüedad confundía al nuevo
+        responsable con alertas "creadas hace días" y dejaba la dedupe_key con el
+        RUT anterior, con lo que el scheduler duplicaba la alerta después). Al
+        eliminar y recrear, el nuevo destinatario la ve creada ahora y las de
+        quienes siguen siendo responsables no se tocan. En desasignación no se
+        crea nada (sin destinatario), pero las previas quedan eliminadas.
+        """
+        ahora = datetime.now(tz=timezone.utc)
+        destinatarios: set[str] = set()
+
+        for notificacion in self.repositorio_notificaciones.buscar_notificaciones_sla_por_rol(
+            id_prospecto, ROL_EJECUTIVO_RENOVACION
+        ):
+            # Las ya dirigidas al nuevo destinatario siguen vigentes.
+            if nuevo_rut is not None and notificacion.rut_usuario == nuevo_rut:
+                continue
+
+            if notificacion.rut_usuario:
+                destinatarios.add(notificacion.rut_usuario)
+
+            self.repositorio_notificaciones.eliminar(notificacion)
+
+        # Re-evaluación inmediata: crea la alerta del nuevo responsable con
+        # created_at actual (idempotente: las de otros responsables ya existen).
+        self.generar_alertas_sla.ejecutar(ahora=ahora)
+
+        if destinatarios:
+            hub.publicar_desde_hilo(
+                destinatarios,
+                {'evento': EVENTO_NOTIFICACIONES_ACTUALIZADAS, 'motivo': 'sla_reevaluado'},
             )

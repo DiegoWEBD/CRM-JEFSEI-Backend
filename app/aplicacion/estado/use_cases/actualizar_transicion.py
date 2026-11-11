@@ -6,6 +6,7 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
+from app.dominio.rol.repositorio_roles import RepositorioRoles
 
 
 class ActualizarTransicionUseCase:
@@ -15,10 +16,12 @@ class ActualizarTransicionUseCase:
         repositorio_estados: RepositorioEstadosProcesoComercial,
         repositorio_notificaciones: RepositorioNotificaciones,
         generar_alertas_sla: GenerarAlertasSlaUseCase,
+        repositorio_roles: RepositorioRoles,
     ):
         self.repositorio_estados = repositorio_estados
         self.repositorio_notificaciones = repositorio_notificaciones
         self.generar_alertas_sla = generar_alertas_sla
+        self.repositorio_roles = repositorio_roles
 
     def ejecutar(
         self,
@@ -27,6 +30,8 @@ class ActualizarTransicionUseCase:
         es_manual: bool,
         accion_requerida: str | None,
         dias_limite: int | None = None,
+        roles_responsables_nuevas: list[str] | None = None,
+        roles_responsables_renovacion: list[str] | None = None,
     ) -> bool:
         transicion = self.repositorio_estados.obtener_transicion(
             codigo_estado_origen, codigo_estado_destino
@@ -37,7 +42,7 @@ class ActualizarTransicionUseCase:
         if transicion.es_principal:
             # La principal no es editable en su flujo (es_manual / acción
             # requerida): solo en su días límite, que es el que alimenta las
-            # alertas SLA del estado de origen.
+            # alertas SLA del estado de origen, y en sus responsables.
             if dias_limite is not None and dias_limite < 0:
                 raise ConflictoEnAccionException(
                     'Los días límite no pueden ser negativos'
@@ -47,7 +52,25 @@ class ActualizarTransicionUseCase:
             # idéntico no debe borrar alertas ni re-notificar.
             sla_cambio = transicion.dias_limite != dias_limite
             transicion.dias_limite = dias_limite
+
+            # Los responsables también alimentan las alertas SLA: un cambio
+            # en ellos debe re-evaluar igual que el días límite.
+            roles_cambiaron = self._actualizar_responsables(
+                transicion,
+                roles_responsables_nuevas,
+                roles_responsables_renovacion,
+            )
+            sla_cambio = sla_cambio or roles_cambiaron
         else:
+            # Solo las transiciones principales pueden tener responsables.
+            if (
+                roles_responsables_nuevas is not None
+                or roles_responsables_renovacion is not None
+            ):
+                raise ConflictoEnAccionException(
+                    'Solo las transiciones principales pueden tener responsables'
+                )
+
             sla_cambio = False
 
             if es_manual is False and transicion.accion_requerida:
@@ -66,6 +89,64 @@ class ActualizarTransicionUseCase:
             self._reevaluar_alertas_sla(codigo_estado_origen)
 
         return actualizado
+
+    def _actualizar_responsables(
+        self,
+        transicion: TransicionEstadoProcesoComercial,
+        roles_responsables_nuevas: list[str] | None,
+        roles_responsables_renovacion: list[str] | None,
+    ) -> bool:
+        """Reemplaza los responsables dados (None = sin cambios).
+
+        Devuelve True si algún responsable realmente cambió. Una lista
+        vacía elimina los responsables de ese tipo de oportunidad; solo
+        las transiciones principales pueden tener responsables.
+        """
+        cambios = (
+            (
+                roles_responsables_nuevas,
+                False,
+                transicion.roles_responsables_nuevas,
+            ),
+            (
+                roles_responsables_renovacion,
+                True,
+                transicion.roles_responsables_renovacion,
+            ),
+        )
+        cambiaron = False
+
+        for roles, renovacion, actuales in cambios:
+            if roles is None:
+                continue
+
+            roles = list(dict.fromkeys(rol.strip() for rol in roles if rol.strip()))
+            self._validar_roles(roles)
+
+            if sorted(roles) == sorted(actuales):
+                continue
+
+            self.repositorio_estados.reemplazar_roles_responsables(
+                transicion.id, renovacion, roles
+            )
+
+            if renovacion:
+                transicion.roles_responsables_renovacion = roles
+            else:
+                transicion.roles_responsables_nuevas = roles
+
+            cambiaron = True
+
+        return cambiaron
+
+    def _validar_roles(self, roles: list[str]) -> None:
+        codigos = {rol.codigo for rol in self.repositorio_roles.obtener_todos()}
+        faltantes = [rol for rol in roles if rol not in codigos]
+
+        if faltantes:
+            raise ConflictoEnAccionException(
+                'Los roles responsables indicados no existen'
+            )
 
     def _reevaluar_alertas_sla(self, codigo_estado: str) -> None:
         """Elimina las alertas SLA no leídas del estado y las re-evalúa ya.

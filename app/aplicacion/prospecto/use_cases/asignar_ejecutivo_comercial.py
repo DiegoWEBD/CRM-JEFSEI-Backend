@@ -76,8 +76,8 @@ class AsignarEjecutivoComercialUseCase:
             proceso.ejecutivo_comercial = prospecto.ejecutivo_comercial_asignado
             self.repositorio_procesos.guardar(proceso, es_nuevo=False)
 
-        # Las alertas SLA no leídas del prospecto cuyo estado siguiente sea
-        # del EJECUTIVO_COMERCIAL se eliminan y se re-evalúan al tiro: el
+        # Las alertas SLA no leídas del prospecto responsables del
+        # EJECUTIVO_COMERCIAL se eliminan y se re-evalúan al tiro: el
         # nuevo responsable la recibe creada ahora, no transferida.
         self._refrescar_alertas_sla(id_prospecto, rut_ej_comercial)
 

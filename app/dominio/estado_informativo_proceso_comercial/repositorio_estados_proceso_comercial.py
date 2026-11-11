@@ -56,3 +56,16 @@ class RepositorioEstadosProcesoComercial(ABC):
     @abstractmethod
     def eliminar_transicion(self, codigo_estado_origen: str, codigo_estado_destino: str) -> bool:
         pass
+
+    @abstractmethod
+    def reemplazar_roles_responsables(
+        self, id_transicion: int, renovacion: bool, roles: list[str]
+    ) -> bool:
+        """Reemplaza los roles responsables de una transición principal.
+
+        Solo las transiciones principales tienen responsables. `roles`
+        es la lista completa para el tipo de oportunidad dado
+        (renovacion=True para oportunidades de renovación, False para
+        nuevas); la lista vacía elimina los responsables de ese tipo.
+        """
+        pass

@@ -18,6 +18,12 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
     def obtener_procesos_alertables(self) -> list[ProcesoAlertableSla]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+                # El destinatario de las alertas SLA vive en la
+                # TRANSICIÓN PRINCIPAL del estado actual
+                # (RolResponsableTransicion), filtrado por el tipo de
+                # oportunidad (ProcesoComercial.renovacion). Los roles de
+                # renovación se resuelven con los responsables asignados
+                # al cliente.
                 query = '''
                     select PC.id as id_proceso_comercial,
                     PRO.nombre as nombre_producto,
@@ -28,13 +34,20 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     PR.nombre_riesgo as nombre_prospecto,
                     HI.fecha_registro as fecha_ingreso_estado,
                     T.dias_limite,
-                    EI.rol_responsable,
                     PC.rut_ej_comercial,
                     PC.rut_ej_evaluacion,
                     PC.cerrado,
+                    PC.renovacion,
+                    C.rut_ej_renovacion_asignado as rut_ej_renovacion,
+                    C.rut_as_renovacion_asignado as rut_as_renovacion,
                     T.codigo_estado_destino as codigo_siguiente_estado,
                     EI_SIGUIENTE.nombre as nombre_siguiente_estado,
-                    EI_SIGUIENTE.rol_responsable as rol_responsable_siguiente,
+                    (
+                        select array_agg(RRT.codigo_rol)
+                        from RolResponsableTransicion RRT
+                        where RRT.id_transicion = T.id
+                        and RRT.renovacion = PC.renovacion
+                    ) as roles_responsables,
                     T.accion_requerida
                     from ProcesoComercial PC
                     inner join Producto PRO
@@ -53,6 +66,8 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     and EI.codigo = PC.codigo_estado_actual
                     inner join EtapaProcesoComercial EPC
                     on EI.codigo_etapa = EPC.codigo
+                    left join Cliente C
+                    on C.id_prospecto = PC.id_prospecto
                     left join TransicionEstadoProcesoComercial T
                     on T.codigo_estado_origen = EI.codigo
                     and T.es_principal = true
@@ -296,8 +311,11 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
     def buscar_notificaciones_sla_por_rol(self, id_prospecto: int, rol: str) -> list[Notificacion]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                # Join con la transición principal + estado destino para resolver
-                # el rol responsable del SIGUIENTE estado (no el actual).
+                # Join con la transición principal del estado actual y sus
+                # responsables (RolResponsableTransicion), filtrados por el
+                # tipo de oportunidad (ProcesoComercial.renovacion). El rol
+                # pedido debe ser responsable de esa transición para que la
+                # alerta le corresponda.
                 query = '''
                     select N.id,
                     N.rut_usuario,
@@ -320,13 +338,14 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     inner join TransicionEstadoProcesoComercial T
                     on T.codigo_estado_origen = PC.codigo_estado_actual
                     and T.es_principal = true
-                    inner join EstadoInformativoProcesoComercial EI_SIGUIENTE
-                    on EI_SIGUIENTE.codigo = T.codigo_estado_destino
+                    inner join RolResponsableTransicion RRT
+                    on RRT.id_transicion = T.id
+                    and RRT.renovacion = PC.renovacion
                     where N.entidad_tipo = 'PROCESO_COMERCIAL'
                     and N.leida = false
                     and PC.id_prospecto = %(id_prospecto)s
                     and PC.cerrado = false
-                    and EI_SIGUIENTE.rol_responsable = %(rol)s
+                    and RRT.codigo_rol = %(rol)s
                     and N.codigo_tipo in ('SLA_POR_VENCER', 'SLA_VENCIDO')
                     order by N.created_at desc
                 '''

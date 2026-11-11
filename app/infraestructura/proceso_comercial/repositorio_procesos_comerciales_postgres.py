@@ -22,7 +22,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PR.nombre_riesgo as nombre_cliente,
                     EI.codigo as codigo_estado,
                     EI.nombre as nombre_estado,
-                    HI.fecha_registro as fecha_registro_estado,
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
@@ -53,15 +52,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     inner join Producto P
                     on PC.id_producto = P.id
                     and P.eliminado = false
-                    inner join HistorialEstadoInformativoProcesoComercial HI
-                    on PC.id = HI.id_proceso_comercial
-                    and HI.fecha_registro = (
-                        select max(HI2.fecha_registro)
-                        from HistorialEstadoInformativoProcesoComercial HI2
-                        where HI2.id_proceso_comercial = PC.id
-                    )
                     inner join EstadoInformativoProcesoComercial EI
-                    on HI.codigo_estado = EI.codigo
+                    on PC.codigo_estado_actual = EI.codigo
                     inner join EtapaProcesoComercial EPC
                     on EI.codigo_etapa = EPC.codigo
                     left join Usuario EJ_COM
@@ -94,7 +86,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PR.nombre_riesgo as nombre_cliente,
                     EI.codigo as codigo_estado,
                     EI.nombre as nombre_estado,
-                    HI.fecha_registro as fecha_registro_estado,
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
@@ -128,15 +119,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     inner join Producto P
                     on PC.id_producto = P.id
                     and P.eliminado = false
-                    inner join HistorialEstadoInformativoProcesoComercial HI
-                    on PC.id = HI.id_proceso_comercial
-                    and HI.fecha_registro = (
-                        select max(HI2.fecha_registro)
-                        from HistorialEstadoInformativoProcesoComercial HI2
-                        where HI2.id_proceso_comercial = PC.id
-                    )
                     inner join EstadoInformativoProcesoComercial EI
-                    on HI.codigo_estado = EI.codigo
+                    on PC.codigo_estado_actual = EI.codigo
                     inner join EtapaProcesoComercial EPC
                     on EI.codigo_etapa = EPC.codigo
                     left join Usuario EJ_COM
@@ -174,7 +158,6 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     PR.nombre_riesgo as nombre_cliente,
                     EI.codigo as codigo_estado,
                     EI.nombre as nombre_estado,
-                    HI.fecha_registro as fecha_registro_estado,
                     EPC.codigo as codigo_etapa,
                     EPC.nombre as nombre_etapa,
                     PC.cerrado,
@@ -205,15 +188,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     inner join Producto P
                     on PC.id_producto = P.id
                     and P.eliminado = false
-                    inner join HistorialEstadoInformativoProcesoComercial HI
-                    on PC.id = HI.id_proceso_comercial
-                    and HI.fecha_registro = (
-                        select max(HI2.fecha_registro)
-                        from HistorialEstadoInformativoProcesoComercial HI2
-                        where HI2.id_proceso_comercial = PC.id
-                    )
                     inner join EstadoInformativoProcesoComercial EI
-                    on HI.codigo_estado = EI.codigo
+                    on PC.codigo_estado_actual = EI.codigo
                     inner join EtapaProcesoComercial EPC
                     on EI.codigo_etapa = EPC.codigo
                     left join Usuario EJ_COM
@@ -639,7 +615,7 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
 
                 cur.execute(query, params)
 
-        return id_proceso_comercial
+                return id_proceso_comercial
 
 
     def buscar_renovacion_por_poliza_base(self, numero_poliza_base: str) -> int | None:

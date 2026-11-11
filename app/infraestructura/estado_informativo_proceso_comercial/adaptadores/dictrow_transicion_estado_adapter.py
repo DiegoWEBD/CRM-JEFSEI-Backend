@@ -10,6 +10,8 @@ class DictRowTransicionEstadoAdapter:
 
     def to_transicion_estado_proceso_comercial(self) -> TransicionEstadoProcesoComercial:
         return TransicionEstadoProcesoComercial(
+            # Solo lo traen las queries de administración.
+            id=self.row.get('id'),
             codigo_estado_origen=self.row['codigo_estado_origen'],
             codigo_estado_destino=self.row['codigo_estado_destino'],
             nombre_estado_destino=self.row['nombre_estado_destino'],
@@ -20,4 +22,6 @@ class DictRowTransicionEstadoAdapter:
             # Solo lo traen las queries de administración; la lista de
             # transiciones manuales no lo incluye.
             dias_limite=self.row.get('dias_limite'),
+            roles_responsables_nuevas=self.row.get('roles_responsables_nuevas'),
+            roles_responsables_renovacion=self.row.get('roles_responsables_renovacion'),
         )

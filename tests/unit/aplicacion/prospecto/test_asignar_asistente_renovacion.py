@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
 from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
     RefrescarAlertasRenovacionUseCase,
 )
@@ -36,7 +37,12 @@ def _use_case(prospecto, rut_nuevo=None):
     repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
     repo_procesos.obtener_procesos_comerciales.return_value = []
     uc = AsignarAsistenteRenovacionUseCase(
-        repo_prospectos, repo_usuarios, repo_notificaciones, refrescar, repo_procesos
+        repo_prospectos,
+        repo_usuarios,
+        repo_notificaciones,
+        refrescar,
+        repo_procesos,
+        MagicMock(spec=GenerarAlertasSlaUseCase),
     )
     return uc, repo_prospectos, repo_notificaciones, refrescar, repo_procesos
 
@@ -48,7 +54,7 @@ class TestAsignarAsistenteRenovacion:
         repo_prospectos = MagicMock()
         repo_prospectos.buscar_cliente.return_value = None
         uc = AsignarAsistenteRenovacionUseCase(
-            repo_prospectos, MagicMock(), MagicMock(), MagicMock(), MagicMock()
+            repo_prospectos, MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
         )
 
         with pytest.raises(RecursoNoEncontradoException):
@@ -61,7 +67,7 @@ class TestAsignarAsistenteRenovacion:
         repo_usuarios = MagicMock()
         repo_usuarios.buscar.return_value = None
         uc = AsignarAsistenteRenovacionUseCase(
-            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock(), MagicMock()
         )
 
         with pytest.raises(RecursoNoEncontradoException):
@@ -76,7 +82,7 @@ class TestAsignarAsistenteRenovacion:
         repo_usuarios = MagicMock()
         repo_usuarios.buscar.return_value = usuario
         uc = AsignarAsistenteRenovacionUseCase(
-            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock(), MagicMock()
         )
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock())
@@ -90,7 +96,7 @@ class TestAsignarAsistenteRenovacion:
         repo_prospectos.buscar_cliente.return_value = prospecto
         repo_usuarios = MagicMock()
         uc = AsignarAsistenteRenovacionUseCase(
-            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock()
+            repo_prospectos, repo_usuarios, MagicMock(), MagicMock(), MagicMock(), MagicMock()
         )
 
         uc.ejecutar(id_cliente=5, rut_as_renovacion=None, asignado_por=MagicMock())
@@ -216,6 +222,40 @@ class TestAsignarAsistenteRenovacionRefrescoAlertas:
         uc.ejecutar(id_cliente=5, rut_as_renovacion=None, asignado_por=MagicMock())
 
         refrescar.ejecutar.assert_called_once_with(5)
+
+
+@pytest.mark.unit
+class TestAsignarAsistenteRenovacionRefrescoAlertasSla:
+
+    def test_con_cambio_de_rut_refresca_alertas_sla_del_rol(self):
+        prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='33333333-3'))
+        uc, _, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+        alerta = MagicMock(rut_usuario='33333333-3')
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.return_value = [alerta]
+
+        with patch(f'{MODULO}.hub'):
+            uc.ejecutar(
+                id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock()
+            )
+
+        # Las alertas SLA de las oportunidades de renovación responsables
+        # del asistente de renovación se eliminan y se re-evalúan al tiro.
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_called_once_with(
+            1, 'ASISTENTE_RENOVACION'
+        )
+        repo_notificaciones.eliminar.assert_called_once_with(alerta)
+        uc.generar_alertas_sla.ejecutar.assert_called_once()
+
+    def test_sin_cambio_de_rut_no_refresca_alertas_sla(self):
+        prospecto = _prospecto_mock(asistente_previo=MagicMock(rut='11111111-1'))
+        uc, _, repo_notificaciones, _, _ = _use_case(prospecto, rut_nuevo='11111111-1')
+
+        uc.ejecutar(
+            id_cliente=5, rut_as_renovacion='11111111-1', asignado_por=MagicMock()
+        )
+
+        repo_notificaciones.buscar_notificaciones_sla_por_rol.assert_not_called()
+        uc.generar_alertas_sla.ejecutar.assert_not_called()
 
 
 @pytest.mark.unit
