@@ -10,9 +10,11 @@ from app.aplicacion.cotizacion.use_cases.registrar_cotizacion_a_solicitud import
 from app.aplicacion.evaluacion_proyectos.use_cases.listar_estudios_comerciales import ListarEstudiosComercialesUseCase
 from app.aplicacion.evaluacion_proyectos.use_cases.subir_estudio_comercial import SubirEstudioComercialUseCase
 from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.aplicacion.solicitud_cotizacion.dto.filtro_panel_cotizaciones import FiltroPanelCotizaciones
 from app.aplicacion.solicitud_cotizacion.dto.filtro_solicitudes_cotizacion import FiltroSolicitudesCotizacion
 from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_panel_cotizaciones import ObtenerPanelCotizacionesUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.core.archivos import TAMANO_MAXIMO_ARCHIVO
 from app.dominio.usuario.usuario import Usuario
@@ -29,7 +31,7 @@ from app.presentacion.api.cotizacion.dependencias.deps import (
 from app.presentacion.api.estudio_comercial.deps import get_repositorio_estudios
 from app.presentacion.api.exceptions.bad_request_exception import BadRequestException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
-from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_authorization_service, get_eliminar_solicitud_cotizacion_use_case, get_obtener_detalle_solicitud_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
+from app.presentacion.api.solicitud_cotizacion.dependencias.deps import get_authorization_service, get_eliminar_solicitud_cotizacion_use_case, get_obtener_detalle_solicitud_use_case, get_obtener_panel_cotizaciones_use_case, get_obtener_resumen_solicitudes_cotizacion_activas_use_case
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import usuario_tiene_permiso
 from app.dominio.estudio_comercial.estudio_comercial_condominio.repositorio_estudios_comerciales import RepositorioEstudiosComerciales
 
@@ -68,6 +70,48 @@ def obtener_solicitudes(
             'informacion_incompleta': listado.contadores.informacion_incompleta,
             'listas_para_cotizar': listado.contadores.listas_para_cotizar,
             'cotizaciones_emitidas': listado.contadores.cotizaciones_emitidas,
+            'estudios_emitidos': listado.contadores.estudios_emitidos,
+        },
+        'total': listado.total,
+        'pagina': pagina,
+        'tamano_pagina': tamano_pagina,
+        'total_paginas': total_paginas,
+    }
+
+
+@router.get('/panel-estudios', status_code=status.HTTP_200_OK)
+def obtener_panel_cotizaciones(
+    texto_busqueda: str | None = Query(None),
+    estado: str | None = Query(None),
+    prioridad: str | None = Query(None),
+    rut_ejecutivo: str | None = Query(None),
+    pagina: int = Query(1, ge=1),
+    tamano_pagina: int = Query(10, ge=1, le=100),
+    usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
+    use_case: ObtenerPanelCotizacionesUseCase = Depends(get_obtener_panel_cotizaciones_use_case)
+):
+    puede_ver_todas = usuario_tiene_permiso('VER_SOLICITUDES_COTIZACION_GLOBAL', usuario)
+    rut_scoping = None if puede_ver_todas else usuario.rut
+
+    filtro = FiltroPanelCotizaciones(
+        texto_busqueda=texto_busqueda,
+        estado=estado,
+        prioridad=prioridad,
+        rut_ejecutivo=rut_ejecutivo,
+        pagina=pagina,
+        tamano_pagina=tamano_pagina,
+    )
+    listado = use_case.ejecutar(rut_scoping, filtro)
+
+    total_paginas = math.ceil(listado.total / tamano_pagina) if listado.total > 0 else 1
+
+    return {
+        'data': listado.filas,
+        'contadores': {
+            'cotizaciones_vigentes': listado.contadores.cotizaciones_vigentes,
+            'cotizaciones_por_vencer': listado.contadores.cotizaciones_por_vencer,
+            'cotizaciones_vencidas': listado.contadores.cotizaciones_vencidas,
+            'estudios_pendientes': listado.contadores.estudios_pendientes,
             'estudios_emitidos': listado.contadores.estudios_emitidos,
         },
         'total': listado.total,
