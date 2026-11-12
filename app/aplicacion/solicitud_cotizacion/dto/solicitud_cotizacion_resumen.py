@@ -15,6 +15,6 @@ class SolicitudCotizacionResumen:
     producto: str
     prioridad: str
     fecha: datetime
-    cantidad_cotizaciones: int
+    tiene_cotizaciones: bool
     campos_faltantes: list[str]
     estudio_disponible: bool

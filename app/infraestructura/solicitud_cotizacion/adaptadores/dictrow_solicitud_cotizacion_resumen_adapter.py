@@ -21,7 +21,7 @@ class DictRowSolicitudCotizacionResumenAdapter:
             producto=self.row['producto'],
             prioridad=self.row['prioridad'],
             fecha=self.row['fecha'],
-            cantidad_cotizaciones=self.row['cantidad_cotizaciones'],
+            tiene_cotizaciones=self.row['tiene_cotizaciones'],
             campos_faltantes=[],
-            estudio_disponible=self.row['id_estudio'] is not None
+            estudio_disponible=self.row['estudio_disponible']
         )
