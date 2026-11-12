@@ -103,7 +103,7 @@ class TestConsultaPanelCotizacionesListar:
 
         assert '"C".' not in sql_datos
         assert '"COT".' not in sql_datos
-        assert 'C.fecha_emision' in sql_datos
+        assert 'C."fecha_emision"' in sql_datos
         assert 'COT.cot_vencimiento' in sql_datos
 
     def test_los_estados_se_califican_con_el_mismo_ahora(
@@ -173,6 +173,33 @@ class TestConsultaPanelCotizacionesListar:
         sql_datos = _sql_de(cursor.execute.call_args_list[1])
         assert fragmento in sql_datos
 
+    def test_filtro_cotizaciones_es_exists_con_estado_propio(self, obtener_conexion_mock):
+        # Cada cotización se clasifica por sus propias fechas: la solicitud
+        # coincide si tiene al menos una cotización en el estado pedido.
+        conexion, cursor = _conexion_mock(rows=[], row={'total': 0})
+        obtener_conexion_mock.return_value = conexion
+
+        servicio = ConsultaPanelCotizacionesPostgresService()
+        servicio.listar(None, FiltroPanelCotizaciones(estado='cotizaciones_vencidas'))
+
+        sql_datos = _sql_de(cursor.execute.call_args_list[1])
+        assert 'exists(' in sql_datos
+        assert 'select 1 from Cotizacion' in sql_datos
+        assert "= 'VENCIDA'" in sql_datos
+
+    def test_filtro_estudios_pendientes_solo_tipos_condominio(
+        self, obtener_conexion_mock
+    ):
+        conexion, cursor = _conexion_mock(rows=[], row={'total': 0})
+        obtener_conexion_mock.return_value = conexion
+
+        servicio = ConsultaPanelCotizacionesPostgresService()
+        servicio.listar(None, FiltroPanelCotizaciones(estado='estudios_pendientes'))
+
+        sql_datos = _sql_de(cursor.execute.call_args_list[1])
+        assert "SC.tipo in ('espacios_comunes', 'unidades')" in sql_datos
+        assert 'not exists(select 1 from EstudioComercialCondominio' in sql_datos
+
     def test_rut_ejecutivo_compara_exacto_contra_el_ejecutivo(
         self, obtener_conexion_mock
     ):
@@ -193,61 +220,82 @@ class TestConsultaPanelCotizacionesListar:
 @pytest.mark.unit
 class TestConsultaPanelCotizacionesContadores:
 
-    def test_contadores_se_calculan_sin_filtros_y_sin_json(
-        self, obtener_conexion_mock
-    ):
-        conexion, cursor = _conexion_mock(
-            row={
-                'cotizaciones_vigentes': 1,
-                'cotizaciones_por_vencer': 2,
-                'cotizaciones_vencidas': 3,
-                'estudios_pendientes': 4,
-                'estudios_emitidos': 5,
-            }
-        )
+    def test_contadores_se_calculan_sin_filtros(self, obtener_conexion_mock):
+        conexion, cursor = _conexion_mock()
+        cursor.fetchone.side_effect = [
+            {'cotizaciones_vigentes': 0, 'cotizaciones_por_vencer': 0, 'cotizaciones_vencidas': 0},
+            {'estudios_emitidos': 0, 'estudios_pendientes': 0},
+        ]
         obtener_conexion_mock.return_value = conexion
 
         servicio = ConsultaPanelCotizacionesPostgresService()
-        contadores = servicio.contadores('11111111-1')
+        servicio.contadores('11111111-1')
 
-        assert contadores.cotizaciones_vigentes == 1
-        assert contadores.cotizaciones_por_vencer == 2
-        assert contadores.cotizaciones_vencidas == 3
-        assert contadores.estudios_pendientes == 4
-        assert contadores.estudios_emitidos == 5
+        for ejecucion in cursor.execute.call_args_list:
+            params = ejecucion.args[1]
+            # Solo el scope por permisos, ningún filtro de búsqueda/estado.
+            assert params['rut_scoping'] == '11111111-1'
+            assert 'texto_busqueda' not in params
+            assert 'prioridad' not in params
+            assert 'rut_ejecutivo' not in params
 
-        assert cursor.execute.call_count == 1
-        sql_contadores = _sql_de(cursor.execute.call_args_list[0])
-        params = cursor.execute.call_args_list[0].args[1]
-
-        # Solo el scope por permisos, ningún filtro de búsqueda/estado.
-        assert params['rut_scoping'] == '11111111-1'
-        assert 'texto_busqueda' not in params
-        assert 'prioridad' not in params
-        assert 'rut_ejecutivo' not in params
-        assert 'count(*) filter' in sql_contadores
-        # Liviano: no construye el resumen JSON de las cotizaciones.
-        assert 'json_agg' not in sql_contadores
-
-    def test_contadores_usan_el_estado_de_la_fila(self, obtener_conexion_mock):
-        conexion, cursor = _conexion_mock(
-            row={
-                'cotizaciones_vigentes': 0,
+    def test_contadores_cuentan_cada_cotizacion_y_cada_estudio(
+        self, obtener_conexion_mock
+    ):
+        # Ejemplo del panel: una solicitud con 3 cotizaciones vigentes y 1
+        # vencida suma 3 y 1; con 2 estudios emitidos suma 2 a emitidos.
+        conexion, cursor = _conexion_mock()
+        cursor.fetchone.side_effect = [
+            {
+                'cotizaciones_vigentes': 3,
                 'cotizaciones_por_vencer': 0,
-                'cotizaciones_vencidas': 0,
-                'estudios_pendientes': 0,
-                'estudios_emitidos': 0,
-            }
-        )
+                'cotizaciones_vencidas': 1,
+            },
+            {'estudios_emitidos': 2, 'estudios_pendientes': 4},
+        ]
+        obtener_conexion_mock.return_value = conexion
+
+        servicio = ConsultaPanelCotizacionesPostgresService()
+        contadores = servicio.contadores(None)
+
+        assert contadores.cotizaciones_vigentes == 3
+        assert contadores.cotizaciones_vencidas == 1
+        assert contadores.estudios_emitidos == 2
+        assert contadores.estudios_pendientes == 4
+
+        assert cursor.execute.call_count == 2
+        sql_cotizaciones = _sql_de(cursor.execute.call_args_list[0])
+        sql_estudios = _sql_de(cursor.execute.call_args_list[1])
+
+        # Cada cotización cuenta individualmente, clasificada por su estado.
+        assert 'count(*) filter' in sql_cotizaciones
+        assert 'inner join Cotizacion C' in sql_cotizaciones
+        # El CASE referencia el alias sin citar (la columna citada en
+        # minúscula sí resuelve: casa con el nombre plegado).
+        assert 'C."fecha_emision"' in sql_cotizaciones
+        assert '"C".' not in sql_cotizaciones
+        # Cada estudio emitido cuenta individualmente.
+        assert 'sum((select count(*) from EstudioComercialCondominio' in sql_estudios
+        # Pendientes solo para los productos que requieren estudio.
+        assert "SC.tipo in ('espacios_comunes', 'unidades')" in sql_estudios
+        # Sin resumen JSON: los contadores no lo necesitan.
+        assert 'json_agg' not in sql_cotizaciones
+        assert 'json_agg' not in sql_estudios
+
+    def test_contadores_usan_el_mismo_ahora_que_los_datos(
+        self, obtener_conexion_mock
+    ):
+        conexion, cursor = _conexion_mock()
+        cursor.fetchone.side_effect = [
+            {'cotizaciones_vigentes': 0, 'cotizaciones_por_vencer': 0, 'cotizaciones_vencidas': 0},
+            {'estudios_emitidos': 0, 'estudios_pendientes': 0},
+        ]
         obtener_conexion_mock.return_value = conexion
 
         servicio = ConsultaPanelCotizacionesPostgresService()
         servicio.contadores(None)
 
-        sql_contadores = _sql_de(cursor.execute.call_args_list[0])
-
-        assert 'COT.cot_vencimiento' in sql_contadores
-        assert '"COT".' not in sql_contadores
-        # Sin placeholders sin resolver del template.
-        assert '{estado_fila}' not in sql_contadores
-        assert '{lateral}' not in sql_contadores
+        for ejecucion in cursor.execute.call_args_list:
+            params = ejecucion.args[1]
+            assert 'ahora' in params
+            assert params['intervalo_vencimiento'] == INTERVALO_VENCIMIENTO_DIAS

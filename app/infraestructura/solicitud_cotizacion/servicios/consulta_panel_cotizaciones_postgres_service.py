@@ -29,7 +29,8 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
     """
     Listado del panel de cotizaciones y estudios: una fila por solicitud de
     cotización con el resumen de sus cotizaciones embebido (sin N+1) y los
-    contadores globales calculados antes de aplicar cualquier filtro.
+    contadores globales por ítem (cada cotización y cada estudio cuentan),
+    calculados antes de aplicar cualquier filtro.
     """
 
     _CLAUSULA_FROM = sql.SQL('''
@@ -56,24 +57,12 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
         )
     ''')
 
-    # Agregado liviano de cotizaciones por solicitud. Los `array_agg` ordenados
-    # por vencimiento traen las fechas de la cotización más próxima a vencer
-    # (la que define el estado de la fila, igual que en el panel actual).
-    _LATERAL_COTIZACIONES_SLIM = sql.SQL('''
-        left join lateral (
-            select
-            count(*) as cantidad,
-            (array_agg(C.fecha_emision order by C.fecha_vencimiento asc))[1] as cot_emision,
-            (array_agg(C.fecha_vencimiento order by C.fecha_vencimiento asc))[1] as cot_vencimiento
-            from Cotizacion C
-            where C.id_solicitud = SC.id
-        ) COT on true
-    ''')
-
+    # Agregado de cotizaciones por solicitud en un solo lateral: `cantidad`,
+    # las fechas de la cotización más próxima a vencer (la que define el estado
+    # de la fila) y el resumen de cada cotización en un json_agg. Toda la info
+    # del panel viaja en la query de la página, sin N+1.
     @classmethod
     def _lateral_cotizaciones(cls) -> sql.Composable:
-        # Mismo agregado que el slim, más el resumen de cada cotización en un
-        # solo json_agg: toda la info del panel viaja en la query de la página.
         return sql.SQL('''
             left join lateral (
                 select
@@ -144,9 +133,13 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
     @classmethod
     def _condicion_estado(cls, estado: str) -> sql.Composable:
         if estado == 'estudios_pendientes':
-            return sql.SQL(
-                'not exists(select 1 from EstudioComercialCondominio E where E.id_solicitud = SC.id)'
-            )
+            # Solo los productos de condominio (espacios comunes y unidades)
+            # requieren estudio: cada solicitud de esos tipos sin estudios
+            # emitidos suma 1 al contador de pendientes.
+            return sql.SQL('''
+                SC.tipo in ('espacios_comunes', 'unidades')
+                and not exists(select 1 from EstudioComercialCondominio E where E.id_solicitud = SC.id)
+            ''')
 
         if estado == 'estudios_emitidos':
             return sql.SQL(
@@ -158,8 +151,17 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
             'cotizaciones_por_vencer': 'POR_VENCER',
             'cotizaciones_vencidas': 'VENCIDA',
         }[estado]
-        return sql.SQL('({} = {})').format(
-            cls._estado_fila(), sql.Literal(estado_cotizacion)
+        # La solicitud coincide si tiene al menos una cotización en ese estado,
+        # clasificada por sus propias fechas.
+        return sql.SQL('''
+            exists(
+                select 1 from Cotizacion C
+                where C.id_solicitud = SC.id
+                and {estado_cotizacion} = {valor}
+            )
+        ''').format(
+            estado_cotizacion=cls._estado_cotizacion('C'),
+            valor=sql.Literal(estado_cotizacion),
         )
 
     def listar(
@@ -172,11 +174,9 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
         consulta_total = sql.SQL('''
             select count(*) as total
             {from_clause}
-            {lateral}
             {where_clause}
         ''').format(
             from_clause=self._CLAUSULA_FROM,
-            lateral=self._LATERAL_COTIZACIONES_SLIM,
             where_clause=where_clause,
         )
 
@@ -230,42 +230,58 @@ class ConsultaPanelCotizacionesPostgresService(ConsultaPanelCotizacionesService)
         return filas, total
 
     def contadores(self, rut_scoping: str | None) -> ContadoresPanelCotizaciones:
-        # Contadores globales: se calculan antes de los filtros de búsqueda,
-        # estado, prioridad y ejecutivo; solo respetan el scope por permisos.
+        # Contadores globales por ítem, calculados antes de los filtros de
+        # búsqueda, estado, prioridad y ejecutivo (solo scope por permisos):
+        # cada cotización se clasifica con su propio estado y cada estudio
+        # emitido cuenta individualmente. Estudios pendientes suma 1 por
+        # solicitud de tipo espacios_comunes/unidades sin estudios emitidos.
         where_clause, params = self._construir_where(rut_scoping, None)
+        params_comunes = {**params, **self._params_tiempo()}
 
-        consulta = sql.SQL('''
+        consulta_cotizaciones = sql.SQL('''
             select
-            count(*) filter (where {estado_fila} = 'VIGENTE') as cotizaciones_vigentes,
-            count(*) filter (where {estado_fila} = 'POR_VENCER') as cotizaciones_por_vencer,
-            count(*) filter (where {estado_fila} = 'VENCIDA') as cotizaciones_vencidas,
-            count(*) filter (
-                where not exists(select 1 from EstudioComercialCondominio E where E.id_solicitud = SC.id)
-            ) as estudios_pendientes,
-            count(*) filter (
-                where exists(select 1 from EstudioComercialCondominio E where E.id_solicitud = SC.id)
-            ) as estudios_emitidos
+            count(*) filter (where {estado_cotizacion} = 'VIGENTE') as cotizaciones_vigentes,
+            count(*) filter (where {estado_cotizacion} = 'POR_VENCER') as cotizaciones_por_vencer,
+            count(*) filter (where {estado_cotizacion} = 'VENCIDA') as cotizaciones_vencidas
             {from_clause}
-            {lateral}
+            inner join Cotizacion C
+            on C.id_solicitud = SC.id
             {where_clause}
         ''').format(
-            estado_fila=self._estado_fila(),
+            estado_cotizacion=self._estado_cotizacion('C'),
             from_clause=self._CLAUSULA_FROM,
-            lateral=self._LATERAL_COTIZACIONES_SLIM,
+            where_clause=where_clause,
+        )
+
+        consulta_estudios = sql.SQL('''
+            select
+            coalesce(sum((select count(*) from EstudioComercialCondominio E where E.id_solicitud = SC.id)), 0) as estudios_emitidos,
+            count(*) filter (
+                where SC.tipo in ('espacios_comunes', 'unidades')
+                and not exists(select 1 from EstudioComercialCondominio E where E.id_solicitud = SC.id)
+            ) as estudios_pendientes
+            {from_clause}
+            {where_clause}
+        ''').format(
+            from_clause=self._CLAUSULA_FROM,
             where_clause=where_clause,
         )
 
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
-                cur.execute(consulta, {**params, **self._params_tiempo()})
-                row = cur.fetchone()
+                cur.execute(consulta_cotizaciones, params_comunes)
+                fila_cotizaciones = cur.fetchone()
+
+                cur.execute(consulta_estudios, params_comunes)
+                fila_estudios = cur.fetchone()
 
                 return ContadoresPanelCotizaciones(
-                    cotizaciones_vigentes=row['cotizaciones_vigentes'] if row else 0,
-                    cotizaciones_por_vencer=row['cotizaciones_por_vencer'] if row else 0,
-                    cotizaciones_vencidas=row['cotizaciones_vencidas'] if row else 0,
-                    estudios_pendientes=row['estudios_pendientes'] if row else 0,
-                    estudios_emitidos=row['estudios_emitidos'] if row else 0,
+                    # int(): el sum() de Postgres devuelve numeric (Decimal).
+                    cotizaciones_vigentes=int(fila_cotizaciones['cotizaciones_vigentes']) if fila_cotizaciones else 0,
+                    cotizaciones_por_vencer=int(fila_cotizaciones['cotizaciones_por_vencer']) if fila_cotizaciones else 0,
+                    cotizaciones_vencidas=int(fila_cotizaciones['cotizaciones_vencidas']) if fila_cotizaciones else 0,
+                    estudios_pendientes=int(fila_estudios['estudios_pendientes']) if fila_estudios else 0,
+                    estudios_emitidos=int(fila_estudios['estudios_emitidos']) if fila_estudios else 0,
                 )
 
     @staticmethod
