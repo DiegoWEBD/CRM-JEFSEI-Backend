@@ -85,9 +85,8 @@ def get_solicitar_recotizacion_use_case():
 
 def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
     service = ConsultaSolicitudesCotizacionPostgresService()
-    repositorio = RepositorioProspectosPostgres()
 
-    return ObtenerResumenSolicitudesCotizacionActivasUseCase(service, repositorio)
+    return ObtenerResumenSolicitudesCotizacionActivasUseCase(service)
 
 def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()

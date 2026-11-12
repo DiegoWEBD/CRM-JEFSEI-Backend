@@ -1,5 +1,8 @@
 from psycopg.rows import DictRow
 
+from app.aplicacion.solicitud_cotizacion.campos_faltantes import (
+    calcular_campos_faltantes,
+)
 from app.aplicacion.solicitud_cotizacion.dto.solicitud_cotizacion_resumen import SolicitudCotizacionResumen
 
 
@@ -21,7 +24,7 @@ class DictRowSolicitudCotizacionResumenAdapter:
             producto=self.row['producto'],
             prioridad=self.row['prioridad'],
             fecha=self.row['fecha'],
-            cantidad_cotizaciones=self.row['cantidad_cotizaciones'],
-            campos_faltantes=[],
-            estudio_disponible=self.row['id_estudio'] is not None
+            tiene_cotizaciones=self.row['tiene_cotizaciones'],
+            campos_faltantes=calcular_campos_faltantes(self.row),
+            estudio_disponible=self.row['estudio_disponible']
         )
