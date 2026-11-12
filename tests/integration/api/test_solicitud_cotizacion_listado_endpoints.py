@@ -82,7 +82,6 @@ def usuario_sin_permisos():
 def _client(usuario, consulta_service_mock):
     use_case = ObtenerResumenSolicitudesCotizacionActivasUseCase(
         consulta_service=consulta_service_mock,
-        repositorio_prospectos=MagicMock(),
     )
 
     app.dependency_overrides[get_current_user] = lambda: usuario
@@ -140,12 +139,13 @@ class TestListadoSolicitudesCotizacionEndpoints:
         }
         assert body['total'] == 23
         assert body['pagina'] == 1
-        assert body['tamano_pagina'] == 15
-        assert body['total_paginas'] == 2
+        assert body['tamano_pagina'] == 10
+        assert body['total_paginas'] == 3
 
         assert len(body['data']) == 1
         assert body['data'][0]['nombre_riesgo'] == 'Condominio Las Torres'
         assert body['data'][0]['tiene_cotizaciones'] is True
+        assert body['data'][0]['campos_faltantes'] == ['direccion']
 
     def test_filtros_y_paginacion_llegan_al_servicio(self, client_global, consulta_service_mock):
         response = client_global.get(

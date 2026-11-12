@@ -17,4 +17,4 @@ class FiltroSolicitudesCotizacion:
     prioridad: str | None = None
     rut_usuario: str | None = None
     pagina: int = 1
-    tamano_pagina: int = 15
+    tamano_pagina: int = 10

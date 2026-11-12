@@ -43,7 +43,7 @@ def obtener_solicitudes(
     prioridad: str | None = Query(None),
     rut_usuario: str | None = Query(None),
     pagina: int = Query(1, ge=1),
-    tamano_pagina: int = Query(15, ge=1, le=100),
+    tamano_pagina: int = Query(10, ge=1, le=100),
     usuario: Usuario = Depends(permisos_requeridos('VER_SOLICITUDES_COTIZACION_PROPIAS', 'VER_SOLICITUDES_COTIZACION_GLOBAL')),
     use_case: ObtenerResumenSolicitudesCotizacionActivasUseCase = Depends(get_obtener_resumen_solicitudes_cotizacion_activas_use_case)
 ):
