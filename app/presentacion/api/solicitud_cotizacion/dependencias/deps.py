@@ -4,6 +4,7 @@ from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales imp
 from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
 from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
+from app.aplicacion.solicitud_cotizacion.use_cases.obtener_panel_cotizaciones import ObtenerPanelCotizacionesUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_resumen_solicitudes_cotizacion_activas import ObtenerResumenSolicitudesCotizacionActivasUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_solicitudes_cotizacion import ObtenerSolicitudesCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.solicitar_cotizacion.solicitar_cotizacion import SolicitarCotizacionUseCase
@@ -16,6 +17,7 @@ from app.infraestructura.notificacion.repositorio_notificaciones_postgres import
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
+from app.infraestructura.solicitud_cotizacion.servicios.consulta_panel_cotizaciones_postgres_service import ConsultaPanelCotizacionesPostgresService
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
 from app.infraestructura.usuario.repositorio_usuarios_postgres import RepositorioUsuariosPostgres
 
@@ -87,6 +89,11 @@ def get_obtener_resumen_solicitudes_cotizacion_activas_use_case():
     service = ConsultaSolicitudesCotizacionPostgresService()
 
     return ObtenerResumenSolicitudesCotizacionActivasUseCase(service)
+
+def get_obtener_panel_cotizaciones_use_case():
+    service = ConsultaPanelCotizacionesPostgresService()
+
+    return ObtenerPanelCotizacionesUseCase(service)
 
 def get_obtener_detalle_solicitud_use_case():
     repositorio = RepositorioSolicitudesCotizacionPostgres()

@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 import os
 
 from app.dominio.cotizacion.cotizacion import Cotizacion
+from app.dominio.cotizacion.servicio_estado_cotizacion import (
+    calcular_estado_cotizacion,
+)
 from app.presentacion.api.cotizacion.dto.cotizacion_json import CotizacionJson
 from app.presentacion.api.cotizacion.dto.estado_cotizacion import EstadoCotizacion
 
@@ -28,21 +31,13 @@ class CotizacionJsonAdapter:
                     archivo_bytes = f.read()
                 archivo_base64 = base64.b64encode(archivo_bytes).decode('utf-8')
 
-        estado: EstadoCotizacion
-        now = datetime.now(tz=timezone.utc)
-        emision = self.cotizacion.fecha_emision
-        vencimiento = self.cotizacion.fecha_vencimiento
-
-        INTERVALO_VENCIMIENTO = 10 # Cuántos días antes del vencimiento pasa a estado POR_VENCER
-
-        if emision > now:
-            estado = EstadoCotizacion.REGISTRADA
-        elif emision <= now and vencimiento > now and (vencimiento - now).days <= INTERVALO_VENCIMIENTO:
-            estado = EstadoCotizacion.POR_VENCER
-        elif emision <= now and vencimiento > now and (vencimiento - now).days > INTERVALO_VENCIMIENTO:
-            estado = EstadoCotizacion.VIGENTE
-        else:
-            estado = EstadoCotizacion.VENCIDA
+        estado = EstadoCotizacion(
+            calcular_estado_cotizacion(
+                self.cotizacion.fecha_emision,
+                self.cotizacion.fecha_vencimiento,
+                datetime.now(tz=timezone.utc),
+            )
+        )
 
         return CotizacionJson(
             id=self.cotizacion.id,
