@@ -65,15 +65,3 @@ class RepositorioMetricasDashboard(ABC):
         self, year: int, mes: int
     ) -> list[dict]:
         pass
-
-    @abstractmethod
-    def obtener_kpis_evaluacion(self, year: int, mes: int) -> dict:
-        pass
-
-    @abstractmethod
-    def obtener_evaluacion_por_compania(self) -> list[dict]:
-        pass
-
-    @abstractmethod
-    def obtener_evaluacion_por_producto(self) -> list[dict]:
-        pass

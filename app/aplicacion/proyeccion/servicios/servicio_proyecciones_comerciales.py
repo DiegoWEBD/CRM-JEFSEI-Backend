@@ -68,3 +68,70 @@ class ServicioProyeccionesComerciales:
             return None
 
         return round(self.prima_potencial_estimada(proceso) * probabilidad_cierre, ServicioProyeccionesComerciales.DECIMALES)
+
+    def prima_cotizada_total(self, procesos: list[ProcesoComercial]) -> float:
+        """Suma de la prima cotizada de cada oportunidad.
+
+        Delega en `prima_cotizada` (solo cotizaciones vigentes).
+        """
+        return round(
+            sum(self.prima_cotizada(proceso) for proceso in procesos),
+            ServicioProyeccionesComerciales.DECIMALES,
+        )
+
+    def prima_potencial_estimada_total(self, procesos: list[ProcesoComercial]) -> float:
+        """Suma de la prima potencial estimada de cada oportunidad.
+
+        Delega en `prima_potencial_estimada`.
+        """
+        return round(
+            sum(self.prima_potencial_estimada(proceso) for proceso in procesos),
+            ServicioProyeccionesComerciales.DECIMALES,
+        )
+
+    def prima_esperada_total(self, procesos: list[ProcesoComercial]) -> float:
+        """Suma de la prima esperada de cada oportunidad.
+
+        Delega en `prima_esperada`; las oportunidades sin probabilidad de
+        cierre no aportan (el método devuelve None).
+        """
+        total = 0
+
+        for proceso in procesos:
+            esperada = self.prima_esperada(proceso)
+
+            if esperada is not None:
+                total += esperada
+
+        return round(total, ServicioProyeccionesComerciales.DECIMALES)
+
+    def proyeccion_prima_esperada_por_mes(
+        self, procesos: list[ProcesoComercial]
+    ) -> list[dict]:
+        """Prima esperada agrupada por mes de la fecha estimada de cierre.
+
+        Solo se incluyen los meses con al menos una oportunidad, en orden
+        ascendente. Las oportunidades sin fecha estimada de cierre o sin
+        prima esperada no aportan. Delega en `prima_esperada`.
+        """
+        por_mes: dict[str, float] = {}
+
+        for proceso in procesos:
+            if proceso.fecha_estimada_cierre is None:
+                continue
+
+            esperada = self.prima_esperada(proceso)
+
+            if esperada is None:
+                continue
+
+            mes = proceso.fecha_estimada_cierre.strftime('%Y-%m')
+            por_mes[mes] = por_mes.get(mes, 0) + esperada
+
+        return [
+            {
+                'mes': mes,
+                'prima_esperada': round(total, ServicioProyeccionesComerciales.DECIMALES),
+            }
+            for mes, total in sorted(por_mes.items())
+        ]
