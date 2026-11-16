@@ -26,7 +26,8 @@ class RowsRolConPermisosAdapter:
                 roles[row['codigo']].permisos.append(
                     Permiso(
                         codigo=row['permiso_codigo'],
-                        descripcion=row['permiso_descripcion']
+                        descripcion=row['permiso_descripcion'],
+                        nombre=row['permiso_nombre']
                     )
                 )
 

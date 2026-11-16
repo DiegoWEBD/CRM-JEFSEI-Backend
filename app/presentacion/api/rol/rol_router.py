@@ -43,20 +43,7 @@ def obtener_roles_con_permisos(
     roles = use_case.ejecutar()
 
     return {
-        'data': [
-            {
-                'codigo': rol.codigo,
-                'nombre': rol.nombre,
-                'permisos': [
-                    {
-                        'codigo': permiso.codigo,
-                        'descripcion': permiso.descripcion
-                    }
-                    for permiso in rol.permisos
-                ]
-            }
-            for rol in roles
-        ]
+        'data': roles
     }
 
 

@@ -94,7 +94,7 @@ class TestObtenerRolesConPermisos:
         data = response.json()['data']
         assert data[0]['codigo'] == 'GERENTE_GENERAL'
         assert data[0]['permisos'] == [
-            {'codigo': 'ADMINISTRAR_ROLES', 'descripcion': 'Ver usuarios'}
+            {'codigo': 'ADMINISTRAR_ROLES', 'descripcion': 'Ver usuarios', 'nombre': 'Ver usuarios'}
         ]
 
 

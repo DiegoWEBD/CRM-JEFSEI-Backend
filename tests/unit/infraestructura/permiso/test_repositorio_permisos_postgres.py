@@ -27,8 +27,8 @@ class TestRepositorioPermisosPostgres:
 
     def test_obtener_todos(self, obtener_conexion_mock):
         rows = [
-            {"codigo": "ADMINISTRAR_ROLES", "descripcion": "Administrar roles"},
-            {"codigo": "VER_ALERTAS", "descripcion": "Ver alertas"},
+            {"codigo": "ADMINISTRAR_ROLES", "descripcion": "Administrar roles", "nombre": "Administrar roles"},
+            {"codigo": "VER_ALERTAS", "descripcion": "Ver alertas", "nombre": "Ver alertas"},
         ]
         conexion, cursor = _conexion_mock(rows=rows)
         obtener_conexion_mock.return_value = conexion
@@ -39,7 +39,7 @@ class TestRepositorioPermisosPostgres:
         assert [p.codigo for p in permisos] == ["ADMINISTRAR_ROLES", "VER_ALERTAS"]
 
     def test_obtener_por_codigos(self, obtener_conexion_mock):
-        rows = [{"codigo": "VER_ALERTAS", "descripcion": "Ver alertas"}]
+        rows = [{"codigo": "VER_ALERTAS", "descripcion": "Ver alertas", "nombre": "Ver alertas"}]
         conexion, cursor = _conexion_mock(rows=rows)
         obtener_conexion_mock.return_value = conexion
 

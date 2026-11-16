@@ -16,11 +16,5 @@ def obtener_permisos(
     permisos = use_case.ejecutar()
 
     return {
-        'data': [
-            {
-                'codigo': permiso.codigo,
-                'descripcion': permiso.descripcion
-            }
-            for permiso in permisos
-        ]
+        'data': permisos
     }

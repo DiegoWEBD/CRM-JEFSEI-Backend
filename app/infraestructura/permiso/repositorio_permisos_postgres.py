@@ -11,7 +11,7 @@ class RepositorioPermisosPostgres(RepositorioPermisos):
             with conn.cursor() as cur:
 
                 query = '''
-                    select codigo, descripcion
+                    select codigo, descripcion, nombre
                     from Permiso
                     order by codigo
                 '''
@@ -29,7 +29,7 @@ class RepositorioPermisosPostgres(RepositorioPermisos):
             with conn.cursor() as cur:
 
                 query = '''
-                    select codigo, descripcion
+                    select codigo, descripcion, nombre
                     from Permiso
                     where codigo = any(%(codigos)s)
                 '''

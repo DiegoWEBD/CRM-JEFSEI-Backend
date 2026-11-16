@@ -62,18 +62,21 @@ class TestObtenerConPermisos:
                 "nombre": "Gerente General",
                 "permiso_codigo": "ADMINISTRAR_ROLES",
                 "permiso_descripcion": "Administrar roles",
+                "permiso_nombre": "Administrar roles",
             },
             {
                 "codigo": "GERENTE_GENERAL",
                 "nombre": "Gerente General",
                 "permiso_codigo": "VER_ALERTAS",
                 "permiso_descripcion": "Ver alertas",
+                "permiso_nombre": "Ver alertas",
             },
             {
                 "codigo": "EJECUTIVO_COMERCIAL",
                 "nombre": "Ejecutivo Comercial",
                 "permiso_codigo": None,
                 "permiso_descripcion": None,
+                "permiso_nombre": None,
             },
         ]
         conexion, cursor = _conexion_mock(rows=rows)

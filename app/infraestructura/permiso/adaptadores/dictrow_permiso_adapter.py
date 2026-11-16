@@ -11,5 +11,6 @@ class DictRowPermisoAdapter:
     def to_permiso(self) -> Permiso:
         return Permiso(
             codigo=self.row['codigo'],
-            descripcion=self.row['descripcion']
+            descripcion=self.row['descripcion'],
+            nombre=self.row['nombre']
         )

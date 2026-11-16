@@ -47,7 +47,8 @@ class RepositorioRolesPostgres(RepositorioRoles):
                 query = '''
                     select R.codigo, R.nombre,
                            P.codigo as permiso_codigo,
-                           P.descripcion as permiso_descripcion
+                           P.descripcion as permiso_descripcion,
+                           P.nombre as permiso_nombre
                     from Rol R
                     left join PermisoRol PR on PR.codigo_rol = R.codigo
                     left join Permiso P on P.codigo = PR.codigo_permiso
