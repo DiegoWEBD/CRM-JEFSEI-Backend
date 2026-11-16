@@ -1,18 +1,22 @@
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
+from app.aplicacion.usuario.use_cases.actualizar_roles_usuario import ActualizarRolesUsuarioUseCase
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.eliminar_usuario import EliminarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
 from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
+from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
+from app.presentacion.api.auditoria.lib.construir_contexto_peticion import construir_contexto_peticion
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.dto.deps import get_paginacion_params
 from app.presentacion.api.dto.paginacion_params import PaginacionParams
 from app.presentacion.api.recordatorio.dependencias.deps import get_obtener_proximo_contacto_use_case
-from app.presentacion.api.usuario.deps import get_actualizar_usuario_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
+from app.presentacion.api.usuario.deps import get_actualizar_roles_usuario_use_case, get_actualizar_usuario_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
+from app.presentacion.api.usuario.dto.actualizar_roles_usuario_request import ActualizarRolesUsuarioRequest
 from app.presentacion.api.usuario.dto.actualizar_usuario_request import ActualizarUsuarioRequest
 from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
 
@@ -118,6 +122,32 @@ def actualizar_usuario(
 
     return {
         'message': 'Usuario actualizado correctamente'
+    }
+
+
+@router.put('/{rut}/roles', status_code=status.HTTP_200_OK)
+def actualizar_roles_usuario(
+    rut: str,
+    request: ActualizarRolesUsuarioRequest,
+    http_request: Request,
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ROLES')),
+    use_case: ActualizarRolesUsuarioUseCase = Depends(get_actualizar_roles_usuario_use_case)
+):
+    actualizado = use_case.ejecutar(
+        rut=rut,
+        codigo_roles=request.codigo_roles,
+        usuario_ejecutor=usuario,
+        contexto=construir_contexto_peticion(http_request),
+    )
+
+    if not actualizado:
+        raise HTTPException(
+            status_code=400,
+            detail='Error al actualizar los roles del usuario'
+        )
+
+    return {
+        'message': 'Roles del usuario actualizados correctamente'
     }
 
 

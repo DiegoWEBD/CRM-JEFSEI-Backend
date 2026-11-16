@@ -7,8 +7,9 @@ from app.dominio.sucursal.sucursal import Sucursal
 def crear_permiso_mock(
     codigo: str = "VER_USUARIOS",
     descripcion: str = "Ver usuarios",
+    nombre: str = "Ver usuarios",
 ) -> Permiso:
-    return Permiso(codigo=codigo, descripcion=descripcion)
+    return Permiso(codigo=codigo, descripcion=descripcion, nombre=nombre)
 
 
 def crear_rol_mock(
@@ -68,6 +69,7 @@ def crear_usuario_admin_mock(**kwargs) -> Usuario:
         crear_permiso_mock(codigo="OBTENER_USUARIOS", descripcion="Obtener usuarios"),
         crear_permiso_mock(codigo="REGISTRAR_USUARIOS", descripcion="Registrar usuarios"),
         crear_permiso_mock(codigo="ADMINISTRAR_USUARIOS", descripcion="Administrar usuarios"),
+        crear_permiso_mock(codigo="ADMINISTRAR_ROLES", descripcion="Administrar roles y permisos"),
         crear_permiso_mock(codigo="VER_METRICAS_GERENCIA", descripcion="Ver métricas gerencia"),
         crear_permiso_mock(codigo="VER_METRICAS_EJECUTIVO", descripcion="Ver métricas ejecutivo"),
         crear_permiso_mock(codigo="VER_ALERTAS", descripcion="Ver alertas y notificaciones"),

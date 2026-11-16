@@ -25,7 +25,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     RU.codigo_rol,
                     R.nombre as rol,
                     PR.codigo_permiso, 
-                    P.descripcion as descripcion_permiso
+                    P.descripcion as descripcion_permiso,
+                    P.nombre as nombre_permiso
                     from Usuario U
                     inner join Sucursal S
                     on U.id_sucursal = S.id
@@ -106,7 +107,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     RU.codigo_rol,
                     R.nombre as rol,
                     PR.codigo_permiso, 
-                    P.descripcion as descripcion_permiso
+                    P.descripcion as descripcion_permiso,
+                    P.nombre as nombre_permiso
                     from Usuario U
                     inner join Sucursal S
                     on U.id_sucursal = S.id
@@ -323,7 +325,8 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                     RU.codigo_rol,
                     R.nombre as rol,
                     PR.codigo_permiso,
-                    P.descripcion as descripcion_permiso
+                    P.descripcion as descripcion_permiso,
+                    P.nombre as nombre_permiso
                     FROM usuarios_paginados UP
                     INNER JOIN Usuario U ON U.rut = UP.rut
                     INNER JOIN Sucursal S ON U.id_sucursal = S.id

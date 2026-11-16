@@ -53,10 +53,12 @@ class TupleRowsUsuarioAdapter:
 
             if codigo_permiso is not None:
                 descripcion_permiso = row['descripcion_permiso']
+                nombre_permiso = row['nombre_permiso']
 
                 permiso = Permiso(
                     codigo=codigo_permiso,
-                    descripcion=descripcion_permiso
+                    descripcion=descripcion_permiso,
+                    nombre=nombre_permiso
                 )
                 rol.permisos.append(permiso)
 
