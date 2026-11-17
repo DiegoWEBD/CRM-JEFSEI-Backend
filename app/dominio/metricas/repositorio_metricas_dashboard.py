@@ -19,7 +19,7 @@ class RepositorioMetricasDashboard(ABC):
         pass
 
     @abstractmethod
-    def obtener_tendencia_12_meses(
+    def obtener_tendencia_anual(
         self, year: int, mes: int
     ) -> list[dict]:
         pass

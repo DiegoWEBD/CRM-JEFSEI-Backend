@@ -70,7 +70,7 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
 
                 return float(row['total'])
 
-    def obtener_tendencia_12_meses(
+    def obtener_tendencia_anual(
         self, year: int, mes: int
     ) -> list[dict]:
         with obtener_conexion() as conn:
@@ -78,16 +78,14 @@ class RepositorioMetricasDashboardPostgres(RepositorioMetricasDashboard):
                 cur.execute(
                     '''
                     select
-                      to_char(fecha_emision, 'Mon') as mes,
-                      extract(month from fecha_emision) as mes_num,
-                      extract(year from fecha_emision) as year,
+                      to_char(fecha_emision, 'YYYY-MM') as mes,
                       coalesce(sum(prima_neta), 0) as prima_neta
                     from Poliza
-                    where fecha_emision >= date_trunc('month', make_date(%(year)s, %(mes)s, 1)) - interval '11 months'
+                    where fecha_emision >= make_date(%(year)s, 1, 1)
                       and fecha_emision < make_date(%(year)s, %(mes)s, 1) + interval '1 month'
                       and (cancelada is null or cancelada = false)
-                    group by year, mes_num, mes
-                    order by year, mes_num
+                    group by 1
+                    order by 1
                     ''',
                     {'year': year, 'mes': mes},
                 )
