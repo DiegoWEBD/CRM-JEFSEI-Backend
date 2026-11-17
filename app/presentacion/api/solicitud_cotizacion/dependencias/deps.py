@@ -1,7 +1,6 @@
 from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.proceso_comercial.use_cases.obtener_procesos_comerciales import ObtenerProcesosComercialesUseCase
-from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
 from app.aplicacion.solicitud_cotizacion.use_cases.eliminar_solicitud_cotizacion import EliminarSolicitudCotizacionUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_detalle_solicitud import ObtenerDetalleSolicitudUseCase
 from app.aplicacion.solicitud_cotizacion.use_cases.obtener_panel_cotizaciones import ObtenerPanelCotizacionesUseCase
@@ -16,6 +15,9 @@ from app.infraestructura.historial_estado.repositorio_historial_estado_procesos_
 from app.infraestructura.notificacion.repositorio_notificaciones_postgres import RepositorioNotificacionesPostgres
 from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
 from app.infraestructura.prospecto.repositorio_prospectos_postgres import RepositorioProspectosPostgres
+from app.infraestructura.proyeccion.repositorio_proyecciones_comerciales_postgres import (
+    RepositorioProyeccionesComercialesPostgres,
+)
 from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_panel_cotizaciones_postgres_service import ConsultaPanelCotizacionesPostgresService
 from app.infraestructura.solicitud_cotizacion.servicios.consulta_solicitudes_cotizacion_postgres_service import ConsultaSolicitudesCotizacionPostgresService
@@ -37,19 +39,13 @@ def get_obtener_procesos_comerciales_use_case():
     repositorio_prospectos = RepositorioProspectosPostgres()
     authorization_service = AuthorizationServiceFactory.crear_authorization_service()
 
-    servicio_proyecciones_comerciales = ServicioProyeccionesComerciales(
-        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
-        repositorio_cotizaciones=RepositorioCotizacionesPostgres()
-    )
-
     return ObtenerProcesosComercialesUseCase(
         repositorio_usuarios=RepositorioUsuariosPostgres(),
         authorization_service=authorization_service,
         repositorio_procesos_comerciales=repositorio,
         repositorio_prospectos=repositorio_prospectos,
-        servicio_proyecciones_comerciales=servicio_proyecciones_comerciales
+        repositorio_proyecciones=RepositorioProyeccionesComercialesPostgres()
     )
-
 def get_consulta_solicitudes_cotizacion_service():
     return ConsultaSolicitudesCotizacionPostgresService()
 

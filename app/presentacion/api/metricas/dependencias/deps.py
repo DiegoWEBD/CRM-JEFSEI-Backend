@@ -26,13 +26,15 @@ from app.aplicacion.metricas.use_cases.obtener_tasa_morosidad import ObtenerTasa
 from app.aplicacion.metricas.use_cases.obtener_tasa_renovacion import ObtenerTasaRenovacionUseCase
 from app.aplicacion.metricas.use_cases.obtener_tendencia_anual import ObtenerTendenciaAnualUseCase
 from app.aplicacion.metricas.use_cases.obtener_tiempo_promedio_cierre import ObtenerTiempoPromedioCierreUseCase
-from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
-from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
+from app.dominio.proyeccion.repositorio_proyecciones_comerciales import (
+    RepositorioProyeccionesComerciales,
+)
 from app.infraestructura.metricas.repositorio_kpis_comerciales_postgres import RepositorioKpisComercialesPostgres
 from app.infraestructura.metricas.repositorio_metricas_dashboard_postgres import RepositorioMetricasDashboardPostgres
 from app.infraestructura.poliza.repositorio_polizas_postgres import RepositorioPolizasPostgres
-from app.infraestructura.proceso_comercial.repositorio_procesos_comerciales_postgres import RepositorioProcesosComercialesPostgres
-from app.infraestructura.solicitud_cotizacion.repositorio_solicitudes_cotizacion_postgres import RepositorioSolicitudesCotizacionPostgres
+from app.infraestructura.proyeccion.repositorio_proyecciones_comerciales_postgres import (
+    RepositorioProyeccionesComercialesPostgres,
+)
 
 
 def get_obtener_prima_vendida_mensual_ej_comercial_use_case():
@@ -101,38 +103,24 @@ def get_obtener_polizas_por_ramo_use_case():
     return ObtenerPolizasPorRamoUseCase(_get_repositorio_dashboard())
 
 
-def _get_servicio_proyecciones_comerciales():
-    return ServicioProyeccionesComerciales(
-        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres(),
-        repositorio_cotizaciones=RepositorioCotizacionesPostgres(),
-    )
-
-
-def _get_obtener_proyecciones_use_case_args():
-    return (
-        RepositorioProcesosComercialesPostgres(),
-        _get_servicio_proyecciones_comerciales(),
-    )
+def _get_repositorio_proyecciones() -> RepositorioProyeccionesComerciales:
+    return RepositorioProyeccionesComercialesPostgres()
 
 
 def get_obtener_prima_cotizada_use_case():
-    return ObtenerPrimaCotizadaUseCase(*_get_obtener_proyecciones_use_case_args())
+    return ObtenerPrimaCotizadaUseCase(_get_repositorio_proyecciones())
 
 
 def get_obtener_prima_potencial_estimada_use_case():
-    return ObtenerPrimaPotencialEstimadaUseCase(
-        *_get_obtener_proyecciones_use_case_args()
-    )
+    return ObtenerPrimaPotencialEstimadaUseCase(_get_repositorio_proyecciones())
 
 
 def get_obtener_prima_esperada_use_case():
-    return ObtenerPrimaEsperadaUseCase(*_get_obtener_proyecciones_use_case_args())
+    return ObtenerPrimaEsperadaUseCase(_get_repositorio_proyecciones())
 
 
 def get_obtener_proyeccion_prima_esperada_use_case():
-    return ObtenerProyeccionPrimaEsperadaUseCase(
-        *_get_obtener_proyecciones_use_case_args()
-    )
+    return ObtenerProyeccionPrimaEsperadaUseCase(_get_repositorio_proyecciones())
 
 
 def _get_repositorio_kpis():

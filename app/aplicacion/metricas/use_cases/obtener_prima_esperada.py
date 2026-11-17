@@ -1,33 +1,24 @@
 from app.aplicacion.metricas.dto.metricas_dashboard_dto import PrimaEsperadaDto
-from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import (
-    ServicioProyeccionesComerciales,
-)
-from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
-    RepositorioProcesosComerciales,
+from app.dominio.proyeccion.repositorio_proyecciones_comerciales import (
+    RepositorioProyeccionesComerciales,
 )
 
 
 class ObtenerPrimaEsperadaUseCase:
     """Prima esperada de las oportunidades abiertas.
 
-    El cálculo lo hace `ServicioProyeccionesComerciales`, el mismo que
-    alimenta la vista de oportunidades.
+    El cálculo lo hace `RepositorioProyeccionesComerciales` en SQL, el
+    mismo criterio que alimenta la vista de oportunidades. Las
+    oportunidades sin probabilidad de cierre no aportan.
     """
 
     def __init__(
         self,
-        repositorio_procesos: RepositorioProcesosComerciales,
-        servicio_proyecciones: ServicioProyeccionesComerciales,
+        repositorio_proyecciones: RepositorioProyeccionesComerciales,
     ):
-        self.repositorio_procesos = repositorio_procesos
-        self.servicio_proyecciones = servicio_proyecciones
+        self.repositorio_proyecciones = repositorio_proyecciones
 
     def ejecutar(self) -> PrimaEsperadaDto:
-        procesos = self.repositorio_procesos.obtener_procesos_comerciales(
-            id_prospecto=None,
-            abiertos=True,
-        )
-
         return PrimaEsperadaDto(
-            prima_esperada=self.servicio_proyecciones.prima_esperada_total(procesos)
+            prima_esperada=self.repositorio_proyecciones.prima_esperada_total_abiertos()
         )
