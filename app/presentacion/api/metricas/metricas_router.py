@@ -28,7 +28,7 @@ from app.aplicacion.metricas.use_cases.obtener_resumen_actividades import Obtene
 from app.aplicacion.metricas.use_cases.obtener_tasa_cierre import ObtenerTasaCierreUseCase
 from app.aplicacion.metricas.use_cases.obtener_tasa_morosidad import ObtenerTasaMorosidadUseCase
 from app.aplicacion.metricas.use_cases.obtener_tasa_renovacion import ObtenerTasaRenovacionUseCase
-from app.aplicacion.metricas.use_cases.obtener_tendencia_12_meses import ObtenerTendencia12MesesUseCase
+from app.aplicacion.metricas.use_cases.obtener_tendencia_anual import ObtenerTendenciaAnualUseCase
 from app.aplicacion.metricas.use_cases.obtener_tiempo_promedio_cierre import ObtenerTiempoPromedioCierreUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
@@ -59,7 +59,7 @@ from app.presentacion.api.metricas.dependencias.deps import (
     get_obtener_tasa_cierre_use_case,
     get_obtener_tasa_morosidad_use_case,
     get_obtener_tasa_renovacion_use_case,
-    get_obtener_tendencia_12_meses_use_case,
+    get_obtener_tendencia_anual_use_case,
     get_obtener_tiempo_promedio_cierre_use_case,
 )
 
@@ -118,13 +118,13 @@ def obtener_comision_mensual(
     return use_case.ejecutar(anio, mes_val)
 
 
-@router.get('/tendencia-12-meses', status_code=status.HTTP_200_OK)
-def obtener_tendencia_12_meses(
+@router.get('/tendencia-anual', status_code=status.HTTP_200_OK)
+def obtener_tendencia_anual(
     mes: int | None = Query(None, ge=1, le=12),
     year: int | None = Query(None, ge=2000),
     _ = Depends(permisos_requeridos('VER_METRICAS_GERENCIA')),
-    use_case: ObtenerTendencia12MesesUseCase = Depends(
-        get_obtener_tendencia_12_meses_use_case
+    use_case: ObtenerTendenciaAnualUseCase = Depends(
+        get_obtener_tendencia_anual_use_case
     ),
 ):
     anio, mes_val = resolver_periodo(mes, year)

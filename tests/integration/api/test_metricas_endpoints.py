@@ -5,7 +5,7 @@ from tests.integration.api.conftest_api import *
 ENDPOINTS_METRICAS_DASHBOARD = [
     ('/metricas/prima-neta-mensual', {'total_prima_neta': 100.0, 'variacion_mes_anterior': 5.0, 'mes_label': 'Noviembre 2026'}),
     ('/metricas/comision-mensual', {'total_comision': 10.0, 'mes_label': 'Noviembre 2026'}),
-    ('/metricas/tendencia-12-meses', [{'mes': 'Nov', 'prima_neta': 100.0}]),
+    ('/metricas/tendencia-anual', [{'mes': '2026-11', 'prima_neta': 100.0}]),
     ('/metricas/prima-por-compania', [{'nombre': 'Compania', 'valor': 100.0}]),
     ('/metricas/compania-top', {'nombre': 'Compania', 'prima_neta': 100.0}),
     ('/metricas/prima-por-ejecutivo', [{'nombre': 'Ejecutivo', 'valor': 100.0}]),
@@ -21,7 +21,7 @@ ENDPOINTS_METRICAS_DASHBOARD = [
 PROVIDERS_METRICAS_DASHBOARD = {
     '/metricas/prima-neta-mensual': 'get_obtener_prima_neta_mensual_use_case',
     '/metricas/comision-mensual': 'get_obtener_comision_mensual_use_case',
-    '/metricas/tendencia-12-meses': 'get_obtener_tendencia_12_meses_use_case',
+    '/metricas/tendencia-anual': 'get_obtener_tendencia_anual_use_case',
     '/metricas/prima-por-compania': 'get_obtener_prima_por_compania_use_case',
     '/metricas/compania-top': 'get_obtener_compania_top_use_case',
     '/metricas/prima-por-ejecutivo': 'get_obtener_prima_por_ejecutivo_use_case',

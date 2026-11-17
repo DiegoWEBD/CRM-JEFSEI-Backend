@@ -24,7 +24,7 @@ from app.aplicacion.metricas.use_cases.obtener_resumen_actividades import Obtene
 from app.aplicacion.metricas.use_cases.obtener_tasa_cierre import ObtenerTasaCierreUseCase
 from app.aplicacion.metricas.use_cases.obtener_tasa_morosidad import ObtenerTasaMorosidadUseCase
 from app.aplicacion.metricas.use_cases.obtener_tasa_renovacion import ObtenerTasaRenovacionUseCase
-from app.aplicacion.metricas.use_cases.obtener_tendencia_12_meses import ObtenerTendencia12MesesUseCase
+from app.aplicacion.metricas.use_cases.obtener_tendencia_anual import ObtenerTendenciaAnualUseCase
 from app.aplicacion.metricas.use_cases.obtener_tiempo_promedio_cierre import ObtenerTiempoPromedioCierreUseCase
 from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
 from app.infraestructura.cotizacion.repositorio_cotizaciones_postgres import RepositorioCotizacionesPostgres
@@ -57,8 +57,8 @@ def get_obtener_comision_mensual_use_case():
     return ObtenerComisionMensualUseCase(_get_repositorio_dashboard())
 
 
-def get_obtener_tendencia_12_meses_use_case():
-    return ObtenerTendencia12MesesUseCase(_get_repositorio_dashboard())
+def get_obtener_tendencia_anual_use_case():
+    return ObtenerTendenciaAnualUseCase(_get_repositorio_dashboard())
 
 
 def get_obtener_prima_por_compania_use_case():
