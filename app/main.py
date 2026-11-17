@@ -14,6 +14,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.infraestructura.auditoria.middleware_auditoria import MiddlewareAuditoria
+from app.infraestructura.db.conexion import cerrar_pool
 from app.presentacion.api.administrador_condominio import administrador_condominio_router
 from app.presentacion.api.archivo import archivo_router
 from app.presentacion.api.auditoria import auditoria_router
@@ -57,6 +58,7 @@ async def lifespan(_: FastAPI):
     iniciar_scheduler()
     yield
     detener_scheduler()
+    cerrar_pool()
 
 
 app = FastAPI(

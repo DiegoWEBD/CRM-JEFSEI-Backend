@@ -1,10 +1,12 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
-from app.aplicacion.proyeccion.servicios.servicio_proyecciones_comerciales import ServicioProyeccionesComerciales
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.proyeccion.repositorio_proyecciones_comerciales import (
+    RepositorioProyeccionesComerciales,
+)
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
 
@@ -17,13 +19,13 @@ class ObtenerProcesosComercialesUseCase:
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
         repositorio_prospectos: RepositorioProspectos,
         repositorio_usuarios: RepositorioUsuarios,
-        servicio_proyecciones_comerciales: ServicioProyeccionesComerciales
+        repositorio_proyecciones: RepositorioProyeccionesComerciales
     ):
         self.repositorio_usuarios = repositorio_usuarios
         self.authorization_service = authorization_service
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_prospectos = repositorio_prospectos
-        self.servicio_proyecciones_comerciales = servicio_proyecciones_comerciales
+        self.repositorio_proyecciones = repositorio_proyecciones
 
     def ejecutar(
         self, 
@@ -68,9 +70,26 @@ class ObtenerProcesosComercialesUseCase:
 
         procesos = self.repositorio_procesos_comerciales.obtener_procesos_comerciales(prospecto.id, abiertos, renovaciones)
 
+        agregados = self.repositorio_proyecciones.agregados_por_proceso(
+            [proceso.id for proceso in procesos]
+        )
+
         for proceso in procesos:
-            proceso.prima_cotizada = self.servicio_proyecciones_comerciales.prima_cotizada(proceso)
-            proceso.prima_potencial_estimada = self.servicio_proyecciones_comerciales.prima_potencial_estimada(proceso)
-            proceso.prima_esperada = self.servicio_proyecciones_comerciales.prima_esperada(proceso)
+            agregado = agregados.get(proceso.id)
+
+            if agregado is None:
+                probabilidad = proceso.probabilidad_cierre_ejecutivo
+
+                if probabilidad is None:
+                    probabilidad = proceso.estado_actual.probabilidad_cierre
+
+                proceso.prima_cotizada = 0
+                proceso.prima_potencial_estimada = 0
+                proceso.prima_esperada = 0 if probabilidad is not None else None
+                continue
+
+            proceso.prima_cotizada = agregado.prima_cotizada
+            proceso.prima_potencial_estimada = agregado.prima_potencial_estimada
+            proceso.prima_esperada = agregado.prima_esperada
 
         return procesos

@@ -52,6 +52,8 @@ psycopg[binary]==3.3.4
     # via -r requirements.in
 psycopg-binary==3.3.4
     # via psycopg
+psycopg-pool==3.3.3
+    # via -r requirements.in
 pycparser==3.0
     # via cffi
 pydantic==2.13.4
