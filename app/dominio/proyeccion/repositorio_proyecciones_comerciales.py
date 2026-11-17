@@ -48,3 +48,13 @@ class RepositorioProyeccionesComerciales(ABC):
         aparecen en el resultado.
         """
         pass
+
+    @abstractmethod
+    def tasa_cierre_oportunidades(self) -> dict:
+        """Tasa de cierre de oportunidades: ganadas / cerradas.
+
+        Solo cuentan como cerradas las oportunidades con estado final
+        `GANADO` o `PERDIDO` (las descartadas no). Devuelve
+        `{'oportunidades_ganadas': int, 'oportunidades_cerradas': int}`.
+        """
+        pass

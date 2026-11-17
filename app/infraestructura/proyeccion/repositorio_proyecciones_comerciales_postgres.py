@@ -117,6 +117,19 @@ class RepositorioProyeccionesComercialesPostgres(RepositorioProyeccionesComercia
         from valores
     '''
 
+    _TASA_CIERRE = '''
+        select
+            count(*) filter (
+                where PC.cerrado = true
+                and PC.codigo_estado_actual = 'GANADO'
+            ) as oportunidades_ganadas,
+            count(*) filter (
+                where PC.cerrado = true
+                and PC.codigo_estado_actual in ('GANADO', 'PERDIDO')
+            ) as oportunidades_cerradas
+        from ProcesoComercial PC
+    '''
+
     def prima_cotizada_total_abiertos(self) -> float:
         return self._total(self._TOTAL_PRIMA_COTIZADA)
 
@@ -168,6 +181,17 @@ class RepositorioProyeccionesComercialesPostgres(RepositorioProyeccionesComercia
                         ),
                     )
                     for row in rows
+                }
+
+    def tasa_cierre_oportunidades(self) -> dict:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute(RepositorioProyeccionesComercialesPostgres._TASA_CIERRE)
+                row = cur.fetchone()
+
+                return {
+                    'oportunidades_ganadas': row['oportunidades_ganadas'] if row else 0,
+                    'oportunidades_cerradas': row['oportunidades_cerradas'] if row else 0,
                 }
 
     def _total(self, consulta_total: str) -> float:

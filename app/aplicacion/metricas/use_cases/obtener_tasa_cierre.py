@@ -1,19 +1,30 @@
-from app.aplicacion.metricas.dto.filtros_kpi_dto import FiltrosKpiDto
-from app.aplicacion.metricas.dto.kpi_cierre_dto import KpiCierreDto
-from app.dominio.metricas.repositorio_kpis_comerciales import RepositorioKpisComerciales
+from app.aplicacion.metricas.dto.metricas_dashboard_dto import TasaCierreDto
+from app.dominio.proyeccion.repositorio_proyecciones_comerciales import (
+    RepositorioProyeccionesComerciales,
+)
 
 
 class ObtenerTasaCierreUseCase:
+    """Tasa de cierre de oportunidades: ganadas / cerradas.
 
-    def __init__(self, repositorio: RepositorioKpisComerciales):
-        self.repositorio = repositorio
+    Solo cuentan como cerradas las oportunidades con estado final
+    `GANADO` o `PERDIDO` (las descartadas no). El conteo lo hace
+    `RepositorioProyeccionesComerciales` en SQL.
+    """
 
-    def ejecutar(self, filtros: FiltrosKpiDto) -> KpiCierreDto:
-        data = self.repositorio.obtener_tasa_cierre(filtros)
-        return KpiCierreDto(
-            total_procesos_cerrados=data['total_procesos_cerrados'],
-            procesos_ganados=data['procesos_ganados'],
-            procesos_perdidos=data['procesos_perdidos'],
-            tasa_cierre_pct=data['tasa_cierre_pct'],
-            tasa_perdida_pct=data['tasa_perdida_pct'],
+    def __init__(
+        self,
+        repositorio_proyecciones: RepositorioProyeccionesComerciales,
+    ):
+        self.repositorio_proyecciones = repositorio_proyecciones
+
+    def ejecutar(self) -> TasaCierreDto:
+        conteos = self.repositorio_proyecciones.tasa_cierre_oportunidades()
+        ganadas = conteos['oportunidades_ganadas']
+        cerradas = conteos['oportunidades_cerradas']
+        tasa_cierre_pct = round(ganadas * 100.0 / cerradas, 2) if cerradas > 0 else 0.0
+        return TasaCierreDto(
+            tasa_cierre_pct=tasa_cierre_pct,
+            oportunidades_ganadas=ganadas,
+            oportunidades_cerradas=cerradas,
         )

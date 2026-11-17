@@ -72,3 +72,10 @@ class PrimaEsperadaDto:
 class ProyeccionPrimaEsperadaDto:
     mes: str
     prima_esperada: float
+
+
+@dataclass
+class TasaCierreDto:
+    tasa_cierre_pct: float
+    oportunidades_ganadas: int
+    oportunidades_cerradas: int
