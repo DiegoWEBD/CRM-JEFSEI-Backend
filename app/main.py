@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.core.hub_notificaciones import hub
 from app.core.scheduler import detener_scheduler, iniciar_scheduler
 from app.dominio.auth.exceptions import RefreshTokenInvalidoError, RefreshTokenReusadoError
@@ -61,337 +61,347 @@ async def lifespan(_: FastAPI):
     cerrar_pool()
 
 
-app = FastAPI(
-    title='CRM JEFSEI API',
-    version='1.0.0',
-    lifespan=lifespan,
-)
-
-origins = settings.origenes_permitidos
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
-
-# Auditoría de acciones de negocio: se registra todo cambio de estado con la
-# identidad resuelta por get_current_user y la IP real del cliente.
-app.add_middleware(MiddlewareAuditoria)
-
-@app.exception_handler(RefreshTokenInvalidoError)
-async def refresh_token_invalido_handler(
-    _: Request,
-    exc: RefreshTokenInvalidoError,
-):
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={'detail': 'Refresh token inválido o expirado'},
+def _crear_app(config: Settings) -> FastAPI:
+    app = FastAPI(
+        title='CRM JEFSEI API',
+        version='1.0.0',
+        lifespan=lifespan,
+        # La documentación interactiva solo se expone fuera de producción.
+        docs_url='/docs' if config.documentacion_habilitada else None,
+        redoc_url='/redoc' if config.documentacion_habilitada else None,
+        openapi_url='/openapi.json' if config.documentacion_habilitada else None,
     )
 
+    origins = config.origenes_permitidos
 
-@app.exception_handler(RefreshTokenReusadoError)
-async def refresh_token_reusado_handler(
-    _: Request,
-    exc: RefreshTokenReusadoError,
-):
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={'detail': 'Sesión comprometida: se detectó reutilización del token'},
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allow_headers=['Content-Type'],
     )
 
+    # Auditoría de acciones de negocio: se registra todo cambio de estado con la
+    # identidad resuelta por get_current_user y la IP real del cliente.
+    app.add_middleware(MiddlewareAuditoria)
 
-@app.exception_handler(RecursoNoEncontradoException)
-async def recurso_no_encontrado_handler(
-    _: Request,
-    exc: RecursoNoEncontradoException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={'detail': str(exc)},
+    @app.exception_handler(RefreshTokenInvalidoError)
+    async def refresh_token_invalido_handler(
+        _: Request,
+        exc: RefreshTokenInvalidoError,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={'detail': 'Refresh token inválido o expirado'},
+        )
+
+
+    @app.exception_handler(RefreshTokenReusadoError)
+    async def refresh_token_reusado_handler(
+        _: Request,
+        exc: RefreshTokenReusadoError,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={'detail': 'Sesión comprometida: se detectó reutilización del token'},
+        )
+
+
+    @app.exception_handler(RecursoNoEncontradoException)
+    async def recurso_no_encontrado_handler(
+        _: Request,
+        exc: RecursoNoEncontradoException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(UsuarioNoAutorizadoException)
+    async def usuario_no_autorizado_handler(
+        _: Request,
+        exc: UsuarioNoAutorizadoException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(BadRequestException)
+    async def bad_request_handler(
+        _: Request,
+        exc: BadRequestException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(DatoInvalidoException)
+    async def dato_invalido_handler(
+        _: Request,
+        exc: DatoInvalidoException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(RecursoYaExisteException)
+    async def recurso_ya_existe_handler(
+        _: Request,
+        exc: RecursoYaExisteException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(ConflictoEnAccionException)
+    async def conflict_handler(
+        _: Request,
+        exc: ConflictoEnAccionException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={'detail': str(exc)},
+        )
+
+
+    @app.exception_handler(Exception)
+    async def internal_server_error_handler(
+        _: Request,
+        exc: Exception,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={'detail': 'Ha ocurrido un error interno en el servidor'},
+        )
+
+
+    app.include_router(auth_router.router)
+
+    app.include_router(
+        router=usuario_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(UsuarioNoAutorizadoException)
-async def usuario_no_autorizado_handler(
-    _: Request,
-    exc: UsuarioNoAutorizadoException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN,
-        content={'detail': str(exc)},
+    app.include_router(
+        router=prospecto_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(BadRequestException)
-async def bad_request_handler(
-    _: Request,
-    exc: BadRequestException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={'detail': str(exc)},
+    app.include_router(
+        router=contacto_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(DatoInvalidoException)
-async def dato_invalido_handler(
-    _: Request,
-    exc: DatoInvalidoException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={'detail': str(exc)},
+    app.include_router(
+        router=cliente_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(RecursoYaExisteException)
-async def recurso_ya_existe_handler(
-    _: Request,
-    exc: RecursoYaExisteException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
-        content={'detail': str(exc)},
+    app.include_router(
+        router=linea_negocio_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(ConflictoEnAccionException)
-async def conflict_handler(
-    _: Request,
-    exc: ConflictoEnAccionException,
-):
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
-        content={'detail': str(exc)},
+    app.include_router(
+        router=comuna_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
-
-@app.exception_handler(Exception)
-async def internal_server_error_handler(
-    _: Request,
-    exc: Exception,
-):
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={'detail': 'Ha ocurrido un error interno en el servidor'},
+    app.include_router(
+        router=company_seguros_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
     )
 
+    app.include_router(
+        router=estudio_comercial_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(auth_router.router)
+    app.include_router(
+        router=recordatorio_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=usuario_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=comunicado_gerencia_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=prospecto_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=poliza_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=contacto_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=solicitud_cotizacion_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=cliente_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=importacion_alicuotas_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=linea_negocio_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=metricas_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=comuna_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=administrador_condominio_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=company_seguros_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=proceso_comercial_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=estudio_comercial_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=estado_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=recordatorio_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=sucursal_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=comunicado_gerencia_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=gestion_comercial_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=poliza_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=rol_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=solicitud_cotizacion_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=permiso_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=importacion_alicuotas_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=cuota_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=metricas_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=etapa_proceso_comercial_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=administrador_condominio_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=cobranza_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=proceso_comercial_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=archivo_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=estado_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=configuracion_condominio_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=sucursal_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=producto_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=gestion_comercial_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=notificacion_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=rol_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=auditoria_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=permiso_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    app.include_router(
+        router=sesiones_router.router,
+        dependencies=[
+            Depends(get_current_user)
+        ]
+    )
 
-app.include_router(
-    router=cuota_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    # El WebSocket se autentica con el ticket de /auth/ws-ticket (el navegador no
+    # envía la cookie de sesión en un handshake cruzado), no con Depends(get_current_user).
+    app.include_router(ws_router.router)
 
-app.include_router(
-    router=etapa_proceso_comercial_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
+    return app
 
-app.include_router(
-    router=cobranza_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
 
-app.include_router(
-    router=archivo_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-app.include_router(
-    router=configuracion_condominio_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-app.include_router(
-    router=producto_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-app.include_router(
-    router=notificacion_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-app.include_router(
-    router=auditoria_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-app.include_router(
-    router=sesiones_router.router,
-    dependencies=[
-        Depends(get_current_user)
-    ]
-)
-
-# El WebSocket se autentica con el ticket de /auth/ws-ticket (el navegador no
-# envía la cookie de sesión en un handshake cruzado), no con Depends(get_current_user).
-app.include_router(ws_router.router)
+app = _crear_app(settings)

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
@@ -41,6 +43,10 @@ class Settings(BaseSettings):
     # Apaga la captura de eventos de auditoría sin tocar código.
     CRM_AUDITORIA_HABILITADA: bool = True
 
+    # Entorno de despliegue. En 'produccion' la documentación interactiva
+    # (/docs, /redoc, /openapi.json) queda deshabilitada.
+    CRM_ENTORNO: Literal['desarrollo', 'produccion'] = 'desarrollo'
+
     @field_validator('ACCESS_TOKEN_SECRET_KEY')
     @classmethod
     def _validar_secreto_jwt(cls, v: str) -> str:
@@ -63,6 +69,11 @@ class Settings(BaseSettings):
     @property
     def origenes_permitidos(self) -> list[str]:
         return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
+
+    @property
+    def documentacion_habilitada(self) -> bool:
+        """La documentación interactiva solo se expone fuera de producción."""
+        return self.CRM_ENTORNO == 'desarrollo'
 
     @property
     def proxies_confiables(self) -> list[str]:

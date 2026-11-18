@@ -33,3 +33,18 @@ def test_secreto_jwt_explicito_es_aceptado(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.ACCESS_TOKEN_SECRET_KEY == 'un-secreto-fuerte-y-explícito-123'
+
+
+def test_entorno_invalido_es_rechazado(monkeypatch):
+    monkeypatch.setenv('CRM_ENTORNO', 'staging')
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_documentacion_habilitada_segun_entorno(monkeypatch):
+    monkeypatch.setenv('CRM_ENTORNO', 'produccion')
+    assert Settings(_env_file=None).documentacion_habilitada is False
+
+    monkeypatch.setenv('CRM_ENTORNO', 'desarrollo')
+    assert Settings(_env_file=None).documentacion_habilitada is True
