@@ -82,7 +82,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                 return [DictRowProcesoAlertableSlaAdapter(row).to_proceso_alertable_sla() for row in rows]
 
     def obtener_polizas_alertables_renovacion(
-        self, id_cliente: int | None = None
+        self, id_cliente: int | None = None, id_prospecto: int | None = None
     ) -> list[PolizaAlertableRenovacion]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -97,6 +97,10 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     condiciones.append(sql.SQL('P.id_cliente = %(id_cliente)s'))
                     params['id_cliente'] = id_cliente
 
+                if id_prospecto is not None:
+                    condiciones.append(sql.SQL('C.id_prospecto = %(id_prospecto)s'))
+                    params['id_prospecto'] = id_prospecto
+
                 query = sql.SQL('''
                     select P.numero_poliza,
                     P.fin_vigencia,
@@ -104,6 +108,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     PRO.nombre_riesgo as nombre_cliente,
                     C.rut_ej_renovacion_asignado,
                     C.rut_as_renovacion_asignado,
+                    PRO.rut_ej_comercial_asignado,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
                         inner join ProcesoComercial PC
@@ -139,6 +144,7 @@ class RepositorioNotificacionesPostgres(RepositorioNotificaciones):
                     PRO.nombre_riesgo as nombre_cliente,
                     C.rut_ej_renovacion_asignado,
                     C.rut_as_renovacion_asignado,
+                    PRO.rut_ej_comercial_asignado,
                     exists (
                         select 1 from ProcesoComercialRenovacion PCR
                         inner join ProcesoComercial PC

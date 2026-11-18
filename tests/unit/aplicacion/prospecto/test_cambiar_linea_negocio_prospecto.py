@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
@@ -12,6 +13,9 @@ from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte
 from app.aplicacion.prospecto.use_cases.cambiar_linea_negocio_prospecto import (
     MOTIVO_DESCARTE_CAMBIO_LINEA,
     CambiarLineaNegocioProspectoUseCase,
+)
+from app.dominio.authorization.authorizacion_repository import (
+    AuthorizationRepository,
 )
 from app.dominio.exceptions.conflicto_en_accion_exception import (
     ConflictoEnAccionException,
@@ -30,6 +34,10 @@ from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
     RepositorioProcesosComerciales,
 )
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import (
+    RepositorioSolicitudesCotizacion,
+)
+from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from tests.factories.linea_negocio_factory import crear_linea_negocio_mock
 from tests.factories.proceso_comercial_factory import crear_proceso_comercial_mock
 from tests.factories.prospecto_factory import crear_prospecto_mock
@@ -90,7 +98,19 @@ def reevaluar_alertas_mock():
 
 
 @pytest.fixture
+def authorizacion_service():
+    return AuthorizationService(
+        authorization_repository=MagicMock(spec=AuthorizationRepository),
+        repositorio_prospectos=MagicMock(spec=RepositorioProspectos),
+        repositorio_usuarios=MagicMock(spec=RepositorioUsuarios),
+        repositorio_procesos_comerciales=MagicMock(spec=RepositorioProcesosComerciales),
+        repositorio_solicitudes_cotizacion=MagicMock(spec=RepositorioSolicitudesCotizacion),
+    )
+
+
+@pytest.fixture
 def use_case(
+    authorizacion_service,
     repositorio_prospectos_mock,
     repositorio_lineas_negocio_mock,
     repositorio_procesos_mock,
@@ -99,6 +119,7 @@ def use_case(
     reevaluar_alertas_mock,
 ):
     return CambiarLineaNegocioProspectoUseCase(
+        authorizacion_service=authorizacion_service,
         repositorio_prospectos=repositorio_prospectos_mock,
         repositorio_lineas_negocio=repositorio_lineas_negocio_mock,
         repositorio_procesos_comerciales=repositorio_procesos_mock,
@@ -348,3 +369,22 @@ class TestCambiarLineaNegocioProspecto:
 
         repositorio_prospectos_mock.eliminar_prospecto_empresa.assert_called_once_with(1)
         repositorio_prospectos_mock.crear_prospecto_empresa.assert_not_called()
+
+    def test_al_cambiar_a_condominios_crea_la_ficha_de_condominio(self, mock_hub,
+            use_case, repositorio_lineas_negocio_mock, repositorio_prospectos_mock,
+            usuario):
+        repositorio_lineas_negocio_mock.buscar_por_codigo.return_value = crear_linea_negocio_mock(
+            id=4, nombre='Condominios', codigo='condominios'
+        )
+
+        use_case.ejecutar(id=1, codigo_linea_negocio='condominios', usuario=usuario)
+
+        repositorio_prospectos_mock.crear_prospecto_condominio.assert_called_once_with(1)
+        repositorio_prospectos_mock.eliminar_prospecto_condominio.assert_not_called()
+
+    def test_al_cambiar_a_otra_linea_elimina_la_ficha_de_condominio(self, mock_hub,
+            use_case, repositorio_prospectos_mock, usuario):
+        use_case.ejecutar(id=1, codigo_linea_negocio='lineas_personales', usuario=usuario)
+
+        repositorio_prospectos_mock.eliminar_prospecto_condominio.assert_called_once_with(1)
+        repositorio_prospectos_mock.crear_prospecto_condominio.assert_not_called()

@@ -52,6 +52,16 @@ class RepositorioProspectos(ABC):
         pass
 
     @abstractmethod
+    def crear_prospecto_condominio(self, id_prospecto: int) -> None:
+        """Crea la fila de extensión vacía de un prospecto condominio existente
+        (se usa al cambiar un prospecto a la línea de Líneas Condominios)."""
+        pass
+
+    @abstractmethod
+    def eliminar_prospecto_condominio(self, id_prospecto: int) -> None:
+        pass
+
+    @abstractmethod
     def existe_giro_comercial_por_nombre(self, id_prospecto: int, nombre: str) -> bool:
         pass
 

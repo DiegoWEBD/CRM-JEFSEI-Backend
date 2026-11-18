@@ -198,3 +198,43 @@ class TestRefrescarAlertasRenovacion:
         repo.eliminar.assert_not_called()
         repo.registrar.assert_not_called()
         hub_mock.publicar_desde_hilo.assert_not_called()
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.hub')
+class TestRefrescarAlertasRenovacionPorProspecto:
+
+    def test_trae_las_polizas_de_los_clientes_del_prospecto(self, hub_mock):
+        polizas = [
+            crear_poliza_alertable_renovacion_mock(numero_poliza=f'POL-00{i}')
+            for i in range(2)
+        ]
+        uc, repo, generar = _use_case(polizas)
+
+        uc.ejecutar_por_prospecto(7, AHORA_REF)
+
+        repo.obtener_polizas_alertables_renovacion.assert_called_once_with(id_prospecto=7)
+        assert generar.evaluar.call_count == 2
+
+    def test_elimina_las_del_ejecutivo_comercial_anterior(self, hub_mock):
+        """Al cambiar el ejecutivo comercial, sus alertas no leídas se eliminan
+        y se re-evalúan para crear las del nuevo (creadas ahora)."""
+        poliza = crear_poliza_alertable_renovacion_mock(rut_ej_comercial='55555555-5')
+        alerta_viejo = _alerta_poliza('44444444-4', codigo_tipo='RENOVACION_GESTION_PENDIENTE')
+        alerta_nueva = _alerta_poliza(
+            '55555555-5', id=None, codigo_tipo='RENOVACION_GESTION_PENDIENTE'
+        )
+        uc, repo, _ = _use_case(
+            [poliza], destinatarios=['55555555-5'], alertas_evaluadas=[alerta_nueva]
+        )
+        repo.buscar_notificaciones_por_poliza.return_value = [alerta_viejo]
+
+        uc.ejecutar_por_prospecto(7, AHORA_REF)
+
+        repo.eliminar.assert_called_once_with(alerta_viejo)
+        repo.registrar.assert_called_once_with(alerta_nueva)
+        hub_mock.publicar_desde_hilo.assert_called_once()
+        assert set(hub_mock.publicar_desde_hilo.call_args.args[0]) == {
+            '44444444-4',
+            '55555555-5',
+        }
