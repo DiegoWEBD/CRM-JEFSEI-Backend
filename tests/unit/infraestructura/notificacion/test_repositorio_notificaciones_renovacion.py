@@ -17,6 +17,7 @@ FILA_POLIZA = {
     'rut_ej_renovacion_asignado': '11111111-1',
     'rut_as_renovacion_asignado': None,
     'tiene_proceso_renovacion': False,
+    'rut_ej_comercial_asignado': '55555555-5',
 }
 
 FILA_NOTIFICACION = {
@@ -68,6 +69,7 @@ class TestObtenerPolizasAlertablesRenovacion:
         assert 'ProcesoComercialRenovacion' in query_str
         assert 'C.rut_ej_renovacion_asignado' in query_str
         assert 'C.rut_as_renovacion_asignado' in query_str
+        assert 'PRO.rut_ej_comercial_asignado' in query_str
         assert params == {}
         assert len(polizas) == 1
         assert polizas[0].numero_poliza == 'POL-001'
@@ -75,6 +77,7 @@ class TestObtenerPolizasAlertablesRenovacion:
         assert polizas[0].rut_ej_renovacion == '11111111-1'
         assert polizas[0].rut_as_renovacion is None
         assert polizas[0].tiene_proceso_renovacion is False
+        assert polizas[0].rut_ej_comercial == '55555555-5'
 
     def test_filtra_por_cliente(self, mock_conexion):
         conexion, cursor = _conexion_mock()
@@ -87,6 +90,18 @@ class TestObtenerPolizasAlertablesRenovacion:
         query, params = cursor.execute.call_args.args
         assert 'P.id_cliente = %(id_cliente)s' in str(query)
         assert params == {'id_cliente': 5}
+
+    def test_filtra_por_prospecto(self, mock_conexion):
+        conexion, cursor = _conexion_mock()
+        mock_conexion.return_value = conexion
+        cursor.fetchall.return_value = []
+
+        repo = RepositorioNotificacionesPostgres()
+        assert repo.obtener_polizas_alertables_renovacion(id_prospecto=7) == []
+
+        query, params = cursor.execute.call_args.args
+        assert 'C.id_prospecto = %(id_prospecto)s' in str(query)
+        assert params == {'id_prospecto': 7}
 
 
 @pytest.mark.unit
@@ -106,10 +121,12 @@ class TestObtenerPolizaAlertableRenovacion:
         assert 'P.numero_poliza = %(numero_poliza)s' in query_str
         assert 'P.cancelada = false' in query_str
         assert "(P.fin_vigencia - interval '2 months') <= now()" in query_str
+        assert 'PRO.rut_ej_comercial_asignado' in query_str
         assert params == {'numero_poliza': 'POL-001'}
         assert poliza is not None
         assert poliza.numero_poliza == 'POL-001'
         assert poliza.rut_ej_renovacion == '11111111-1'
+        assert poliza.rut_ej_comercial == '55555555-5'
 
     def test_sin_resultado_devuelve_none(self, mock_conexion):
         conexion, cursor = _conexion_mock()

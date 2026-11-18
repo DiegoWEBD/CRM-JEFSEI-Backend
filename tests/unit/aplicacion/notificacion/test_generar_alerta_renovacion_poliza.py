@@ -52,12 +52,18 @@ class TestEvaluarAlertasRenovacion:
         assert alertas == []
 
     def test_sin_destinatarios_asignados_no_genera(self):
-        """Sin ejecutivo ni asistente de renovación no hay destinatario: la
-        salvaguarda es asignar un responsable (no hay fan-out por rol)."""
+        """Sin ejecutivo ni asistente de renovación ni ejecutivo comercial no
+        hay destinatario: la salvaguarda es asignar un responsable (no hay
+        fan-out por rol)."""
         uc = _use_case()
 
         alertas = uc.evaluar(
-            _poliza(rut_ej_renovacion=None, rut_as_renovacion=None), AHORA_REF
+            _poliza(
+                rut_ej_renovacion=None,
+                rut_as_renovacion=None,
+                rut_ej_comercial=None,
+            ),
+            AHORA_REF,
         )
 
         assert alertas == []
@@ -136,11 +142,61 @@ class TestEvaluarAlertasRenovacion:
         uc = _use_case()
 
         alertas = uc.evaluar(
-            _poliza(rut_ej_renovacion=None, rut_as_renovacion=None),
+            _poliza(
+                rut_ej_renovacion=None,
+                rut_as_renovacion=None,
+                rut_ej_comercial=None,
+            ),
             FIN_VIGENCIA - timedelta(days=20),
         )
 
         assert alertas == []
+
+    def test_ejecutivo_comercial_del_prospecto_tambien_es_destinatario(self):
+        uc = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(
+                rut_ej_renovacion='11111111-1',
+                rut_as_renovacion='22222222-2',
+                rut_ej_comercial='55555555-5',
+            ),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        ruts = {alerta.rut_usuario for alerta in alertas}
+        assert ruts == {'11111111-1', '22222222-2', '55555555-5'}
+        # 2 hitos x 3 destinatarios
+        assert len(alertas) == 6
+
+    def test_solo_ejecutivo_comercial_asignado_si_genera(self):
+        """El ejecutivo comercial recibe las alertas aunque no haya
+        ejecutivo ni asistente de renovación asignados."""
+        uc = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(
+                rut_ej_renovacion=None,
+                rut_as_renovacion=None,
+                rut_ej_comercial='55555555-5',
+            ),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        assert {alerta.rut_usuario for alerta in alertas} == {'55555555-5'}
+        assert len(alertas) == 2
+
+    def test_mismo_rut_como_ejecutivo_comercial_no_se_duplica(self):
+        uc = _use_case()
+
+        alertas = uc.evaluar(
+            _poliza(rut_ej_renovacion='11111111-1', rut_ej_comercial='11111111-1'),
+            FIN_VIGENCIA - timedelta(days=20),
+        )
+
+        # 2 hitos x 1 destinatario (el set de destinatarios no duplica el RUT)
+        assert len(alertas) == 2
+        assert {alerta.rut_usuario for alerta in alertas} == {'11111111-1'}
 
     def test_mismo_rut_como_ejecutivo_y_asistente_no_se_duplica(self):
         uc = _use_case()

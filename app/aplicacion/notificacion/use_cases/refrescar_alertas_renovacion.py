@@ -4,13 +4,15 @@ from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza impo
     GenerarAlertaRenovacionPolizaUseCase,
 )
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
+from app.dominio.notificacion.poliza_alertable_renovacion import PolizaAlertableRenovacion
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_RENOVACION
 
 
 class RefrescarAlertasRenovacionUseCase:
     """Refresca las alertas de renovación del cliente tras cambiar sus
-    responsables (ejecutivo / asistente de renovación).
+    responsables (ejecutivo / asistente de renovación, o el ejecutivo
+    comercial del prospecto).
 
     Elimina las alertas no leídas de quienes ya no son destinatarios y
     re-evalúa en el mismo momento para crear las de los nuevos (creadas ahora,
@@ -36,11 +38,25 @@ class RefrescarAlertasRenovacionUseCase:
         if ahora is None:
             ahora = datetime.now(tz=timezone.utc)
 
-        destinatarios: set[str] = set()
-
         polizas = self.repositorio_notificaciones.obtener_polizas_alertables_renovacion(
             id_cliente=id_cliente
         )
+        self._refrescar(polizas, ahora)
+
+    def ejecutar_por_prospecto(self, id_prospecto: int, ahora: datetime | None = None) -> None:
+        """Refresca las alertas de renovación de las pólizas de los clientes
+        del prospecto (tras cambiar su ejecutivo comercial, que también es
+        destinatario de esas alertas)."""
+        if ahora is None:
+            ahora = datetime.now(tz=timezone.utc)
+
+        polizas = self.repositorio_notificaciones.obtener_polizas_alertables_renovacion(
+            id_prospecto=id_prospecto
+        )
+        self._refrescar(polizas, ahora)
+
+    def _refrescar(self, polizas: list[PolizaAlertableRenovacion], ahora: datetime) -> None:
+        destinatarios: set[str] = set()
 
         for poliza in polizas:
             actuales = set(self.generar_alerta_renovacion.resolver_destinatarios(poliza))

@@ -252,3 +252,10 @@ class AuthorizationService:
 
         return (prospecto.ejecutivo_evaluacion_asignado is not None
                 and prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut)
+
+
+    def usuario_puede_cambiar_linea_negocio(self, usuario: Usuario, prospecto: Prospecto):
+        if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
+            return True
+
+        return False

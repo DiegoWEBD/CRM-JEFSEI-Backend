@@ -6,6 +6,9 @@ import pytest
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
+from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
+    RefrescarAlertasRenovacionUseCase,
+)
 from app.aplicacion.prospecto.use_cases.asignar_ejecutivo_comercial import (
     AsignarEjecutivoComercialUseCase,
 )
@@ -36,7 +39,14 @@ def _proceso_mock(id=42):
     return p
 
 
-def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None, generar_sla=None):
+def _use_case(
+    prospecto,
+    generar_alerta_cierre,
+    rut_nuevo=None,
+    procesos=None,
+    generar_sla=None,
+    refrescar_renovacion=None,
+):
     repo_prospectos = MagicMock()
     repo_prospectos.buscar.return_value = prospecto
     repo_usuarios = MagicMock()
@@ -52,6 +62,8 @@ def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None, g
     generar_alerta_cierre.ejecutar.return_value = None
     if generar_sla is None:
         generar_sla = MagicMock()
+    if refrescar_renovacion is None:
+        refrescar_renovacion = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
     uc = AsignarEjecutivoComercialUseCase(
         repo_prospectos,
         repo_usuarios,
@@ -60,6 +72,7 @@ def _use_case(prospecto, generar_alerta_cierre, rut_nuevo=None, procesos=None, g
         generar_alerta_cierre,
         servicio_alertas,
         generar_sla,
+        refrescar_renovacion,
     )
     return uc, repo_prospectos, repo_procesos, repo_notificaciones, servicio_alertas
 
@@ -347,3 +360,47 @@ class TestAsignarEjecutivoComercialNotificacionesAsignacion:
         assert notificacion.mensaje == (
             'Se le ha asignado la gestión comercial del prospecto #1.'
         )
+
+
+@pytest.mark.unit
+@patch(f'{MODULO}.hub')
+class TestAsignarEjecutivoComercialRefrescoAlertasRenovacion:
+
+    def test_refresca_alertas_de_renovacion_del_prospecto(self, mock_hub):
+        """El ejecutivo comercial también es destinatario de las alertas de
+        renovación: al cambiarlo se refrescan (eliminan las del anterior y se
+        re-evalúan para crear las del nuevo)."""
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
+        uc, _, _, _, _ = _use_case(
+            prospecto, generar, rut_nuevo='22222222-2', refrescar_renovacion=refrescar
+        )
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial='22222222-2', asignado_por=MagicMock())
+
+        refrescar.ejecutar_por_prospecto.assert_called_once_with(1)
+
+    def test_tambien_refresca_al_desasignar(self, mock_hub):
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
+        uc, _, _, _, _ = _use_case(
+            prospecto, generar, rut_nuevo=None, refrescar_renovacion=refrescar
+        )
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial=None, asignado_por=MagicMock())
+
+        refrescar.ejecutar_por_prospecto.assert_called_once_with(1)
+
+    def test_no_refresca_si_el_rut_no_cambia(self, mock_hub):
+        prospecto = _prospecto_mock(ejecutivo_previo=MagicMock(rut='11111111-1'))
+        generar = MagicMock()
+        refrescar = MagicMock(spec=RefrescarAlertasRenovacionUseCase)
+        uc, _, _, _, _ = _use_case(
+            prospecto, generar, rut_nuevo='11111111-1', refrescar_renovacion=refrescar
+        )
+
+        uc.ejecutar(id_prospecto=1, rut_ej_comercial='11111111-1', asignado_por=MagicMock())
+
+        refrescar.ejecutar_por_prospecto.assert_not_called()

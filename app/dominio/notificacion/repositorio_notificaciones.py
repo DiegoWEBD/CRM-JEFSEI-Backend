@@ -13,14 +13,16 @@ class RepositorioNotificaciones(ABC):
 
     @abstractmethod
     def obtener_polizas_alertables_renovacion(
-        self, id_cliente: int | None = None
+        self, id_cliente: int | None = None, id_prospecto: int | None = None
     ) -> list[PolizaAlertableRenovacion]:
         """Pólizas no canceladas con fin de vigencia dentro del horizonte de
         renovación (a 2 meses de vencer o ya vencidas), con los datos
         necesarios para evaluar sus alertas de renovación.
 
         Con `id_cliente` se acota a las pólizas de ese cliente (refresco de
-        alertas al cambiar sus responsables de renovación)."""
+        alertas al cambiar sus responsables de renovación). Con `id_prospecto`
+        se acota a las pólizas de los clientes de ese prospecto (refresco de
+        alertas al cambiar su ejecutivo comercial)."""
         pass
 
     @abstractmethod

@@ -8,6 +8,9 @@ from app.aplicacion.notificacion.use_cases.generar_alerta_cierre_estimado import
     GenerarAlertaCierreEstimadoUseCase,
 )
 from app.aplicacion.notificacion.use_cases.generar_alertas_sla import GenerarAlertasSlaUseCase
+from app.aplicacion.notificacion.use_cases.refrescar_alertas_renovacion import (
+    RefrescarAlertasRenovacionUseCase,
+)
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
@@ -32,6 +35,7 @@ class AsignarEjecutivoComercialUseCase:
         generar_alerta_cierre: GenerarAlertaCierreEstimadoUseCase,
         servicio_alertas: ServicioAlertasProceso,
         generar_alertas_sla: GenerarAlertasSlaUseCase,
+        refrescar_alertas_renovacion: RefrescarAlertasRenovacionUseCase,
     ):
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
@@ -40,6 +44,7 @@ class AsignarEjecutivoComercialUseCase:
         self.generar_alerta_cierre = generar_alerta_cierre
         self.servicio_alertas = servicio_alertas
         self.generar_alertas_sla = generar_alertas_sla
+        self.refrescar_alertas_renovacion = refrescar_alertas_renovacion
 
     def ejecutar(self, id_prospecto: int, rut_ej_comercial: str | None, asignado_por: Usuario):
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
@@ -86,6 +91,13 @@ class AsignarEjecutivoComercialUseCase:
         # (creada en este momento, no transferida). En desasignación no se crea
         # nada (sin destinatario), pero las previas quedan leídas.
         self._refrescar_alertas_de_cierre(procesos)
+
+        # El ejecutivo comercial también es destinatario de las alertas de
+        # renovación de las pólizas de los clientes del prospecto: con el
+        # cambio, las del anterior dejan de ser suyas (se eliminan las no
+        # leídas) y se re-evalúan al tiro para crear las del nuevo (creadas
+        # ahora, no transferidas).
+        self.refrescar_alertas_renovacion.ejecutar_por_prospecto(prospecto.id)
 
         # Notificaciones de asignación/desasignación: en cada invocación con RUT
         # destino (asignación) y solo al cambiar de RUT (desasignación).

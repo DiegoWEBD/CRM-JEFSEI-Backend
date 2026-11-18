@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.aplicacion.notificacion.use_cases.reevaluar_alertas_renovacion_descarte import (
     ReevaluarAlertasRenovacionDescarteUseCase,
@@ -11,7 +12,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
-from app.dominio.linea_negocio.linea_negocio import CODIGO_LINEAS_COMERCIALES
+from app.dominio.linea_negocio.linea_negocio import CODIGO_LINEAS_COMERCIALES, CODIGO_LINEA_CONDOMINIOS
 from app.dominio.linea_negocio.repositorio_lineas_negocio import RepositorioLineasNegocio
 from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
@@ -25,6 +26,7 @@ class CambiarLineaNegocioProspectoUseCase:
 
     def __init__(
         self,
+        authorizacion_service: AuthorizationService,
         repositorio_prospectos: RepositorioProspectos,
         repositorio_lineas_negocio: RepositorioLineasNegocio,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
@@ -32,6 +34,7 @@ class CambiarLineaNegocioProspectoUseCase:
         servicio_alertas: ServicioAlertasProceso,
         reevaluar_alertas: ReevaluarAlertasRenovacionDescarteUseCase,
     ):
+        self.authorizacion_service = authorizacion_service
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_lineas_negocio = repositorio_lineas_negocio
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
@@ -56,10 +59,8 @@ class CambiarLineaNegocioProspectoUseCase:
         if prospecto is None:
             raise RecursoNoEncontradoException('Prospecto no encontrado')
 
-        if not prospecto.ejecutivo_comercial_asignado or prospecto.ejecutivo_comercial_asignado.rut != usuario.rut:
-            raise UsuarioNoAutorizadoException(
-                'Solo el ejecutivo comercial asignado puede cambiar la línea de negocio'
-            )
+        if not self.authorizacion_service.usuario_puede_cambiar_linea_negocio(usuario, prospecto):
+            raise UsuarioNoAutorizadoException('Sólo puede cambiar la línea de negocio el usuario a cargo de la gestión comercial del cliente')
 
         linea_negocio = self.repositorio_lineas_negocio.buscar_por_codigo(codigo_linea_negocio)
 
@@ -100,6 +101,14 @@ class CambiarLineaNegocioProspectoUseCase:
             self.repositorio_prospectos.crear_prospecto_empresa(id)
         else:
             self.repositorio_prospectos.eliminar_prospecto_empresa(id)
+
+        # La ficha de extensión de empresa acompaña al cambio de línea:
+        # se crea vacía al entrar a Líneas Condominio y se elimina
+        # al salir de ella.
+        if codigo_linea_negocio == CODIGO_LINEA_CONDOMINIOS:
+            self.repositorio_prospectos.crear_prospecto_condominio(id)
+        else:
+            self.repositorio_prospectos.eliminar_prospecto_condominio(id)
 
         destinatarios_unicos = list(dict.fromkeys(destinatarios))
         if destinatarios_unicos:

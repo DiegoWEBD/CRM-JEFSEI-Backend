@@ -13,6 +13,7 @@ class PolizaAlertableRenovacion:
         rut_ej_renovacion: str | None,
         rut_as_renovacion: str | None,
         tiene_proceso_renovacion: bool,
+        rut_ej_comercial: str | None = None,
     ):
         self.numero_poliza = numero_poliza
         self.fin_vigencia = fin_vigencia
@@ -20,6 +21,9 @@ class PolizaAlertableRenovacion:
         self.nombre_cliente = nombre_cliente
         self.rut_ej_renovacion = rut_ej_renovacion
         self.rut_as_renovacion = rut_as_renovacion
+        # Ejecutivo comercial asignado al prospecto del cliente: también es
+        # destinatario de las alertas de renovación de sus pólizas.
+        self.rut_ej_comercial = rut_ej_comercial
         # True si ya existe un ProcesoComercialRenovacion para la póliza:
         # sus alertas de renovación quedan resueltas y no se generan.
         self.tiene_proceso_renovacion = tiene_proceso_renovacion

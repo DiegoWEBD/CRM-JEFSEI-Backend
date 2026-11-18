@@ -142,7 +142,8 @@ class GenerarAlertaRenovacionPolizaUseCase:
         ]
 
     def resolver_destinatarios(self, poliza: PolizaAlertableRenovacion) -> list[str]:
-        """Ejecutivo y asistente de renovación asignados al cliente.
+        """Ejecutivo y asistente de renovación asignados al cliente, más el
+        ejecutivo comercial asignado al prospecto del cliente.
 
         Sin asignados no hay destinatario y no se genera ninguna alerta: la
         salvaguarda es que se asigne un responsable (igual que en las alertas
@@ -151,5 +152,9 @@ class GenerarAlertaRenovacionPolizaUseCase:
         la póliza.
         """
         return sorted({
-            rut for rut in (poliza.rut_ej_renovacion, poliza.rut_as_renovacion) if rut
+            rut for rut in (
+                poliza.rut_ej_renovacion,
+                poliza.rut_as_renovacion,
+                poliza.rut_ej_comercial,
+            ) if rut
         })

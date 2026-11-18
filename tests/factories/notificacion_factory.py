@@ -107,6 +107,7 @@ def crear_poliza_alertable_renovacion_mock(
     rut_ej_renovacion: str | None = "11111111-1",
     rut_as_renovacion: str | None = None,
     tiene_proceso_renovacion: bool = False,
+    rut_ej_comercial: str | None = None,
 ) -> PolizaAlertableRenovacion:
     if fin_vigencia is None:
         fin_vigencia = AHORA_REF + timedelta(days=10)
@@ -119,4 +120,5 @@ def crear_poliza_alertable_renovacion_mock(
         rut_ej_renovacion=rut_ej_renovacion,
         rut_as_renovacion=rut_as_renovacion,
         tiene_proceso_renovacion=tiene_proceso_renovacion,
+        rut_ej_comercial=rut_ej_comercial,
     )

@@ -18,4 +18,5 @@ class DictRowPolizaAlertableRenovacionAdapter:
             rut_ej_renovacion=r['rut_ej_renovacion_asignado'],
             rut_as_renovacion=r['rut_as_renovacion_asignado'],
             tiene_proceso_renovacion=r['tiene_proceso_renovacion'],
+            rut_ej_comercial=r['rut_ej_comercial_asignado'],
         )

@@ -1109,6 +1109,38 @@ class RepositorioProspectosPostgres(RepositorioProspectos):
 
                 cur.execute(query, params)
 
+    def crear_prospecto_condominio(self, id_prospecto: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    insert into ProspectoCondominio(id)
+                    values(%(id)s)
+                    on conflict (id) do nothing
+                '''
+
+                params = {
+                    'id': id_prospecto
+                }
+
+                cur.execute(query, params)
+
+    def eliminar_prospecto_condominio(self, id_prospecto: int) -> None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    delete from ProspectoCondominio
+                    where id = %(id)s
+                '''
+
+                params = {
+                    'id': id_prospecto
+                }
+
+                cur.execute(query, params)
+
+
     def existe_giro_comercial_por_nombre(self, id_prospecto: int, nombre: str) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
