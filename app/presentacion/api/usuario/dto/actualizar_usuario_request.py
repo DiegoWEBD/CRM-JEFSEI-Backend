@@ -2,6 +2,8 @@ import re
 
 from pydantic import BaseModel, field_validator
 
+from app.dominio.usuario.validar_password import validar_fortaleza_password
+
 
 class ActualizarUsuarioRequest(BaseModel):
     rut: str
@@ -14,6 +16,15 @@ class ActualizarUsuarioRequest(BaseModel):
     codigo_roles: list[str]
     porcentaje_comision: float | None
     habilitado: bool
+
+    @field_validator('password')
+    @classmethod
+    def validar_password(cls, v: str | None) -> str | None:
+        # Vacío o None significa "mantener la contraseña actual"
+        if not v:
+            return v
+        validar_fortaleza_password(v)
+        return v
 
     @field_validator('rut')
     @classmethod

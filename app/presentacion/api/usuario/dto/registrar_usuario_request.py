@@ -2,6 +2,8 @@ import re
 
 from pydantic import BaseModel, field_validator
 
+from app.dominio.usuario.validar_password import validar_fortaleza_password
+
 
 class RegistrarUsuarioRequest(BaseModel):
     rut: str
@@ -13,6 +15,12 @@ class RegistrarUsuarioRequest(BaseModel):
     meta_mensual_uf: int | None
     codigo_roles: list[str]
     porcentaje_comision: float | None
+
+    @field_validator('password')
+    @classmethod
+    def validar_password(cls, v: str) -> str:
+        validar_fortaleza_password(v)
+        return v
 
     @field_validator('rut')
     @classmethod

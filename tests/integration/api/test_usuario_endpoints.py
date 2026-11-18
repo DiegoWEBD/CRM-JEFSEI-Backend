@@ -30,7 +30,7 @@ class TestUsuarioEndpoints:
             "correo": "maria@test.com",
             "telefono": "+56911111111",
             "id_sucursal": 1,
-            "password": "password123",
+            "password": "ClaveSegura123",
             "meta_mensual_uf": 100,
             "codigo_roles": ["EJECUTIVO"],
             "porcentaje_comision": 0.05,
@@ -46,6 +46,22 @@ class TestUsuarioEndpoints:
         }, headers=headers_auth_validos)
 
         assert response.status_code == 422
+
+    def test_registrar_usuario_password_debil(self, client, headers_auth_validos):
+        response = client.post("/usuarios/", json={
+            "rut": "11111111-1",
+            "nombre": "María López",
+            "correo": "maria@test.com",
+            "telefono": "+56911111111",
+            "id_sucursal": 1,
+            "password": "password123",
+            "meta_mensual_uf": 100,
+            "codigo_roles": ["EJECUTIVO"],
+            "porcentaje_comision": 0.05,
+        }, headers=headers_auth_validos)
+
+        assert response.status_code == 400
+        assert "al menos 12 caracteres" in response.json()["detail"]
 
     def test_actualizar_usuario(self, client, headers_auth_validos):
         response = client.put("/usuarios/12345678-9", json={

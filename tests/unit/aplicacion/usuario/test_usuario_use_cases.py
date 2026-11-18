@@ -10,6 +10,7 @@ from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
+from app.dominio.exceptions.dato_invalido_exception import DatoInvalidoException
 from tests.factories.usuario_factory import crear_usuario_mock
 
 
@@ -41,7 +42,7 @@ class TestRegistrarUsuarioUseCase:
             correo="maria@test.com",
             telefono="+56911111111",
             id_sucursal=1,
-            password="password123",
+            password="ClaveSegura123",
             meta_mensual_uf=100,
             codigo_roles=["EJECUTIVO"],
             porcentaje_comision=0.05,
@@ -62,7 +63,7 @@ class TestRegistrarUsuarioUseCase:
                 correo="test@test.com",
                 telefono="+56912345678",
                 id_sucursal=1,
-                password="password123",
+                password="ClaveSegura123",
                 meta_mensual_uf=None,
                 codigo_roles=["EJECUTIVO"],
                 porcentaje_comision=None,
@@ -81,7 +82,7 @@ class TestRegistrarUsuarioUseCase:
                 correo="duplicado@test.com",
                 telefono="+56911111111",
                 id_sucursal=1,
-                password="password123",
+                password="ClaveSegura123",
                 meta_mensual_uf=None,
                 codigo_roles=["EJECUTIVO"],
                 porcentaje_comision=None,
@@ -101,7 +102,7 @@ class TestRegistrarUsuarioUseCase:
                 correo="test@test.com",
                 telefono="+56999999999",
                 id_sucursal=1,
-                password="password123",
+                password="ClaveSegura123",
                 meta_mensual_uf=None,
                 codigo_roles=["EJECUTIVO"],
                 porcentaje_comision=None,
@@ -117,7 +118,7 @@ class TestRegistrarUsuarioUseCase:
                 correo="test@test.com",
                 telefono="+56911111111",
                 id_sucursal=1,
-                password="password123",
+                password="ClaveSegura123",
                 meta_mensual_uf=None,
                 codigo_roles=[],
                 porcentaje_comision=None,
@@ -136,13 +137,35 @@ class TestRegistrarUsuarioUseCase:
             correo="test@test.com",
             telefono="+56911111111",
             id_sucursal=1,
-            password="mi_password_secreto",
+            password="PasswordSecreta1",
             meta_mensual_uf=None,
             codigo_roles=["EJECUTIVO"],
             porcentaje_comision=None,
         )
 
-        auth_service_mock.hash_password.assert_called_once_with("mi_password_secreto")
+        auth_service_mock.hash_password.assert_called_once_with("PasswordSecreta1")
+
+    def test_registrar_password_debil_es_rechazada(self, repositorio_mock, auth_service_mock):
+        repositorio_mock.buscar.return_value = None
+        repositorio_mock.existe_correo.return_value = False
+        repositorio_mock.existe_telefono.return_value = False
+
+        uc = RegistrarUsuarioUseCase(repositorio_mock, auth_service_mock)
+
+        with pytest.raises(DatoInvalidoException, match="al menos 12 caracteres"):
+            uc.ejecutar(
+                rut="11111111-1",
+                nombre="Test",
+                correo="test@test.com",
+                telefono="+56911111111",
+                id_sucursal=1,
+                password="password123",
+                meta_mensual_uf=None,
+                codigo_roles=["EJECUTIVO"],
+                porcentaje_comision=None,
+            )
+
+        auth_service_mock.hash_password.assert_not_called()
 
 
 @pytest.mark.unit
@@ -293,14 +316,38 @@ class TestActualizarUsuarioUseCase:
             correo="test@test.com",
             telefono="+56912345678",
             id_sucursal=1,
-            password="nueva_password",
+            password="NuevaPassword12",
             meta_mensual_uf=None,
             codigo_roles=["ADMIN"],
             porcentaje_comision=None,
             habilitado=True,
         )
 
-        auth_service_mock.hash_password.assert_called_once_with("nueva_password")
+        auth_service_mock.hash_password.assert_called_once_with("NuevaPassword12")
+
+    def test_actualizar_con_password_debil_es_rechazada(self, repositorio_mock, auth_service_mock):
+        usuario = crear_usuario_mock(rut="12345678-9")
+        repositorio_mock.buscar.return_value = usuario
+        repositorio_mock.existe_correo.return_value = False
+        repositorio_mock.existe_telefono.return_value = False
+
+        uc = ActualizarUsuarioUseCase(repositorio_mock, auth_service_mock)
+
+        with pytest.raises(DatoInvalidoException):
+            uc.ejecutar(
+                rut="12345678-9",
+                nombre="Test",
+                correo="test@test.com",
+                telefono="+56912345678",
+                id_sucursal=1,
+                password="nueva_password",
+                meta_mensual_uf=None,
+                codigo_roles=["ADMIN"],
+                porcentaje_comision=None,
+                habilitado=True,
+            )
+
+        auth_service_mock.hash_password.assert_not_called()
 
     def test_actualizar_sin_roles(self, repositorio_mock, auth_service_mock):
         usuario = crear_usuario_mock()
