@@ -5,6 +5,10 @@ os.environ.setdefault('CRM_INICIAR_SCHEDULER', 'false')
 # La captura de auditoría escribe en la base de datos: se apaga por defecto en
 # tests (los tests de middleware la habilitan explícitamente)
 os.environ.setdefault('CRM_AUDITORIA_HABILITADA', 'false')
+# La clave de firma JWT es requerida (sin default): se fija una de pruebas
+# (>= 32 bytes, mínimo recomendado por RFC 7518 para HS256).
+# El valor histórico 'test-secret-key-for-ci' está rechazado por Settings.
+os.environ.setdefault('ACCESS_TOKEN_SECRET_KEY', 'clave-de-pruebas-solo-local-nunca-produccion')
 
 import pytest
 from unittest.mock import MagicMock
