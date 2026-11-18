@@ -1,0 +1,21 @@
+# Configuración de gitleaks (escaneo de secretos en CI).
+# El pipeline (security.yml) la detecta automáticamente en la raíz del repo.
+
+[extend]
+# Partir de la configuración por defecto de gitleaks y solo agregar excepciones.
+useDefault = true
+
+# Extiende la regla 'generic-api-key' del config por defecto para agregarle un
+# allowlist acotado. Como es un allowlist DE REGLA, solo aplica a hallazgos de
+# 'generic-api-key': cualquier otra regla (aws-access-token, github tokens, etc.)
+# sigue detectándose incluso dentro de tests/.
+[[rules]]
+id = "generic-api-key"
+
+    [[rules.allowlists]]
+    # Los tests usan contraseñas inventadas como fixtures (por ejemplo los
+    # valores que ejercitan la política de contraseñas). No son secretos reales.
+    # El allowlist solo aplica dentro de tests/: un generic-api-key en código de
+    # producción sigue fallando el escaneo.
+    description = "Credenciales de fixture en tests: valores inventados, no secretos reales"
+    paths = ['''tests/.*''']

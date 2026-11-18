@@ -1,8 +1,15 @@
+from typing import Literal
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 # La configuración de la aplicación se obtiene de variables de entorno, con valores por defecto para pruebas locales.
 class Settings(BaseSettings):
-    ACCESS_TOKEN_SECRET_KEY: str = "test-secret-key-for-ci"
+    # Clave de firma JWT: REQUERIDA y sin valor por defecto. Si la variable de
+    # entorno falta, la aplicación no arranca (fail-fast): evita que se firmen
+    # tokens con una clave débil o conocida por error de configuración.
+    # Generar una nueva con: openssl rand -base64 48 (ver .env.example).
+    ACCESS_TOKEN_SECRET_KEY: str
     ACCESS_TOKEN_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
 
@@ -36,6 +43,25 @@ class Settings(BaseSettings):
     # Apaga la captura de eventos de auditoría sin tocar código.
     CRM_AUDITORIA_HABILITADA: bool = True
 
+    # Entorno de despliegue. En 'produccion' la documentación interactiva
+    # (/docs, /redoc, /openapi.json) queda deshabilitada.
+    CRM_ENTORNO: Literal['desarrollo', 'produccion'] = 'desarrollo'
+
+    @field_validator('ACCESS_TOKEN_SECRET_KEY')
+    @classmethod
+    def _validar_secreto_jwt(cls, v: str) -> str:
+        secreto = v.strip()
+        if not secreto:
+            raise ValueError('ACCESS_TOKEN_SECRET_KEY no puede estar vacía')
+        # Valor que fue el default en versiones anteriores: quedó registrado en el
+        # repositorio y se considera público. Jamás debe usarse en ningún entorno.
+        if secreto == 'test-secret-key-for-ci':
+            raise ValueError(
+                'ACCESS_TOKEN_SECRET_KEY no puede usar el valor de prueba conocido '
+                "'test-secret-key-for-ci'; genere uno con: openssl rand -base64 48"
+            )
+        return secreto
+
     class Config:
         env_file = ".env"
         extra="ignore"
@@ -43,6 +69,11 @@ class Settings(BaseSettings):
     @property
     def origenes_permitidos(self) -> list[str]:
         return [origen.strip() for origen in self.CRM_ORIGENES_PERMITIDOS.split(',') if origen.strip()]
+
+    @property
+    def documentacion_habilitada(self) -> bool:
+        """La documentación interactiva solo se expone fuera de producción."""
+        return self.CRM_ENTORNO == 'desarrollo'
 
     @property
     def proxies_confiables(self) -> list[str]:

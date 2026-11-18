@@ -1,3 +1,19 @@
 .git
 .venv
 .github
+
+# Secretos: nunca deben entrar en la imagen (A02-2)
+.env
+
+# Datos de usuarios subidos: no empaquetar datos personales en la imagen
+documentos/
+
+# Artefactos de prueba y cobertura
+tests/
+.pytest_cache/
+.coverage
+coverage.xml
+
+# Python compilado
+__pycache__/
+*.py[cod]

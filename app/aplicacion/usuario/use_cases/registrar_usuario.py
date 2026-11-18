@@ -5,6 +5,7 @@ from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
+from app.dominio.usuario.validar_password import validar_fortaleza_password
 
 
 class RegistrarUsuarioUseCase:
@@ -26,6 +27,10 @@ class RegistrarUsuarioUseCase:
     ) -> bool:
         if len(codigo_roles) == 0:
             raise ConflictoEnAccionException("Debe asignar al menos un rol")
+
+        # Validación defensiva: la política de contraseñas también aplica cuando
+        # el caso de uso se invoca fuera de la capa HTTP.
+        validar_fortaleza_password(password)
 
         usuario = self.repositorio_usuarios.buscar(rut)
 

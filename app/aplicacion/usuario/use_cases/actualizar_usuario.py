@@ -6,6 +6,7 @@ from app.dominio.rol.rol import Rol
 from app.dominio.sucursal.sucursal import Sucursal
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
+from app.dominio.usuario.validar_password import validar_fortaleza_password
 
 
 class ActualizarUsuarioUseCase:
@@ -41,6 +42,9 @@ class ActualizarUsuarioUseCase:
             raise RecursoYaExisteException("El teléfono ya está en uso")
 
         if password:
+            # Validación defensiva: también aplica si el caso de uso se invoca
+            # fuera de la capa HTTP. Vacío/None mantiene la contraseña actual.
+            validar_fortaleza_password(password)
             password_hash = self.authentication_service.hash_password(password)
         else:
             password_hash = existente.password_hash

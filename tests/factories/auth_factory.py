@@ -10,7 +10,7 @@ def crear_token_mock(
     nombre_roles: list[str] | None = None,
     codigo_permisos: list[str] | None = None,
     exp_minutes: int = 60,
-    secret_key: str = "test-secret-key-for-mocks",
+    secret_key: str = "clave-de-pruebas-para-mocks-solamente",
     algorithm: str = "HS256",
     sid: str | None = None,
 ) -> str:
