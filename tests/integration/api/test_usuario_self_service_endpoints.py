@@ -12,12 +12,29 @@ def _usuario_sin_permisos(rut: str = "12345678-9"):
 @pytest.mark.integration
 class TestUsuariosVisibilidadPerfil:
 
-    def test_obtener_usuario_propio_sin_permisos_es_permitido(self, client):
+    def test_obtener_usuario_propio_sin_permisos_es_rechazado(self, client):
         from app.main import app
         from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
         from starlette.testclient import TestClient
 
         usuario = _usuario_sin_permisos()
+        app.dependency_overrides[get_current_user] = lambda: usuario
+
+        with TestClient(app) as c:
+            response = c.get("/usuarios/12345678-9")
+
+        assert response.status_code == 403
+
+    def test_obtener_usuario_propio_con_ver_detalle_es_permitido(self, client):
+        from app.main import app
+        from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+        from starlette.testclient import TestClient
+        from tests.factories.usuario_factory import crear_usuario_mock, crear_rol_mock, crear_permiso_mock
+
+        usuario = crear_usuario_mock(
+            rut="12345678-9",
+            roles=[crear_rol_mock(permisos=[crear_permiso_mock(codigo="USUARIO_VER_DETALLE")])],
+        )
         app.dependency_overrides[get_current_user] = lambda: usuario
 
         with TestClient(app) as c:

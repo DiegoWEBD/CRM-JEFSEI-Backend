@@ -33,3 +33,12 @@ class RepositorioRecordatorios(ABC):
     @abstractmethod
     def obtener_proximo_contacto(self, rut_usuario: str, id_prospecto: int) -> RecordatorioUsuario | None:
         pass
+
+    @abstractmethod
+    def buscar_propietarios(self, id: int) -> list[str] | None:
+        """Devuelve los RUTs que poseen el recordatorio.
+
+        None si el recordatorio no existe. Lista vacía si existe pero no tiene
+        propietario asociado (huérfano).
+        """
+        pass

@@ -11,6 +11,7 @@ from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.dato_invalido_exception import DatoInvalidoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from tests.factories.usuario_factory import crear_usuario_mock
 
 
@@ -174,19 +175,34 @@ class TestObtenerUsuarioUseCase:
     def test_obtener_usuario_exitoso(self, repositorio_mock):
         usuario = crear_usuario_mock(rut="12345678-9")
         repositorio_mock.buscar.return_value = usuario
+        authorization_service_mock = MagicMock()
+        authorization_service_mock.usuario_puede_ver_perfil.return_value = True
 
-        uc = ObtenerUsuarioUseCase(repositorio_mock)
-        resultado = uc.ejecutar("12345678-9")
+        uc = ObtenerUsuarioUseCase(repositorio_mock, authorization_service_mock)
+        resultado = uc.ejecutar(rut_consultado="12345678-9", usuario_accion=crear_usuario_mock())
 
         assert resultado.rut == "12345678-9"
 
     def test_obtener_usuario_no_encontrado(self, repositorio_mock):
         repositorio_mock.buscar.return_value = None
+        authorization_service_mock = MagicMock()
+        authorization_service_mock.usuario_puede_ver_perfil.return_value = True
 
-        uc = ObtenerUsuarioUseCase(repositorio_mock)
+        uc = ObtenerUsuarioUseCase(repositorio_mock, authorization_service_mock)
 
         with pytest.raises(RecursoNoEncontradoException, match="Usuario no encontrado"):
-            uc.ejecutar("99999999-9")
+            uc.ejecutar(rut_consultado="99999999-9", usuario_accion=crear_usuario_mock())
+
+    def test_obtener_usuario_sin_permiso_retorna_403(self, repositorio_mock):
+        authorization_service_mock = MagicMock()
+        authorization_service_mock.usuario_puede_ver_perfil.return_value = False
+
+        uc = ObtenerUsuarioUseCase(repositorio_mock, authorization_service_mock)
+
+        with pytest.raises(UsuarioNoAutorizadoException):
+            uc.ejecutar(rut_consultado="99999999-9", usuario_accion=crear_usuario_mock())
+
+        repositorio_mock.buscar.assert_not_called()
 
 
 @pytest.mark.unit

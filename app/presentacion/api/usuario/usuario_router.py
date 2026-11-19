@@ -69,9 +69,10 @@ def obtener_usuario(
 def obtener_proximo_contacto(
     rut: str,
     id_prospecto: int = Query(),
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: ObtenerProximoContactoUseCase = Depends(get_obtener_proximo_contacto_use_case),
 ):
-    recordatorio = use_case.ejecutar(rut_usuario=rut, id_prospecto=id_prospecto)
+    recordatorio = use_case.ejecutar(usuario=usuario, rut_objetivo=rut, id_prospecto=id_prospecto)
     return {'data': recordatorio}
     
 

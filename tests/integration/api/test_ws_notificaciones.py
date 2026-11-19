@@ -7,13 +7,13 @@ from starlette.websockets import WebSocketDisconnect
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.aplicacion.notificacion.use_cases.marcar_notificacion_leida import MarcarNotificacionLeidaUseCase
 from app.aplicacion.notificacion.use_cases.marcar_notificaciones_leidas import MarcarNotificacionesLeidasUseCase
-from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.core.hub_notificaciones import (
     EVENTO_CONEXION_ABIERTA,
     EVENTO_NOTIFICACIONES_ACTUALIZADAS,
     hub,
 )
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
+from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
 from app.main import app
 from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
@@ -22,7 +22,7 @@ from app.presentacion.api.notificacion.dependencias.deps import (
     get_marcar_notificacion_leida_use_case,
     get_marcar_notificaciones_leidas_use_case,
 )
-from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case
+from app.presentacion.api.usuario.deps import get_repositorio_usuarios
 from tests.factories.auth_factory import crear_token_mock, headers_auth
 from tests.factories.usuario_factory import (
     crear_permiso_mock,
@@ -81,10 +81,10 @@ def client(usuario_autenticado):
     def override_get_current_user():
         return usuario_autenticado
 
-    def override_obtener_usuario():
-        uc = MagicMock(spec=ObtenerUsuarioUseCase)
-        uc.ejecutar.return_value = usuario_autenticado
-        return uc
+    def override_repositorio_usuarios():
+        repositorio = MagicMock(spec=RepositorioUsuarios)
+        repositorio.buscar.return_value = usuario_autenticado
+        return repositorio
 
     def override_marcar_leida():
         # Use case REAL sobre un repo mockeado: el aviso por WebSocket vive en el
@@ -102,7 +102,7 @@ def client(usuario_autenticado):
         return MarcarNotificacionesLeidasUseCase(repositorio)
 
     app.dependency_overrides[get_current_user] = override_get_current_user
-    app.dependency_overrides[get_obtener_usuario_use_case] = override_obtener_usuario
+    app.dependency_overrides[get_repositorio_usuarios] = override_repositorio_usuarios
     app.dependency_overrides[get_marcar_notificacion_leida_use_case] = override_marcar_leida
     app.dependency_overrides[get_marcar_notificaciones_leidas_use_case] = override_marcar_todas
     app.dependency_overrides[get_authentication_service_dependency] = lambda: _mock_auth_service(sesion_viva=True)
@@ -203,19 +203,22 @@ class TestWebSocketNotificaciones:
         assert excinfo.value.code == 1008
 
     def test_usuario_sin_permiso_no_conecta(self, client):
-        app.dependency_overrides[get_obtener_usuario_use_case] = lambda: MagicMock(
-            spec=ObtenerUsuarioUseCase,
-            **{'ejecutar.return_value': _usuario_sin_ver_alertas()},
-        )
+        usuario_sin_permiso = _usuario_sin_ver_alertas()
+
+        def override_repositorio_sin_permiso():
+            repositorio = MagicMock(spec=RepositorioUsuarios)
+            repositorio.buscar.return_value = usuario_sin_permiso
+            return repositorio
+
+        app.dependency_overrides[get_repositorio_usuarios] = override_repositorio_sin_permiso
 
         try:
             with pytest.raises(WebSocketDisconnect) as excinfo:
                 with client.websocket_connect(f'/ws/notificaciones?ticket={_ticket(RUT_SIN_PERMISO)}'):
                     pass
         finally:
-            app.dependency_overrides[get_obtener_usuario_use_case] = lambda: MagicMock(
-                spec=ObtenerUsuarioUseCase,
-                **{'ejecutar.return_value': crear_usuario_admin_mock()},
+            app.dependency_overrides[get_repositorio_usuarios] = (
+                lambda: MagicMock(spec=RepositorioUsuarios, **{'buscar.return_value': crear_usuario_admin_mock()})
             )
 
         assert excinfo.value.code == 1008

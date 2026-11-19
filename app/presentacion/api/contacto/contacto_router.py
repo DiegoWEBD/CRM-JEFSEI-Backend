@@ -4,7 +4,6 @@ from app.aplicacion.contacto.use_cases.actualizar_contacto import ActualizarCont
 from app.aplicacion.contacto.use_cases.eliminar_contacto import EliminarContactoUseCase
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.contacto.adaptadores.contacto_json_adapter import ContactoJsonAdapter
-from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.contacto.dependencias.deps import (
     get_actualizar_contacto_use_case,
