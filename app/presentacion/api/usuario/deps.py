@@ -14,6 +14,10 @@ from app.infraestructura.usuario.repositorio_usuarios_postgres import Repositori
 from app.presentacion.api.auditoria.dependencias.deps import get_servicio_auditoria
 
 
+def get_repositorio_usuarios():
+    return RepositorioUsuariosPostgres()
+
+
 def get_obtener_usuario_use_case():
     return ObtenerUsuarioUseCase(
         repositorio_usuarios=RepositorioUsuariosPostgres(),
