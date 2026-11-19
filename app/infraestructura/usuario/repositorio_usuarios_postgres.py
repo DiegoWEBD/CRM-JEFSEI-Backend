@@ -228,6 +228,38 @@ class RepositorioUsuariosPostgres(RepositorioUsuarios):
                 cur.execute(query, params)
                 return True
 
+    def actualizar_nombre(self, rut: str, nombre: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Usuario
+                    set nombre = %(nombre)s
+                    where rut = %(rut)s
+                '''
+                params = {
+                    'rut': rut,
+                    'nombre': nombre
+                }
+
+                cur.execute(query, params)
+                return cur.rowcount > 0
+
+    def actualizar_password_hash(self, rut: str, password_hash: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    update Usuario
+                    set password_hash = %(password_hash)s
+                    where rut = %(rut)s
+                '''
+                params = {
+                    'rut': rut,
+                    'password_hash': password_hash
+                }
+
+                cur.execute(query, params)
+                return cur.rowcount > 0
+
     def asignar_roles(self, rut: str, codigo_roles: list[str]) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

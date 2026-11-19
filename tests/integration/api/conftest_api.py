@@ -12,6 +12,8 @@ from app.presentacion.api.usuario.deps import (
     get_obtener_usuarios_use_case,
     get_registrar_usuario_use_case,
     get_actualizar_usuario_use_case,
+    get_actualizar_perfil_use_case,
+    get_cambiar_password_use_case,
     get_eliminar_usuario_use_case,
 )
 from tests.factories.usuario_factory import crear_usuario_mock, crear_usuario_admin_mock
@@ -55,6 +57,8 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
     from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
     from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioUseCase
     from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
+    from app.aplicacion.usuario.use_cases.actualizar_perfil import ActualizarPerfilUseCase
+    from app.aplicacion.usuario.use_cases.cambiar_password import CambiarPasswordUseCase
     from app.aplicacion.usuario.use_cases.eliminar_usuario import EliminarUsuarioUseCase
     from app.aplicacion.auth.use_cases.iniciar_sesion import IniciarSesionUseCase
 
@@ -82,6 +86,16 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
         uc.ejecutar.return_value = True
         return uc
 
+    def override_get_actualizar_perfil_use_case():
+        uc = MagicMock(spec=ActualizarPerfilUseCase)
+        uc.ejecutar.return_value = True
+        return uc
+
+    def override_get_cambiar_password_use_case():
+        uc = MagicMock(spec=CambiarPasswordUseCase)
+        uc.ejecutar.return_value = True
+        return uc
+
     def override_get_eliminar_usuario_use_case():
         uc = MagicMock(spec=EliminarUsuarioUseCase)
         return uc
@@ -105,6 +119,8 @@ def client(usuario_autenticado, mock_repositorio_usuarios, mock_auth_service):
     app.dependency_overrides[get_obtener_usuarios_use_case] = override_get_obtener_usuarios_use_case
     app.dependency_overrides[get_registrar_usuario_use_case] = override_get_registrar_usuario_use_case
     app.dependency_overrides[get_actualizar_usuario_use_case] = override_get_actualizar_usuario_use_case
+    app.dependency_overrides[get_actualizar_perfil_use_case] = override_get_actualizar_perfil_use_case
+    app.dependency_overrides[get_cambiar_password_use_case] = override_get_cambiar_password_use_case
     app.dependency_overrides[get_eliminar_usuario_use_case] = override_get_eliminar_usuario_use_case
     app.dependency_overrides[get_iniciar_sesion_use_case] = override_get_iniciar_sesion_use_case
     app.dependency_overrides[get_authentication_service_dependency] = override_get_auth_service

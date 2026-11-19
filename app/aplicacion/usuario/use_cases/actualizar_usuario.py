@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.auth.authentication_service import AuthenticationService
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
@@ -25,7 +27,8 @@ class ActualizarUsuarioUseCase:
         meta_mensual_uf: int | None,
         codigo_roles: list[str],
         porcentaje_comision: float | None,
-        habilitado: bool
+        habilitado: bool,
+        sesion_id_ejecutor: UUID | None = None
     ) -> bool:
         if not codigo_roles:
             raise ConflictoEnAccionException("Debe asignar al menos un rol")
@@ -69,4 +72,15 @@ class ActualizarUsuarioUseCase:
         if not self.repositorio_usuarios.actualizar(usuario):
             return False
 
-        return self.repositorio_usuarios.asignar_roles(rut, codigo_roles)
+        if not self.repositorio_usuarios.asignar_roles(rut, codigo_roles):
+            return False
+
+        if password:
+            # Al cambiar la contraseña se revocan las sesiones del usuario
+            # afectado para forzar un nuevo inicio de sesión. La sesión del
+            # ejecutor se excluye por si un admin edita su propio usuario.
+            self.authentication_service.revocar_todas_las_sesiones_excepto(
+                rut, sesion_id_ejecutor, motivo='password_change',
+            )
+
+        return True

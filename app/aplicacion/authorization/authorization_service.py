@@ -4,6 +4,7 @@ from app.dominio.proceso_comercial.proceso_comercial import ProcesoComercial
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
 from app.dominio.prospecto.prospecto import Prospecto
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.recordatorio.repositorio_recordatorios import RepositorioRecordatorios
 from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
@@ -17,13 +18,15 @@ class AuthorizationService:
         repositorio_prospectos: RepositorioProspectos,
         repositorio_usuarios: RepositorioUsuarios,
         repositorio_procesos_comerciales: RepositorioProcesosComerciales,
-        repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion
+        repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion,
+        repositorio_recordatorios: RepositorioRecordatorios | None = None
     ):
         self.authorization_repository = authorization_repository
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_usuarios = repositorio_usuarios
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
         self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
+        self.repositorio_recordatorios = repositorio_recordatorios
 
     def usuario_puede_ver_prospecto(self, rut_usuario: str, id_prospecto) -> bool:
         return self.authorization_repository.usuario_puede_ver_prospecto(rut_usuario, id_prospecto)
@@ -254,8 +257,41 @@ class AuthorizationService:
                 and prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut)
 
 
-    def usuario_puede_cambiar_linea_negocio(self, usuario: Usuario, prospecto: Prospecto):
+    def usuario_puede_cambiar_linea_negocio(self, usuario: Usuario, prospecto: Prospecto) -> bool:
         if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
             return True
 
         return False
+
+
+    def usuario_puede_ver_perfil(self, usuario: Usuario, rut_perfil_consultado: str) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'USUARIO_LISTAR'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'USUARIO_VER_DETALLE'):
+            return False
+
+        return usuario.rut == rut_perfil_consultado
+
+
+    def usuario_puede_gestionar_recordatorio(self, usuario: Usuario, id_recordatorio: int) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'GESTIONAR_RECORDATORIO_GLOBAL'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'GESTIONAR_RECORDATORIO_PROPIO'):
+            return False
+
+        if self.repositorio_recordatorios is None:
+            return False
+
+        propietarios = self.repositorio_recordatorios.buscar_propietarios(id_recordatorio)
+
+        if propietarios is None:
+            return False
+
+        return usuario.rut in propietarios
+
+
+    def usuario_puede_gestionar_recordatorio_ajeno(self, usuario: Usuario) -> bool:
+        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'GESTIONAR_RECORDATORIO_GLOBAL')

@@ -1,3 +1,4 @@
+from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.recordatorio.use_cases.actualizar_recordatorio import ActualizarRecordatorioUseCase
 from app.aplicacion.recordatorio.use_cases.completar_recordatorio import CompletarRecordatorioUseCase
 from app.aplicacion.recordatorio.use_cases.eliminar_recordatorio import EliminarRecordatorioUseCase
@@ -23,19 +24,31 @@ def get_registrar_recordatorio_use_case():
 
 def get_actualizar_recordatorio_use_case():
     repositorio_recordatorios = RepositorioRecordatoriosPostgres()
-    return ActualizarRecordatorioUseCase(repositorio_recordatorios)
+    return ActualizarRecordatorioUseCase(
+        repositorio_recordatorios,
+        AuthorizationServiceFactory.crear_authorization_service()
+    )
 
 
 def get_completar_recordatorio_use_case():
     repositorio_recordatorios = RepositorioRecordatoriosPostgres()
-    return CompletarRecordatorioUseCase(repositorio_recordatorios)
+    return CompletarRecordatorioUseCase(
+        repositorio_recordatorios,
+        AuthorizationServiceFactory.crear_authorization_service()
+    )
 
 
 def get_eliminar_recordatorio_use_case():
     repositorio_recordatorios = RepositorioRecordatoriosPostgres()
-    return EliminarRecordatorioUseCase(repositorio_recordatorios)
+    return EliminarRecordatorioUseCase(
+        repositorio_recordatorios,
+        AuthorizationServiceFactory.crear_authorization_service()
+    )
 
 
 def get_obtener_proximo_contacto_use_case():
     repositorio_recordatorios = RepositorioRecordatoriosPostgres()
-    return ObtenerProximoContactoUseCase(repositorio_recordatorios)
+    return ObtenerProximoContactoUseCase(
+        repositorio_recordatorios,
+        AuthorizationServiceFactory.crear_authorization_service()
+    )

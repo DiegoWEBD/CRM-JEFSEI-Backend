@@ -8,9 +8,15 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.recordatorio.dependencias.deps import (
+    get_actualizar_recordatorio_use_case,
+    get_completar_recordatorio_use_case,
+    get_eliminar_recordatorio_use_case,
     get_obtener_recordatorios_usuario_use_case,
     get_registrar_recordatorio_use_case,
 )
+from app.aplicacion.recordatorio.use_cases.actualizar_recordatorio import ActualizarRecordatorioUseCase
+from app.aplicacion.recordatorio.use_cases.completar_recordatorio import CompletarRecordatorioUseCase
+from app.aplicacion.recordatorio.use_cases.eliminar_recordatorio import EliminarRecordatorioUseCase
 from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerRecordatoriosUsuarioUseCase
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from tests.factories.usuario_factory import (
@@ -308,3 +314,190 @@ class TestRecordatorioEndpointsRegistrar:
             fecha_recordatorio="2026-12-05T09:00:00",
             id_prospecto=7,
         )
+
+
+@pytest.fixture
+def use_case_actualizar_mock():
+    return MagicMock(spec=ActualizarRecordatorioUseCase)
+
+
+@pytest.fixture
+def use_case_completar_mock():
+    return MagicMock(spec=CompletarRecordatorioUseCase)
+
+
+@pytest.fixture
+def use_case_eliminar_mock():
+    return MagicMock(spec=EliminarRecordatorioUseCase)
+
+
+@pytest.fixture
+def usuario_gestion_holder():
+    return {"usuario": _usuario_con_permiso("GESTIONAR_RECORDATORIO_PROPIO")}
+
+
+@pytest.fixture
+def client_gestion(
+    usuario_gestion_holder,
+    use_case_actualizar_mock,
+    use_case_completar_mock,
+    use_case_eliminar_mock,
+):
+    def override_get_current_user():
+        return usuario_gestion_holder["usuario"]
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_actualizar_recordatorio_use_case] = lambda: use_case_actualizar_mock
+    app.dependency_overrides[get_completar_recordatorio_use_case] = lambda: use_case_completar_mock
+    app.dependency_overrides[get_eliminar_recordatorio_use_case] = lambda: use_case_eliminar_mock
+
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+def _payload_actualizar(**kwargs):
+    payload = {
+        "titulo": "Recordatorio actualizado",
+        "detalle": "Detalle nuevo",
+        "prioridad": "ALTA",
+        "tipo_gestion": "LLAMADA",
+        "fecha_recordatorio": "2026-12-10T10:00:00",
+        "id_prospecto": 5,
+    }
+    payload.update(kwargs)
+    return payload
+
+
+@pytest.mark.integration
+class TestRecordatorioEndpointsGestion:
+
+    def test_actualizar_recordatorio_propio_pasa_usuario(self, client_gestion, headers_auth_validos, use_case_actualizar_mock):
+        response = client_gestion.patch(
+            "/recordatorios/1",
+            json=_payload_actualizar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 200
+        kwargs = use_case_actualizar_mock.ejecutar.call_args.kwargs
+        assert kwargs["usuario"].rut == "11111111-1"
+        assert kwargs["id"] == 1
+        assert kwargs["titulo"] == "Recordatorio actualizado"
+
+    def test_actualizar_sin_permiso_retorna_403(self, client_gestion, headers_auth_validos, use_case_actualizar_mock, usuario_gestion_holder):
+        usuario_gestion_holder["usuario"] = crear_usuario_mock()
+
+        response = client_gestion.patch(
+            "/recordatorios/1",
+            json=_payload_actualizar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+        use_case_actualizar_mock.ejecutar.assert_not_called()
+
+    def test_actualizar_recordatorio_ajeno_retorna_403(self, client_gestion, headers_auth_validos, use_case_actualizar_mock):
+        use_case_actualizar_mock.ejecutar.side_effect = UsuarioNoAutorizadoException()
+
+        response = client_gestion.patch(
+            "/recordatorios/1",
+            json=_payload_actualizar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+
+    def test_actualizar_recordatorio_inexistente_retorna_404(self, client_gestion, headers_auth_validos, use_case_actualizar_mock):
+        use_case_actualizar_mock.ejecutar.side_effect = RecursoNoEncontradoException("El recordatorio no existe")
+
+        response = client_gestion.patch(
+            "/recordatorios/999",
+            json=_payload_actualizar(),
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 404
+
+    def test_completar_recordatorio_pasa_usuario(self, client_gestion, headers_auth_validos, use_case_completar_mock):
+        response = client_gestion.patch(
+            "/recordatorios/1/completar",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 200
+        assert use_case_completar_mock.ejecutar.call_args.kwargs["usuario"].rut == "11111111-1"
+        assert use_case_completar_mock.ejecutar.call_args.kwargs["id"] == 1
+
+    def test_completar_sin_permiso_retorna_403(self, client_gestion, headers_auth_validos, use_case_completar_mock, usuario_gestion_holder):
+        usuario_gestion_holder["usuario"] = crear_usuario_mock()
+
+        response = client_gestion.patch(
+            "/recordatorios/1/completar",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+        use_case_completar_mock.ejecutar.assert_not_called()
+
+    def test_completar_recordatorio_ajeno_retorna_403(self, client_gestion, headers_auth_validos, use_case_completar_mock):
+        use_case_completar_mock.ejecutar.side_effect = UsuarioNoAutorizadoException()
+
+        response = client_gestion.patch(
+            "/recordatorios/1/completar",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+
+    def test_eliminar_recordatorio_pasa_usuario(self, client_gestion, headers_auth_validos, use_case_eliminar_mock):
+        response = client_gestion.delete(
+            "/recordatorios/1",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 200
+        assert use_case_eliminar_mock.ejecutar.call_args.kwargs["usuario"].rut == "11111111-1"
+        assert use_case_eliminar_mock.ejecutar.call_args.kwargs["id"] == 1
+
+    def test_eliminar_sin_permiso_retorna_403(self, client_gestion, headers_auth_validos, use_case_eliminar_mock, usuario_gestion_holder):
+        usuario_gestion_holder["usuario"] = crear_usuario_mock()
+
+        response = client_gestion.delete(
+            "/recordatorios/1",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+        use_case_eliminar_mock.ejecutar.assert_not_called()
+
+    def test_eliminar_recordatorio_ajeno_retorna_403(self, client_gestion, headers_auth_validos, use_case_eliminar_mock):
+        use_case_eliminar_mock.ejecutar.side_effect = UsuarioNoAutorizadoException()
+
+        response = client_gestion.delete(
+            "/recordatorios/1",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 403
+
+    def test_eliminar_recordatorio_inexistente_retorna_404(self, client_gestion, headers_auth_validos, use_case_eliminar_mock):
+        use_case_eliminar_mock.ejecutar.side_effect = RecursoNoEncontradoException("El recordatorio no existe")
+
+        response = client_gestion.delete(
+            "/recordatorios/999",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code == 404
+
+    def test_endpoint_cobranza_stub_fue_eliminado(self, client_gestion, headers_auth_validos):
+        response = client_gestion.get(
+            "/recordatorios/cobranza",
+            headers=headers_auth_validos,
+        )
+
+        assert response.status_code in (404, 405)
