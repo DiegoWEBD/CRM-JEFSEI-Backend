@@ -72,5 +72,18 @@ class AuthenticationService(ABC):
         pass
 
     @abstractmethod
+    def revocar_todas_las_sesiones_excepto(
+        self,
+        rut: str,
+        sesion_id: UUID | None,
+        motivo: str,
+    ) -> None:
+        """Revoca todas las sesiones de un usuario excepto la indicada.
+
+        Si ``sesion_id`` es None se revocan todas.
+        """
+        pass
+
+    @abstractmethod
     def obtener_sesion_viva(self, sesion_id: UUID) -> Sesion | None:
         pass

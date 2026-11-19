@@ -141,6 +141,29 @@ class RepositorioSesionesPostgres(RepositorioSesiones):
                     {'rut': rut, 'motivo': motivo},
                 )
 
+    def revocar_sesiones_usuario_excepto(
+        self,
+        rut: str,
+        sesion_id_excluida: UUID | None,
+        motivo: str,
+    ) -> None:
+        if sesion_id_excluida is None:
+            self.revocar_sesiones_usuario(rut, motivo)
+            return
+
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    '''
+                    UPDATE sesion
+                    SET revocado_en = now(), motivo_revocacion = %(motivo)s
+                    WHERE rut_usuario = %(rut)s
+                      AND revocado_en IS NULL
+                      AND id <> %(excluida)s
+                    ''',
+                    {'rut': rut, 'excluida': sesion_id_excluida, 'motivo': motivo},
+                )
+
     # ── Consulta paginada para administración ──────────────────
 
     def _construir_where_sesiones(

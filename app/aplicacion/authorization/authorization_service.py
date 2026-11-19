@@ -254,8 +254,18 @@ class AuthorizationService:
                 and prospecto.ejecutivo_evaluacion_asignado.rut == usuario.rut)
 
 
-    def usuario_puede_cambiar_linea_negocio(self, usuario: Usuario, prospecto: Prospecto):
+    def usuario_puede_cambiar_linea_negocio(self, usuario: Usuario, prospecto: Prospecto) -> bool:
         if prospecto.ejecutivo_comercial_asignado and prospecto.ejecutivo_comercial_asignado.rut == usuario.rut:
             return True
 
         return False
+
+
+    def usuario_puede_ver_perfil(self, usuario: Usuario, rut_perfil_consultado: str) -> bool:
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'USUARIO_LISTAR'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'USUARIO_VER_DETALLE'):
+            return False
+
+        return usuario.rut == rut_perfil_consultado

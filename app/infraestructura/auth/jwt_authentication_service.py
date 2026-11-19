@@ -204,5 +204,15 @@ class JwtAuthenticationService(AuthenticationService):
     def revocar_todas_las_sesiones(self, rut: str, motivo: str) -> None:
         self._requiere_sesiones().revocar_sesiones_usuario(rut, motivo)
 
+    def revocar_todas_las_sesiones_excepto(
+        self,
+        rut: str,
+        sesion_id: UUID | None,
+        motivo: str,
+    ) -> None:
+        self._requiere_sesiones().revocar_sesiones_usuario_excepto(
+            rut, sesion_id, motivo,
+        )
+
     def obtener_sesion_viva(self, sesion_id: UUID) -> Sesion | None:
         return self._requiere_sesiones().obtener_sesion_viva(sesion_id)
