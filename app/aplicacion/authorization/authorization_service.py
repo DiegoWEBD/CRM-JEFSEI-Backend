@@ -329,3 +329,25 @@ class AuthorizationService:
 
     def usuario_puede_administrar_administradores(self, usuario: Usuario) -> bool:
         return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ADMINISTRADORES')
+
+
+    def usuario_puede_ver_archivos_prospecto(self, usuario: Usuario, id_prospecto: int) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ARCHIVOS_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ARCHIVOS_PROPIOS'):
+            return False
+
+        return self.authorization_repository.usuario_asignado_a_prospecto(usuario.rut, id_prospecto)
+
+
+    def usuario_puede_administrar_archivos_prospecto(self, usuario: Usuario, id_prospecto: int) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ARCHIVOS_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ARCHIVOS_PROPIOS'):
+            return False
+
+        return self.authorization_repository.usuario_asignado_a_prospecto(usuario.rut, id_prospecto)

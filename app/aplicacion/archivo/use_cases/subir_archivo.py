@@ -7,6 +7,7 @@ from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoExce
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.usuario.usuario import Usuario
 
 
 class SubirArchivoUseCase:
@@ -25,20 +26,20 @@ class SubirArchivoUseCase:
 
     def ejecutar(
         self,
+        usuario: Usuario,
         id_prospecto: int,
         nombre_almacenado: str,
         nombre_original: str,
         tipo_contenido: str,
         tamano_bytes: int,
         contenido: bytes,
-        rut_usuario: str,
     ) -> Archivo:
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
         if prospecto is None:
             raise RecursoNoEncontradoException("No se encontró el prospecto")
 
-        if not self.authorization_service.usuario_puede_ver_prospecto(rut_usuario, id_prospecto):
+        if not self.authorization_service.usuario_puede_administrar_archivos_prospecto(usuario, id_prospecto):
             raise UsuarioNoAutorizadoException
 
         if self.repositorio_archivos.existe_nombre_original(id_prospecto, nombre_original):
@@ -52,5 +53,5 @@ class SubirArchivoUseCase:
             nombre_original=nombre_original,
             tipo_contenido=tipo_contenido,
             tamano_bytes=tamano_bytes,
-            rut_subido_por=rut_usuario,
+            rut_subido_por=usuario.rut,
         )
