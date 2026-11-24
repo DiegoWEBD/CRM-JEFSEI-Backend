@@ -321,3 +321,11 @@ class AuthorizationService:
 
     def usuario_puede_ver_todas_las_gestiones_comerciales(self, usuario: Usuario) -> bool:
         return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_GESTIONES_COMERCIALES_TODOS')
+
+
+    def usuario_puede_ver_administradores(self, usuario: Usuario) -> bool:
+        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ADMINISTRADORES')
+
+
+    def usuario_puede_administrar_administradores(self, usuario: Usuario) -> bool:
+        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ADMINISTRADORES')

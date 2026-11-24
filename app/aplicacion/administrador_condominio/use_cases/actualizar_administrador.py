@@ -1,3 +1,4 @@
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.dominio.administrador_condominio.administrador_condominio import (
     AdministradorCondominio,
 )
@@ -7,27 +8,42 @@ from app.dominio.administrador_condominio.repositorio_administradores import (
 from app.dominio.exceptions.recurso_no_encontrado import (
     RecursoNoEncontradoException,
 )
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
+from app.dominio.usuario.usuario import Usuario
 
 
 class ActualizarAdministradorUseCase:
 
-    def __init__(self, repositorio_administradores: RepositorioAdministradores):
+    def __init__(
+        self,
+        repositorio_administradores: RepositorioAdministradores,
+        authorization_service: AuthorizationService,
+    ):
         self.repositorio_administradores = repositorio_administradores
+        self.authorization_service = authorization_service
 
     def ejecutar(
         self,
+        usuario: Usuario,
         id: int,
         nombre_administrador: str,
         nombre_contacto: str | None,
         telefono: str | None,
         correo: str | None,
     ) -> AdministradorCondominio:
+        if not self.authorization_service.usuario_puede_administrar_administradores(usuario):
+            raise UsuarioNoAutorizadoException(
+                "No tiene permiso para administrar administradores de condominio"
+            )
+
         existente = self.repositorio_administradores.buscar(id)
         if not existente:
             raise RecursoNoEncontradoException(
                 "Administrador no encontrado"
             )
 
+        # Solo datos básicos: la relación de condominios bajo administración
+        # se gestiona desde el módulo de prospectos, fuera de este permiso.
         administrador = AdministradorCondominio(
             id=id,
             nombre_administrador=nombre_administrador,
