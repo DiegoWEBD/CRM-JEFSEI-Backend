@@ -19,7 +19,9 @@ class RepositorioGestionesComerciales(ABC):
         pass
 
     @abstractmethod
-    def obtener_todas(self, id_prospecto: int | None = None) -> list[GestionComercial]:
+    def obtener_todas(self, id_prospecto: int | None = None, rut_usuario: str | None = None) -> list[GestionComercial]:
+        """Gestiones comerciales. Si se pasa rut_usuario, se limita a los
+        prospectos asignados a ese usuario (scoping de permisos PROPIOS)."""
         pass
 
     @abstractmethod

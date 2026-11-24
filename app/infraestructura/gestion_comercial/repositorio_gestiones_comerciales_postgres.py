@@ -46,7 +46,7 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
 
         return self._buscar_por_id(id_creado)
 
-    def obtener_todas(self, id_prospecto: int | None = None) -> list[GestionComercial]:
+    def obtener_todas(self, id_prospecto: int | None = None, rut_usuario: str | None = None) -> list[GestionComercial]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 query = '''
@@ -72,6 +72,26 @@ class RepositorioGestionesComercialesPostgres(RepositorioGestionesComerciales):
                 if id_prospecto is not None:
                     query += ' and GC.id_prospecto = %(id_prospecto)s'
                     params['id_prospecto'] = id_prospecto
+
+                if rut_usuario is not None:
+                    query += '''
+                        and (
+                            exists (
+                                select 1 from Prospecto P
+                                where P.id = GC.id_prospecto
+                                and (P.rut_ej_comercial_asignado = %(rut_usuario)s
+                                     or P.rut_ej_evaluacion_asignado = %(rut_usuario)s)
+                            )
+                            or exists (
+                                select 1 from Cliente C
+                                where C.id_prospecto = GC.id_prospecto
+                                and (C.rut_ej_renovacion_asignado = %(rut_usuario)s
+                                     or C.rut_as_renovacion_asignado = %(rut_usuario)s
+                                     or C.rut_ej_cobranza_asignado = %(rut_usuario)s)
+                            )
+                        )
+                    '''
+                    params['rut_usuario'] = rut_usuario
 
                 query += ' order by GC.fecha_gestion desc'
 

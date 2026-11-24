@@ -87,6 +87,46 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     row['rut_ej_cobranza_asignado'] == rut_usuario
                 ])
 
+    def usuario_asignado_a_prospecto(self, rut_usuario: str, id_prospecto: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                query = '''
+                    select rut_ej_comercial_asignado,
+                    rut_ej_evaluacion_asignado
+                    from Prospecto
+                    where id = %(id_prospecto)s
+                '''
+                cur.execute(query, {'id_prospecto': id_prospecto})
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                if any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario
+                ]):
+                    return True
+
+                query = '''
+                    select rut_ej_renovacion_asignado,
+                    rut_as_renovacion_asignado,
+                    rut_ej_cobranza_asignado
+                    from Cliente
+                    where id_prospecto = %(id_prospecto)s
+                '''
+                cur.execute(query, {'id_prospecto': id_prospecto})
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_renovacion_asignado'] == rut_usuario,
+                    row['rut_as_renovacion_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
+                ])
+
     def usuario_puede_ver_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:

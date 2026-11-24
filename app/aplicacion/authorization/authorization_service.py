@@ -295,3 +295,29 @@ class AuthorizationService:
 
     def usuario_puede_gestionar_recordatorio_ajeno(self, usuario: Usuario) -> bool:
         return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'GESTIONAR_RECORDATORIO_GLOBAL')
+
+
+    def usuario_puede_registrar_gestion_comercial(self, usuario: Usuario, id_prospecto: int) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'REGISTRAR_GESTION_COMERCIAL_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'REGISTRAR_GESTION_COMERCIAL_PROPIOS'):
+            return False
+
+        return self.authorization_repository.usuario_asignado_a_prospecto(usuario.rut, id_prospecto)
+
+
+    def usuario_puede_ver_gestiones_comerciales_prospecto(self, usuario: Usuario, id_prospecto: int) -> bool:
+
+        if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_GESTIONES_COMERCIALES_TODOS'):
+            return True
+
+        if not self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_GESTIONES_COMERCIALES_PROPIOS'):
+            return False
+
+        return self.authorization_repository.usuario_asignado_a_prospecto(usuario.rut, id_prospecto)
+
+
+    def usuario_puede_ver_todas_las_gestiones_comerciales(self, usuario: Usuario) -> bool:
+        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_GESTIONES_COMERCIALES_TODOS')
