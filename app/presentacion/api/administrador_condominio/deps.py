@@ -4,9 +4,6 @@ from app.aplicacion.administrador_condominio.use_cases.obtener_administrador_por
     ObtenerAdministradorPorIdUseCase,
 )
 
-from app.aplicacion.administrador_condominio.use_cases.obtener_administradores import (
-    ObtenerAdministradoresUseCase,
-)
 from app.aplicacion.administrador_condominio.use_cases.registrar_administrador import (
     RegistrarAdministradorUseCase,
 )
@@ -16,7 +13,6 @@ from app.aplicacion.administrador_condominio.use_cases.actualizar_administrador 
 from app.aplicacion.administrador_condominio.servicios.consulta_administradores_service import (
     ConsultaAdministradoresService,
 )
-from app.aplicacion.authorization.authorization_service_factory import AuthorizationServiceFactory
 from app.aplicacion.prospecto.servicios.consulta_prospectos_service import (
     ConsultaProspectosService,
 )
@@ -36,34 +32,17 @@ from app.presentacion.api.administrador_condominio.dto.filtros_administradores i
 
 def get_obtener_administrador_por_id_use_case() -> ObtenerAdministradorPorIdUseCase:
     repositorio = RepositorioAdministradoresPostgres()
-    return ObtenerAdministradorPorIdUseCase(
-        repositorio,
-        AuthorizationServiceFactory.crear_authorization_service(),
-    )
-
-
-def get_obtener_administradores_use_case() -> ObtenerAdministradoresUseCase:
-    consulta_service = ConsultaAdministradoresPostgresService()
-    return ObtenerAdministradoresUseCase(
-        consulta_service,
-        AuthorizationServiceFactory.crear_authorization_service(),
-    )
+    return ObtenerAdministradorPorIdUseCase(repositorio)
 
 
 def get_registrar_administrador_use_case() -> RegistrarAdministradorUseCase:
     repositorio = RepositorioAdministradoresPostgres()
-    return RegistrarAdministradorUseCase(
-        repositorio,
-        AuthorizationServiceFactory.crear_authorization_service(),
-    )
+    return RegistrarAdministradorUseCase(repositorio)
 
 
 def get_actualizar_administrador_use_case() -> ActualizarAdministradorUseCase:
     repositorio = RepositorioAdministradoresPostgres()
-    return ActualizarAdministradorUseCase(
-        repositorio,
-        AuthorizationServiceFactory.crear_authorization_service(),
-    )
+    return ActualizarAdministradorUseCase(repositorio)
 
 
 def get_filtros_administradores(

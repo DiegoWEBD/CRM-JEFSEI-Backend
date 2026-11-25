@@ -28,6 +28,7 @@ def obtener_productos(
     texto_busqueda: str | None = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     tamano_pagina: int = Query(default=20, ge=1, le=100),
+    _ = Depends(permisos_requeridos('VER_PRODUCTOS')),
     use_case: ObtenerProductosUseCase = Depends(get_obtener_productos_use_case)
 ):
     productos, total = use_case.ejecutar(
@@ -50,6 +51,7 @@ def obtener_productos(
 @router.get('/{id}', status_code=status.HTTP_200_OK)
 def obtener_producto(
     id: int,
+    _ = Depends(permisos_requeridos('VER_PRODUCTOS')),
     use_case: ObtenerProductoUseCase = Depends(get_obtener_producto_use_case)
 ):
     producto = use_case.ejecutar(id)

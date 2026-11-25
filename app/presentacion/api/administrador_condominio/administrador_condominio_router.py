@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Depends, status
 
+from app.aplicacion.administrador_condominio.servicios.consulta_administradores_service import ConsultaAdministradoresService
 from app.aplicacion.administrador_condominio.use_cases.obtener_administrador_por_id import (
     ObtenerAdministradorPorIdUseCase,
 )
 
-from app.aplicacion.administrador_condominio.use_cases.obtener_administradores import (
-    ObtenerAdministradoresUseCase,
-)
 from app.aplicacion.administrador_condominio.use_cases.registrar_administrador import (
     RegistrarAdministradorUseCase,
 )
@@ -23,10 +21,10 @@ from app.infraestructura.administrador_condominio.adaptadores.administrador_cond
 )
 from app.presentacion.api.administrador_condominio.deps import (
     get_actualizar_administrador_use_case,
+    get_consulta_administradores_service,
     get_consulta_prospectos_service,
     get_filtros_administradores,
     get_obtener_administrador_por_id_use_case,
-    get_obtener_administradores_use_case,
     get_registrar_administrador_use_case,
 )
 from app.presentacion.api.administrador_condominio.dto.registrar_administrador_request import (
@@ -51,12 +49,12 @@ router = APIRouter(prefix="/administradores", tags=["Administradores"])
 @router.get("/{id}", status_code=status.HTTP_200_OK)
 def obtener_administrador_por_id(
     id: int,
-    usuario: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
+    _: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
     use_case: ObtenerAdministradorPorIdUseCase = Depends(
         get_obtener_administrador_por_id_use_case
     ),
 ):
-    administrador = use_case.ejecutar(usuario=usuario, id=id)
+    administrador = use_case.ejecutar(id)
     return {
         "data": AdministradorCondominioJsonAdapter(administrador).to_json()
     }
@@ -65,13 +63,12 @@ def obtener_administrador_por_id(
 @router.get("/", status_code=status.HTTP_200_OK)
 def obtener_administradores(
     filtros: FiltrosAdministradores = Depends(get_filtros_administradores),
-    usuario: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
-    use_case: ObtenerAdministradoresUseCase = Depends(
-        get_obtener_administradores_use_case
+    _: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
+    consulta_service: ConsultaAdministradoresService = Depends(
+        get_consulta_administradores_service
     ),
 ):
-    return use_case.ejecutar(
-        usuario=usuario,
+    return consulta_service.obtener_todos(
         texto_busqueda=filtros.texto_busqueda,
         pagina=filtros.pagina,
         tamano_pagina=filtros.tamano_pagina,
@@ -81,13 +78,12 @@ def obtener_administradores(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def registrar_administrador(
     request: RegistrarAdministradorRequest,
-    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
+    _: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
     use_case: RegistrarAdministradorUseCase = Depends(
         get_registrar_administrador_use_case
     ),
 ):
     administrador = use_case.ejecutar(
-        usuario=usuario,
         nombre_administrador=request.nombre_administrador,
         nombre_contacto=request.nombre_contacto,
         telefono=request.telefono,
@@ -103,13 +99,12 @@ def registrar_administrador(
 def actualizar_administrador(
     id: int,
     request: ActualizarAdministradorRequest,
-    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
+    _: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
     use_case: ActualizarAdministradorUseCase = Depends(
         get_actualizar_administrador_use_case
     ),
 ):
     administrador = use_case.ejecutar(
-        usuario=usuario,
         id=id,
         nombre_administrador=request.nombre_administrador,
         nombre_contacto=request.nombre_contacto,
@@ -133,7 +128,7 @@ def obtener_prospectos_por_administrador(
         get_consulta_prospectos_service
     ),
 ):
-    obtener_administrador.ejecutar(usuario=usuario, id=id)
+    obtener_administrador.ejecutar(id)
 
     puede_ver_todos = usuario_tiene_permiso("OBTENER_PROSPECTOS_TODOS", usuario)
     puede_ver_propios = usuario_tiene_permiso(

@@ -6,13 +6,24 @@ from app.dominio.cobranza.repositorio_consulta_dashboard_cobranza import (
 from app.infraestructura.db.conexion import obtener_conexion
 
 
+def _filtro_cobrador(rut_usuario: str | None) -> tuple[str, dict]:
+    """Fragmento opcional de scoping por ejecutivo de cobranza asignado.
+
+    Con rut_usuario=None (permiso global) no se filtra por cobrador.
+    """
+    if rut_usuario is None:
+        return '', {}
+    return ' and C.rut_ej_cobranza_asignado = %(rut_usuario)s', {'rut_usuario': rut_usuario}
+
+
 class RepositorioConsultaDashboardCobranzaPostgres(
     RepositorioConsultaDashboardCobranza
 ):
 
-    def obtener_cuotas_dashboard(self, rut_usuario: str) -> list[dict]:
+    def obtener_cuotas_dashboard(self, rut_usuario: str | None) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+                filtro_cobrador, params = _filtro_cobrador(rut_usuario)
                 query = """
                     select
                         CU.id as cuota_id,
@@ -45,16 +56,18 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                         on POL.id_cliente = C.id
                     inner join Prospecto P
                         on C.id_prospecto = P.id
-                    where C.rut_ej_cobranza_asignado = %(rut_usuario)s
+                    where 1 = 1
+                """ + filtro_cobrador + """
                       and POL.cancelada = false
                     order by P.nombre_riesgo, PP.numero_poliza, CU.numero_cuota
                 """
-                cur.execute(query, {"rut_usuario": rut_usuario})
+                cur.execute(query, params)
                 return cur.fetchall()
 
-    def obtener_polizas_sin_plan_pago(self, rut_usuario: str) -> list[dict]:
+    def obtener_polizas_sin_plan_pago(self, rut_usuario: str | None) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+                filtro_cobrador, params = _filtro_cobrador(rut_usuario)
                 query = """
                     select
                         POL.numero_poliza,
@@ -77,7 +90,8 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                         and PR.eliminado = false
                     left join CompanySeguros CS
                         on POL.id_company = CS.id
-                    where C.rut_ej_cobranza_asignado = %(rut_usuario)s
+                    where 1 = 1
+                """ + filtro_cobrador + """
                       and POL.cancelada = false
                       and not exists (
                           select 1 from PlanPago PP
@@ -85,14 +99,15 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                       )
                     order by P.nombre_riesgo, POL.numero_poliza
                 """
-                cur.execute(query, {"rut_usuario": rut_usuario})
+                cur.execute(query, params)
                 return cur.fetchall()
 
     def obtener_recordatorios_cobranza(
-        self, rut_usuario: str, fecha_hasta: date
+        self, rut_usuario: str | None, fecha_hasta: date
     ) -> list[dict]:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
+                filtro_cobrador, params = _filtro_cobrador(rut_usuario)
                 query = """
                     select
                         R.id as id_recordatorio,
@@ -110,17 +125,13 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                         on PP.numero_poliza = POL.numero_poliza
                     inner join Cliente C
                         on POL.id_cliente = C.id
-                    where C.rut_ej_cobranza_asignado = %(rut_usuario)s
+                    where 1 = 1
+                """ + filtro_cobrador + """
                       and POL.cancelada = false
                       and R.completado = false
                       and R.fecha_recordatorio::date <= %(fecha_hasta)s
                     order by R.fecha_recordatorio
                 """
-                cur.execute(
-                    query,
-                    {
-                        "rut_usuario": rut_usuario,
-                        "fecha_hasta": fecha_hasta.isoformat(),
-                    },
-                )
+                params['fecha_hasta'] = fecha_hasta.isoformat()
+                cur.execute(query, params)
                 return cur.fetchall()

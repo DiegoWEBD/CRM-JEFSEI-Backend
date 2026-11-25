@@ -51,12 +51,26 @@ class TestObtenerCompaniesSegurosPermisos:
         assert response.status_code == 401
         use_case_paginado_mock.ejecutar.assert_not_called()
 
-    def test_get_no_requiere_administrar_companies(
+    def test_get_sin_ver_companies_retorna_403(
         self, client_companies, use_case_paginado_mock, headers_auth_validos
     ):
-        """Los selects de pólizas/cotizaciones deben seguir funcionando sin el permiso."""
+        """Desde la Fase 5 el GET exige VER_COMPANIES (expone factores de cuotas)."""
         usuario_sin_permiso = _usuario_con_permisos("VER_USUARIOS")
         app.dependency_overrides[get_current_user] = lambda: usuario_sin_permiso
+
+        use_case_paginado_mock.ejecutar.return_value = ([], 0)
+
+        response = client_companies.get("/companies-seguros/", headers=headers_auth_validos)
+
+        assert response.status_code == 403
+        use_case_paginado_mock.ejecutar.assert_not_called()
+
+    def test_get_con_ver_companies_no_requiere_administrar_companies(
+        self, client_companies, use_case_paginado_mock, headers_auth_validos
+    ):
+        """Los selects de pólizas/cotizaciones funcionan con VER_COMPANIES y sin ADMINISTRAR_COMPANIES."""
+        usuario_solo_ver = _usuario_con_permisos("VER_COMPANIES")
+        app.dependency_overrides[get_current_user] = lambda: usuario_solo_ver
 
         use_case_paginado_mock.ejecutar.return_value = ([], 0)
 

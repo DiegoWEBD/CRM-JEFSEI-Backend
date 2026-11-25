@@ -323,14 +323,6 @@ class AuthorizationService:
         return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_GESTIONES_COMERCIALES_TODOS')
 
 
-    def usuario_puede_ver_administradores(self, usuario: Usuario) -> bool:
-        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ADMINISTRADORES')
-
-
-    def usuario_puede_administrar_administradores(self, usuario: Usuario) -> bool:
-        return self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'ADMINISTRAR_ADMINISTRADORES')
-
-
     def usuario_puede_ver_archivos_prospecto(self, usuario: Usuario, id_prospecto: int) -> bool:
 
         if self.repositorio_usuarios.usuario_tiene_permiso(usuario, 'VER_ARCHIVOS_TODOS'):

@@ -21,7 +21,9 @@ class ObtenerDashboardCobranzaUseCase:
     ):
         self.repositorio = repositorio
 
-    def ejecutar(self, rut_usuario: str) -> DashboardCobranzaDto:
+    def ejecutar(self, rut_usuario: str | None) -> DashboardCobranzaDto:
+        """Con rut_usuario=None se entrega el dashboard global (permiso VER_COBRANZA_TODOS);
+        el scoping por cobrador asignado lo decide el endpoint y lo aplica el repositorio."""
         hoy = date.today()
 
         cuotas_raw = self.repositorio.obtener_cuotas_dashboard(rut_usuario)

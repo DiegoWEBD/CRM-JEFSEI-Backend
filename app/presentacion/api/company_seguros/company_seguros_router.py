@@ -31,6 +31,7 @@ router = APIRouter(prefix="/companies-seguros", tags=["Companies Seguros"])
 @router.get("/", status_code=status.HTTP_200_OK)
 def obtener_companies_seguros(
     paginacion: PaginacionParams = Depends(get_paginacion_params),
+    _ = Depends(permisos_requeridos('VER_COMPANIES')),
     use_case: ObtenerCompaniesSegurosPaginadasUseCase = Depends(get_obtener_companies_seguros_paginadas_use_case)
 ):
     companies_seguros, total = use_case.ejecutar(
