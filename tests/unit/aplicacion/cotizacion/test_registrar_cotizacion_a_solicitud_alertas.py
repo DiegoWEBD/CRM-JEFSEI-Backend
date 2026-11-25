@@ -11,7 +11,7 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import (
     ServicioAlertasProceso,
 )
 from app.dominio.notificacion.repositorio_notificaciones import RepositorioNotificaciones
-from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_SLA
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import (
     RepositorioProcesosComerciales,
@@ -26,7 +26,7 @@ def _use_case(proceso=None):
     repo_solicitudes.existe_solicitud.return_value = True
     repo_cotizaciones = MagicMock()
     authorization = MagicMock()
-    authorization.usuario_puede_ver_solicitud_cotizacion.return_value = True
+    authorization.usuario_puede_registrar_cotizacion.return_value = True
     repo_procesos = MagicMock(spec=RepositorioProcesosComerciales)
     repo_procesos.buscar_por_solicitud_cotizacion.return_value = proceso
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)
@@ -67,7 +67,7 @@ class TestRegistrarCotizacionASolicitudAlertas:
 
     def test_con_proceso_resuelto_marca_alertas_sla(self, mock_hub):
         uc, repo_cotizaciones, repo_procesos, servicio_alertas = _use_case(
-            proceso=MagicMock(id=42)
+            proceso=MagicMock(id=42, cerrado=False)
         )
 
         uc.ejecutar(**EJECUTAR_ARGS)
@@ -84,17 +84,18 @@ class TestRegistrarCotizacionASolicitudAlertas:
         )
 
     def test_sin_proceso_resuelto_no_marca_ni_publica(self, mock_hub):
-        uc, _, repo_procesos, servicio_alertas = _use_case(proceso=None)
+        uc, repo_cotizaciones, repo_procesos, servicio_alertas = _use_case(proceso=None)
 
-        with pytest.raises(ConflictoEnAccionException):
+        with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar(**EJECUTAR_ARGS)
 
         repo_procesos.buscar_por_solicitud_cotizacion.assert_called_once_with(3)
+        repo_cotizaciones.registrar_cotizacion_a_solicitud.assert_not_called()
         servicio_alertas.marcar_leidas.assert_not_called()
         mock_hub.publicar_desde_hilo.assert_not_called()
 
     def test_sin_destinatarios_no_publica(self, mock_hub):
-        uc, _, _, servicio_alertas = _use_case(proceso=MagicMock(id=42))
+        uc, _, _, servicio_alertas = _use_case(proceso=MagicMock(id=42, cerrado=False))
         servicio_alertas.marcar_leidas.return_value = []
 
         uc.ejecutar(**EJECUTAR_ARGS)

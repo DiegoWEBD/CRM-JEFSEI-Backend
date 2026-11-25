@@ -61,9 +61,26 @@ class RegistrarCotizacionASolicitudUseCase:
     ):
         if not self.repositorio_solicitudes_cotizacion.existe_solicitud(id_solicitud):
             raise RecursoNoEncontradoException('Solicitud no encontrada')
-        
-        if not self.authorization_service.usuario_puede_ver_solicitud_cotizacion(rut_usuario, id_solicitud):
+
+        # Validar permisos (CARGAR_COTIZACIONES + ejecutivo de evaluación asignado)
+
+        if not self.authorization_service.usuario_puede_registrar_cotizacion(rut_usuario, id_solicitud):
             raise UsuarioNoAutorizadoException
+
+        # Validar que el proceso comercial exista y esté abierto (alineación
+        # con actualizar/eliminar cotización)
+
+        proceso_comercial = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(
+            id_solicitud
+        )
+
+        if proceso_comercial is None:
+            raise RecursoNoEncontradoException('Proceso comercial no encontrado')
+
+        if proceso_comercial.cerrado:
+            raise ConflictoEnAccionException(
+                'No se puede cargar una cotización de una oportunidad cerrada'
+            )
 
         # Escritura del archivo asociado, si corresponde
 
@@ -98,13 +115,6 @@ class RegistrarCotizacionASolicitudUseCase:
 
         # La cotización cambia el estado del proceso: la alerta de
         # permanencia en el estado anterior deja de ser relevante.
-        proceso_comercial = self.repositorio_procesos_comerciales.buscar_por_solicitud_cotizacion(
-            id_solicitud
-        )
-
-        if not proceso_comercial:
-            raise ConflictoEnAccionException('Error al registrar la cotización')
-
         historial = HistorialEstadoProcesoComercial(
             id_proceso_comercial=proceso_comercial.id,
             codigo_estado='COTIZACION_DISPONIBLE',

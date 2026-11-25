@@ -120,7 +120,7 @@ def obtener_plan_pago(
 def crear_plan_pago(
     numero_poliza: str,
     request: CrearPlanPagoRequest,
-    usuario: Usuario = Depends(permisos_requeridos('VER_PLAN_PAGO_GLOBAL', 'VER_PLAN_PAGO_PROPIOS')),
+    usuario: Usuario = Depends(permisos_requeridos('CREAR_PLAN_PAGO_GLOBAL', 'CREAR_PLAN_PAGO_PROPIOS')),
     use_case_crear_plan: CrearPlanPagoUseCase = Depends(get_crear_plan_pago_use_case)
 ):
     use_case_crear_plan.ejecutar(
@@ -138,10 +138,10 @@ def crear_plan_pago(
 @router.post('/{numero_poliza}/cancelar', status_code=status.HTTP_200_OK)
 def cancelar_poliza(
     numero_poliza: str,
-    _: Usuario = Depends(permisos_requeridos('CANCELAR_POLIZA')),
+    usuario: Usuario = Depends(permisos_requeridos('CANCELAR_POLIZA_TODOS', 'CANCELAR_POLIZA_PROPIOS')),
     use_case: CancelarPolizaUseCase = Depends(get_cancelar_poliza_use_case)
 ):
-    use_case.ejecutar(numero_poliza)
+    use_case.ejecutar(numero_poliza, usuario=usuario)
 
     return {
         'message': 'Póliza cancelada'
@@ -151,10 +151,10 @@ def cancelar_poliza(
 @router.post('/{numero_poliza}/reactivar', status_code=status.HTTP_200_OK)
 def reactivar_poliza(
     numero_poliza: str,
-    _: Usuario = Depends(permisos_requeridos('REACTIVAR_POLIZA')),
+    usuario: Usuario = Depends(permisos_requeridos('REACTIVAR_POLIZA_TODOS', 'REACTIVAR_POLIZA_PROPIOS')),
     use_case: ReactivarPolizaUseCase = Depends(get_reactivar_poliza_use_case)
 ):
-    use_case.ejecutar(numero_poliza)
+    use_case.ejecutar(numero_poliza, usuario=usuario)
 
     return {
         'message': 'Póliza reactivada'

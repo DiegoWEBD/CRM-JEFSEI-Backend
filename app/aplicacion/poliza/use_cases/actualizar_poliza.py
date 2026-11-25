@@ -5,7 +5,6 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.dominio.usuario.usuario import Usuario
 
@@ -59,7 +58,8 @@ class ActualizarPolizaUseCase:
             raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         if not self.authorization_service.usuario_puede_actualizar_poliza(usuario.rut, numero_poliza):
-            raise UsuarioNoAutorizadoException()
+            # Denegación de ownership: 404 idéntico al de póliza inexistente.
+            raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         self.repositorio_polizas.actualizar(
             numero_poliza=numero_poliza,

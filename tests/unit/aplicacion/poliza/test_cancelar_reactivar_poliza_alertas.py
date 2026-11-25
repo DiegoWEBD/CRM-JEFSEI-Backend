@@ -16,6 +16,8 @@ from tests.factories.notificacion_factory import crear_notificacion_mock
 MODULO_CANCELAR = 'app.aplicacion.poliza.use_cases.cancelar_poliza'
 MODULO_REACTIVAR = 'app.aplicacion.poliza.use_cases.reactivar_poliza'
 
+USUARIO = MagicMock(rut='99999999-9')
+
 
 def _poliza_mock(estado=EstadoPoliza.VIGENTE):
     poliza = MagicMock(spec=Poliza)
@@ -26,9 +28,11 @@ def _poliza_mock(estado=EstadoPoliza.VIGENTE):
 def _cancelar_use_case(poliza=None):
     repo_polizas = MagicMock(spec=RepositorioPolizas)
     repo_polizas.buscar.return_value = poliza if poliza is not None else _poliza_mock()
+    authorization = MagicMock()
+    authorization.usuario_puede_cancelar_poliza.return_value = True
     servicio_alertas = MagicMock(spec=ServicioAlertasProceso)
     servicio_alertas.eliminar_renovacion.return_value = []
-    uc = CancelarPolizaUseCase(repo_polizas, servicio_alertas)
+    uc = CancelarPolizaUseCase(repo_polizas, authorization, servicio_alertas)
     return uc, repo_polizas, servicio_alertas
 
 
@@ -37,9 +41,11 @@ def _reactivar_use_case(poliza=None):
     repo_polizas.buscar.return_value = (
         poliza if poliza is not None else _poliza_mock(estado=EstadoPoliza.CANCELADA)
     )
+    authorization = MagicMock()
+    authorization.usuario_puede_reactivar_poliza.return_value = True
     generar = MagicMock(spec=GenerarAlertaRenovacionPolizaUseCase)
     generar.ejecutar.return_value = []
-    uc = ReactivarPolizaUseCase(repo_polizas, generar)
+    uc = ReactivarPolizaUseCase(repo_polizas, authorization, generar)
     return uc, repo_polizas, generar
 
 
@@ -53,7 +59,7 @@ class TestCancelarPolizaAlertasRenovacion:
         uc, repo_polizas, servicio_alertas = _cancelar_use_case()
         servicio_alertas.eliminar_renovacion.return_value = ['11111111-1']
 
-        uc.ejecutar('POL-001')
+        uc.ejecutar('POL-001', USUARIO)
 
         repo_polizas.actualizar_cancelada.assert_called_once_with('POL-001', True)
         servicio_alertas.eliminar_renovacion.assert_called_once_with('POL-001')
@@ -68,7 +74,7 @@ class TestCancelarPolizaAlertasRenovacion:
         uc, _, servicio_alertas = _cancelar_use_case()
         servicio_alertas.eliminar_renovacion.return_value = []
 
-        uc.ejecutar('POL-001')
+        uc.ejecutar('POL-001', USUARIO)
 
         hub_mock.publicar_desde_hilo.assert_not_called()
 
@@ -77,7 +83,7 @@ class TestCancelarPolizaAlertasRenovacion:
         repo_polizas.buscar.return_value = None
 
         with pytest.raises(RecursoNoEncontradoException):
-            uc.ejecutar('POL-404')
+            uc.ejecutar('POL-404', USUARIO)
 
         servicio_alertas.eliminar_renovacion.assert_not_called()
 
@@ -87,7 +93,7 @@ class TestCancelarPolizaAlertasRenovacion:
         )
 
         with pytest.raises(ConflictoEnAccionException):
-            uc.ejecutar('POL-001')
+            uc.ejecutar('POL-001', USUARIO)
 
         servicio_alertas.eliminar_renovacion.assert_not_called()
 
@@ -106,7 +112,7 @@ class TestReactivarPolizaAlertasRenovacion:
             ),
         ]
 
-        uc.ejecutar('POL-001')
+        uc.ejecutar('POL-001', USUARIO)
 
         repo_polizas.actualizar_cancelada.assert_called_once_with('POL-001', False)
         generar.ejecutar.assert_called_once()
@@ -125,7 +131,7 @@ class TestReactivarPolizaAlertasRenovacion:
         uc, _, generar = _reactivar_use_case()
         generar.ejecutar.return_value = []
 
-        uc.ejecutar('POL-001')
+        uc.ejecutar('POL-001', USUARIO)
 
         hub_mock.publicar_desde_hilo.assert_not_called()
 
@@ -134,7 +140,7 @@ class TestReactivarPolizaAlertasRenovacion:
         repo_polizas.buscar.return_value = None
 
         with pytest.raises(RecursoNoEncontradoException):
-            uc.ejecutar('POL-404')
+            uc.ejecutar('POL-404', USUARIO)
 
         generar.ejecutar.assert_not_called()
 
@@ -142,6 +148,6 @@ class TestReactivarPolizaAlertasRenovacion:
         uc, _, generar = _reactivar_use_case(poliza=_poliza_mock(estado=EstadoPoliza.VIGENTE))
 
         with pytest.raises(ConflictoEnAccionException):
-            uc.ejecutar('POL-001')
+            uc.ejecutar('POL-001', USUARIO)
 
         generar.ejecutar.assert_not_called()
