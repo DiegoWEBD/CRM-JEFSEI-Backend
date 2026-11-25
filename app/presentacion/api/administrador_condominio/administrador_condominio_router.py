@@ -37,6 +37,7 @@ from app.presentacion.api.administrador_condominio.dto.filtros_administradores i
     FiltrosAdministradores,
 )
 from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.usuario.lib.usuario_tiene_permiso import (
     usuario_tiene_permiso,
 )
@@ -48,6 +49,7 @@ router = APIRouter(prefix="/administradores", tags=["Administradores"])
 @router.get("/{id}", status_code=status.HTTP_200_OK)
 def obtener_administrador_por_id(
     id: int,
+    _: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
     use_case: ObtenerAdministradorPorIdUseCase = Depends(
         get_obtener_administrador_por_id_use_case
     ),
@@ -61,6 +63,7 @@ def obtener_administrador_por_id(
 @router.get("/", status_code=status.HTTP_200_OK)
 def obtener_administradores(
     filtros: FiltrosAdministradores = Depends(get_filtros_administradores),
+    _: Usuario = Depends(permisos_requeridos('VER_ADMINISTRADORES')),
     consulta_service: ConsultaAdministradoresService = Depends(
         get_consulta_administradores_service
     ),
@@ -75,6 +78,7 @@ def obtener_administradores(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def registrar_administrador(
     request: RegistrarAdministradorRequest,
+    _: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
     use_case: RegistrarAdministradorUseCase = Depends(
         get_registrar_administrador_use_case
     ),
@@ -95,6 +99,7 @@ def registrar_administrador(
 def actualizar_administrador(
     id: int,
     request: ActualizarAdministradorRequest,
+    _: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ADMINISTRADORES')),
     use_case: ActualizarAdministradorUseCase = Depends(
         get_actualizar_administrador_use_case
     ),

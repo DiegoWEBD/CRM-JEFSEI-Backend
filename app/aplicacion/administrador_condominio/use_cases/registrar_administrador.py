@@ -18,6 +18,8 @@ class RegistrarAdministradorUseCase:
         telefono: str | None,
         correo: str | None,
     ) -> AdministradorCondominio:
+        # Solo datos básicos: la relación de condominios bajo administración
+        # se gestiona desde el módulo de prospectos, fuera de este permiso.
         administrador = AdministradorCondominio(
             id=None,
             nombre_administrador=nombre_administrador,

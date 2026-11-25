@@ -19,16 +19,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from app.aplicacion.auth.authentication_service import AuthenticationService
-from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.core.config import settings
 from app.core.hub_notificaciones import (
     EVENTO_CONEXION_ABIERTA,
     EVENTO_PING,
     hub,
 )
+from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
 from app.presentacion.api.auth.dependencias.get_authentication_service import get_authentication_service_dependency
-from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case
+from app.presentacion.api.usuario.deps import get_repositorio_usuarios
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,12 @@ def _origen_permitido(websocket: WebSocket) -> bool:
 
 
 def _usuario_autorizado(
-    use_case: ObtenerUsuarioUseCase,
+    repositorio_usuarios: RepositorioUsuarios,
     rut: str,
 ) -> Usuario | None:
     """Usuario habilitado con el permiso de alertas; ``None`` si no corresponde."""
-    try:
-        usuario = use_case.ejecutar(rut)
-    except Exception:
+    usuario = repositorio_usuarios.buscar(rut)
+    if not usuario:
         logger.exception('No se pudo cargar el usuario %s para el WebSocket', rut)
         return None
 
@@ -112,8 +111,8 @@ async def _escuchar(websocket: WebSocket) -> None:
 @router.websocket('/notificaciones')
 async def ws_notificaciones(
     websocket: WebSocket,
-    use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case),
     authentication_service: AuthenticationService = Depends(get_authentication_service_dependency),
+    repositorio_usuarios: RepositorioUsuarios = Depends(get_repositorio_usuarios)
 ) -> None:
     if not _origen_permitido(websocket):
         await websocket.close(code=CODIGO_NO_AUTORIZADO)
@@ -135,7 +134,7 @@ async def ws_notificaciones(
             await websocket.close(code=CODIGO_NO_AUTORIZADO)
             return
 
-    usuario = _usuario_autorizado(use_case, rut)
+    usuario = _usuario_autorizado(repositorio_usuarios, rut)
     if usuario is None:
         await websocket.close(code=CODIGO_NO_AUTORIZADO)
         return

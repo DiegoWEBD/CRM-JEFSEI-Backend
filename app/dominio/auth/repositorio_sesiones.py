@@ -71,6 +71,19 @@ class RepositorioSesiones(ABC):
         pass
 
     @abstractmethod
+    def revocar_sesiones_usuario_excepto(
+        self,
+        rut: str,
+        sesion_id_excluida: UUID | None,
+        motivo: str,
+    ) -> None:
+        """Revoca todas las sesiones activas de un usuario, excepto la indicada.
+
+        Si ``sesion_id_excluida`` es None se revocan todas.
+        """
+        pass
+
+    @abstractmethod
     def obtener_sesiones_paginadas(
         self,
         texto_busqueda: str | None,

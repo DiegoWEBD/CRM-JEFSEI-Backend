@@ -4,6 +4,7 @@ from app.dominio.archivo.repositorio_archivos import RepositorioArchivos
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.usuario.usuario import Usuario
 
 
 class ObtenerArchivosProspectoUseCase:
@@ -18,13 +19,13 @@ class ObtenerArchivosProspectoUseCase:
         self.repositorio_prospectos = repositorio_prospectos
         self.authorization_service = authorization_service
 
-    def ejecutar(self, id_prospecto: int, rut_usuario: str) -> list[Archivo]:
+    def ejecutar(self, usuario: Usuario, id_prospecto: int) -> list[Archivo]:
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
         if prospecto is None:
             raise RecursoNoEncontradoException("No se encontró el prospecto")
 
-        if not self.authorization_service.usuario_puede_ver_prospecto(rut_usuario, id_prospecto):
+        if not self.authorization_service.usuario_puede_ver_archivos_prospecto(usuario, id_prospecto):
             raise UsuarioNoAutorizadoException
 
         return self.repositorio_archivos.listar_por_prospecto(id_prospecto)

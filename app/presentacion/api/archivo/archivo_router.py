@@ -16,7 +16,7 @@ from app.presentacion.api.archivo.deps import (
     get_obtener_archivos_prospecto_use_case,
     get_subir_archivo_use_case,
 )
-from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
+from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 
 
 router = APIRouter(prefix='/prospectos/{id_prospecto}/archivos', tags=['Archivos'])
@@ -51,7 +51,7 @@ MIME_TO_EXTENSION = {
 def subir_archivo(
     id_prospecto: int,
     archivo: UploadFile = File(...),
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ARCHIVOS_PROPIOS', 'ADMINISTRAR_ARCHIVOS_TODOS')),
     use_case: SubirArchivoUseCase = Depends(get_subir_archivo_use_case)
 ):
     if archivo.content_type not in TIPOS_PERMITIDOS:
@@ -72,13 +72,13 @@ def subir_archivo(
     nombre_almacenado = f'prospecto_{id_prospecto}_{uuid4().hex}.{extension}'
 
     archivo_creado = use_case.ejecutar(
+        usuario=usuario,
         id_prospecto=id_prospecto,
         nombre_almacenado=nombre_almacenado,
         nombre_original=archivo.filename,
         tipo_contenido=archivo.content_type,
         tamano_bytes=len(contenido),
         contenido=contenido,
-        rut_usuario=usuario.rut,
     )
 
     return {
@@ -93,10 +93,10 @@ def subir_archivo(
 @router.get('/', status_code=status.HTTP_200_OK)
 def listar_archivos(
     id_prospecto: int,
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('VER_ARCHIVOS_PROPIOS', 'VER_ARCHIVOS_TODOS')),
     use_case: ObtenerArchivosProspectoUseCase = Depends(get_obtener_archivos_prospecto_use_case)
 ):
-    archivos = use_case.ejecutar(id_prospecto=id_prospecto, rut_usuario=usuario.rut)
+    archivos = use_case.ejecutar(usuario=usuario, id_prospecto=id_prospecto)
 
     return {
         'archivos': [
@@ -116,13 +116,13 @@ def listar_archivos(
 def descargar_archivo(
     id_prospecto: int,
     id_archivo: int,
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('VER_ARCHIVOS_PROPIOS', 'VER_ARCHIVOS_TODOS')),
     use_case: ObtenerArchivoPorIdUseCase = Depends(get_obtener_archivo_por_id_use_case)
 ):
     archivo = use_case.ejecutar(
+        usuario=usuario,
         id_archivo=id_archivo,
         id_prospecto=id_prospecto,
-        rut_usuario=usuario.rut
     )
 
     ruta = f'documentos/prospectos/{archivo.nombre_almacenado}'
@@ -144,13 +144,13 @@ def descargar_archivo(
 def eliminar_archivo(
     id_prospecto: int,
     id_archivo: int,
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('ADMINISTRAR_ARCHIVOS_PROPIOS', 'ADMINISTRAR_ARCHIVOS_TODOS')),
     use_case: EliminarArchivoUseCase = Depends(get_eliminar_archivo_use_case)
 ):
     use_case.ejecutar(
+        usuario=usuario,
         id_archivo=id_archivo,
         id_prospecto=id_prospecto,
-        rut_usuario=usuario.rut
     )
 
     return {'message': 'Archivo eliminado correctamente'}

@@ -28,6 +28,8 @@ class ActualizarAdministradorUseCase:
                 "Administrador no encontrado"
             )
 
+        # Solo datos básicos: la relación de condominios bajo administración
+        # se gestiona desde el módulo de prospectos, fuera de este permiso.
         administrador = AdministradorCondominio(
             id=id,
             nombre_administrador=nombre_administrador,

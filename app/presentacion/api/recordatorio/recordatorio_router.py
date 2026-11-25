@@ -10,7 +10,6 @@ from app.aplicacion.recordatorio.use_cases.eliminar_recordatorio import Eliminar
 from app.aplicacion.recordatorio.use_cases.obtener_recordatorios import ObtenerRecordatoriosUsuarioUseCase
 from app.aplicacion.recordatorio.use_cases.registrar_recordatorio import RegistrarRecordatorioUseCase
 from app.dominio.usuario.usuario import Usuario
-from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.dto.deps import get_paginacion_params
 from app.presentacion.api.dto.paginacion_params import PaginacionParams
@@ -27,7 +26,7 @@ def obtener_recordatorios_usuario(
     fecha: str = Query(),
     id_prospecto: Optional[int] = Query(None),
     paginacion: PaginacionParams = Depends(get_paginacion_params),
-    usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: ObtenerRecordatoriosUsuarioUseCase = Depends(get_obtener_recordatorios_usuario_use_case)
 ):
     if not fecha:
@@ -78,9 +77,11 @@ def registrar_recordatorio(
 def actualizar_recordatorio(
     id: int,
     request: ActualizarRecordatorioRequest,
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: ActualizarRecordatorioUseCase = Depends(get_actualizar_recordatorio_use_case),
 ):
     use_case.ejecutar(
+        usuario=usuario,
         id=id,
         titulo=request.titulo,
         detalle=request.detalle,
@@ -96,9 +97,10 @@ def actualizar_recordatorio(
 @router.patch('/{id}/completar', status_code=status.HTTP_200_OK)
 def completar_recordatorio(
     id: int,
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: CompletarRecordatorioUseCase = Depends(get_completar_recordatorio_use_case),
 ):
-    use_case.ejecutar(id=id)
+    use_case.ejecutar(usuario=usuario, id=id)
 
     return {'message': 'Recordatorio completado'}
 
@@ -106,15 +108,9 @@ def completar_recordatorio(
 @router.delete('/{id}', status_code=status.HTTP_200_OK)
 def eliminar_recordatorio(
     id: int,
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: EliminarRecordatorioUseCase = Depends(get_eliminar_recordatorio_use_case),
 ):
-    use_case.ejecutar(id=id)
+    use_case.ejecutar(usuario=usuario, id=id)
 
     return {'message': 'Recordatorio eliminado correctamente'}
-
-
-@router.get('/cobranza', status_code=status.HTTP_200_OK)
-def obtener_recordatorios_cobranza(
-
-):
-    pass

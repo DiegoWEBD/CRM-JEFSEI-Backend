@@ -235,3 +235,31 @@ class RepositorioRecordatoriosPostgres(RepositorioRecordatorios):
                 cur.execute('delete from RecordatorioUsuario where id = %(id)s', {'id': id})
                 cur.execute('delete from RecordatorioCobranzaCuotaPoliza where id = %(id)s', {'id': id})
                 cur.execute('delete from Recordatorio where id = %(id)s', {'id': id})
+
+    def buscar_propietarios(self, id: int) -> list[str] | None:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute('select 1 from Recordatorio where id = %(id)s', {'id': id})
+                if cur.fetchone() is None:
+                    return None
+
+                query = '''
+                    select RU.rut_usuario as rut_propietario
+                    from RecordatorioUsuario RU
+                    where RU.id = %(id)s
+                    union
+                    select C.rut_ej_cobranza_asignado as rut_propietario
+                    from RecordatorioCobranzaCuotaPoliza RC
+                    inner join Cuota CU
+                    on RC.id_cuota = CU.id
+                    inner join PlanPago PP
+                    on CU.id_plan_pago = PP.id
+                    inner join Poliza P
+                    on PP.numero_poliza = P.numero_poliza
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    where RC.id = %(id)s
+                '''
+                cur.execute(query, {'id': id})
+                rows = cur.fetchall()
+                return [row['rut_propietario'] for row in rows if row['rut_propietario']]

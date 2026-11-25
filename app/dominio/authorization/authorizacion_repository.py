@@ -11,6 +11,15 @@ class AuthorizationRepository(ABC):
         pass
 
     @abstractmethod
+    def usuario_asignado_a_prospecto(self, rut_usuario: str, id_prospecto: int) -> bool:
+        """True si el usuario está asignado al prospecto (sin considerar permisos globales).
+
+        Asignaciones: ejecutivo comercial/evaluación del prospecto; ejecutivo de
+        renovación, asistente de renovación o ejecutivo de cobranza del cliente.
+        """
+        pass
+
+    @abstractmethod
     def usuario_puede_ver_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         pass
 

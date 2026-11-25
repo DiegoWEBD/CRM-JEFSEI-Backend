@@ -2,9 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 from dateutil.relativedelta import relativedelta
 
+from app.aplicacion.authorization.authorization_service import AuthorizationService
+from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
+from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.gestion_comercial.gestion_comercial import GestionComercial
 from app.dominio.gestion_comercial.repositorio_gestiones_comerciales import RepositorioGestionesComerciales
+from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
 from app.dominio.recordatorio.repositorio_recordatorios import RepositorioRecordatorios
+from app.dominio.usuario.usuario import Usuario
 
 
 SCHEDULE_RULES: dict[str, tuple] = {
@@ -22,20 +27,34 @@ class RegistrarGestionComercialUseCase:
         self,
         repositorio: RepositorioGestionesComerciales,
         repositorio_recordatorios: RepositorioRecordatorios,
+        repositorio_prospectos: RepositorioProspectos,
+        authorization_service: AuthorizationService,
     ) -> None:
         self.repositorio = repositorio
         self.repositorio_recordatorios = repositorio_recordatorios
+        self.repositorio_prospectos = repositorio_prospectos
+        self.authorization_service = authorization_service
 
     def ejecutar(
         self,
+        usuario: Usuario,
         tipo: str,
-        rut_usuario: str,
         id_prospecto: int,
         titulo: str,
         estado_contacto: str | None,
         observacion: str | None,
         fecha_gestion: str,
     ) -> GestionComercial:
+        if self.repositorio_prospectos.buscar(id_prospecto) is None:
+            raise RecursoNoEncontradoException('El prospecto no existe')
+
+        if not self.authorization_service.usuario_puede_registrar_gestion_comercial(usuario, id_prospecto):
+            raise UsuarioNoAutorizadoException(
+                'No tiene permiso para registrar gestiones sobre este prospecto'
+            )
+
+        rut_usuario = usuario.rut
+
         gestion = self.repositorio.registrar(
             tipo=tipo,
             rut_usuario=rut_usuario,

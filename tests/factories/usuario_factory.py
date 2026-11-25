@@ -67,12 +67,18 @@ def crear_usuario_admin_mock(**kwargs) -> Usuario:
     permisos_admin = [
         crear_permiso_mock(codigo="VER_USUARIOS", descripcion="Ver usuarios"),
         crear_permiso_mock(codigo="OBTENER_USUARIOS", descripcion="Obtener usuarios"),
+        crear_permiso_mock(codigo="USUARIO_LISTAR", descripcion="Listar usuarios"),
+        crear_permiso_mock(codigo="USUARIO_VER_DETALLE", descripcion="Ver detalle de usuario"),
         crear_permiso_mock(codigo="REGISTRAR_USUARIOS", descripcion="Registrar usuarios"),
         crear_permiso_mock(codigo="ADMINISTRAR_USUARIOS", descripcion="Administrar usuarios"),
         crear_permiso_mock(codigo="ADMINISTRAR_ROLES", descripcion="Administrar roles y permisos"),
         crear_permiso_mock(codigo="VER_METRICAS_GERENCIA", descripcion="Ver métricas gerencia"),
         crear_permiso_mock(codigo="VER_METRICAS_EJECUTIVO", descripcion="Ver métricas ejecutivo"),
         crear_permiso_mock(codigo="VER_ALERTAS", descripcion="Ver alertas y notificaciones"),
+        crear_permiso_mock(codigo="GESTIONAR_RECORDATORIO_PROPIO", descripcion="Gestionar recordatorios propios"),
+        crear_permiso_mock(codigo="GESTIONAR_RECORDATORIO_GLOBAL", descripcion="Gestionar recordatorios de cualquier usuario"),
+        crear_permiso_mock(codigo="VER_COMPANIES", descripcion="Consultar companias de seguros"),
+        crear_permiso_mock(codigo="VER_PRODUCTOS", descripcion="Consultar productos"),
     ]
     kwargs.setdefault("roles", [crear_rol_mock(codigo="ADMIN", nombre="Administrador", permisos=permisos_admin)])
     return crear_usuario_mock(**kwargs)

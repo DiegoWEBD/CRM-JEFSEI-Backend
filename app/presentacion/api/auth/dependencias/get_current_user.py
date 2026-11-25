@@ -3,11 +3,11 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status, Request
 
 from app.aplicacion.auth.authentication_service import AuthenticationService
-from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
+from app.dominio.usuario.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.auth.jwt_authentication_service import JwtAuthenticationService
 from app.infraestructura.auth.repositorio_sesiones_postgres import RepositorioSesionesPostgres
-from app.presentacion.api.usuario.deps import get_obtener_usuario_use_case
+from app.presentacion.api.usuario.deps import get_repositorio_usuarios
 
 
 def get_authentication_service() -> AuthenticationService:
@@ -17,7 +17,7 @@ def get_authentication_service() -> AuthenticationService:
 def get_current_user(
     request: Request,
     authentication_service: AuthenticationService = Depends(get_authentication_service),
-    use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case)
+    repositorio_usuarios: RepositorioUsuarios = Depends(get_repositorio_usuarios)
 ) -> Usuario:
 
     token = request.cookies.get("token")
@@ -65,10 +65,9 @@ def get_current_user(
         # Expone el sid para que endpoints como ws-ticket lo usen
         request.state.sid = sid_raw
 
-    try:
-        usuario = use_case.ejecutar(rut)
+    usuario = repositorio_usuarios.buscar(rut)
 
-    except Exception:
+    if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no autenticado"

@@ -11,11 +11,14 @@ Uso:
 """
 
 import json
+import logging
 import time
 from collections import defaultdict
 from threading import Lock
 
 from fastapi import HTTPException, Request, status
+
+logger = logging.getLogger(__name__)
 
 
 class _ContadorRateLimit:
@@ -59,9 +62,12 @@ async def rate_limit_login(request: Request) -> None:
         body = await request.body()
         if body:
             datos = json.loads(body)
-            rut = datos.get('rut', '')
-    except Exception:
-        pass
+            if isinstance(datos, dict):
+                rut = datos.get('rut', '')
+    except (json.JSONDecodeError, UnicodeDecodeError, RuntimeError) as exc:
+        # Body ilegible o cliente desconectado: fail-open solo al límite por RUT
+        # (el límite por IP se aplica igual). Un body malformado no autentica.
+        logger.debug('No se pudo leer el RUT del body para rate limit: %s', exc)
 
     ip = request.client.host if request.client else 'unknown'
 

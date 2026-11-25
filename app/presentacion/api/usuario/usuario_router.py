@@ -1,9 +1,12 @@
 import math
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from app.aplicacion.recordatorio.use_cases.obtener_proximo_contacto import ObtenerProximoContactoUseCase
+from app.aplicacion.usuario.use_cases.actualizar_perfil import ActualizarPerfilUseCase
 from app.aplicacion.usuario.use_cases.actualizar_roles_usuario import ActualizarRolesUsuarioUseCase
 from app.aplicacion.usuario.use_cases.actualizar_usuario import ActualizarUsuarioUseCase
+from app.aplicacion.usuario.use_cases.cambiar_password import CambiarPasswordUseCase
 from app.aplicacion.usuario.use_cases.eliminar_usuario import EliminarUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuario import ObtenerUsuarioUseCase
 from app.aplicacion.usuario.use_cases.obtener_usuarios import ObtenerUsuariosUseCase
@@ -11,20 +14,23 @@ from app.aplicacion.usuario.use_cases.registrar_usuario import RegistrarUsuarioU
 from app.dominio.usuario.usuario import Usuario
 from app.infraestructura.usuario.adaptadores.usuario_json_adapter import UsuarioJsonAdapter
 from app.presentacion.api.auditoria.lib.construir_contexto_peticion import construir_contexto_peticion
+from app.presentacion.api.auth.dependencias.get_current_user import get_current_user
 from app.presentacion.api.auth.dependencias.permisos_requeridos import permisos_requeridos
 from app.presentacion.api.dto.deps import get_paginacion_params
 from app.presentacion.api.dto.paginacion_params import PaginacionParams
 from app.presentacion.api.recordatorio.dependencias.deps import get_obtener_proximo_contacto_use_case
-from app.presentacion.api.usuario.deps import get_actualizar_roles_usuario_use_case, get_actualizar_usuario_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
+from app.presentacion.api.usuario.deps import get_actualizar_perfil_use_case, get_actualizar_roles_usuario_use_case, get_actualizar_usuario_use_case, get_cambiar_password_use_case, get_eliminar_usuario_use_case, get_obtener_usuario_use_case, get_obtener_usuarios_use_case, get_registrar_usuario_use_case
+from app.presentacion.api.usuario.dto.actualizar_perfil_request import ActualizarPerfilRequest
 from app.presentacion.api.usuario.dto.actualizar_roles_usuario_request import ActualizarRolesUsuarioRequest
 from app.presentacion.api.usuario.dto.actualizar_usuario_request import ActualizarUsuarioRequest
+from app.presentacion.api.usuario.dto.cambiar_password_request import CambiarPasswordRequest
 from app.presentacion.api.usuario.dto.registrar_usuario_request import RegistrarUsuarioRequest
 
 router = APIRouter(prefix='/usuarios', tags=['Usuarios'])
 
 @router.get('/', status_code=status.HTTP_200_OK)
 def obtener_usuarios(
-    _ = Depends(permisos_requeridos('OBTENER_USUARIOS')),
+    _ = Depends(permisos_requeridos('USUARIO_LISTAR')),
     paginacion: PaginacionParams = Depends(get_paginacion_params),
     use_case: ObtenerUsuariosUseCase = Depends(get_obtener_usuarios_use_case)
 ):
@@ -46,12 +52,16 @@ def obtener_usuarios(
 @router.get('/{rut}', status_code = status.HTTP_200_OK)
 def obtener_usuario(
     rut: str,
+    usuario: Usuario = Depends(permisos_requeridos('USUARIO_LISTAR', 'USUARIO_VER_DETALLE')),
     use_case: ObtenerUsuarioUseCase = Depends(get_obtener_usuario_use_case)
 ):
-    usuario = use_case.ejecutar(rut)
+    usuario_obtenido = use_case.ejecutar(
+        rut_consultado=rut,
+        usuario_accion=usuario
+    )
 
     return {
-        'data': UsuarioJsonAdapter.Adapt(usuario)
+        'data': UsuarioJsonAdapter.Adapt(usuario_obtenido)
     }
 
 
@@ -59,9 +69,10 @@ def obtener_usuario(
 def obtener_proximo_contacto(
     rut: str,
     id_prospecto: int = Query(),
+    usuario: Usuario = Depends(permisos_requeridos('GESTIONAR_RECORDATORIO_PROPIO', 'GESTIONAR_RECORDATORIO_GLOBAL')),
     use_case: ObtenerProximoContactoUseCase = Depends(get_obtener_proximo_contacto_use_case),
 ):
-    recordatorio = use_case.ejecutar(rut_usuario=rut, id_prospecto=id_prospecto)
+    recordatorio = use_case.ejecutar(usuario=usuario, rut_objetivo=rut, id_prospecto=id_prospecto)
     return {'data': recordatorio}
     
 
@@ -98,9 +109,13 @@ def registrar_usuario(
 def actualizar_usuario(
     rut: str,
     request: ActualizarUsuarioRequest,
+    http_request: Request,
     _ = Depends(permisos_requeridos('ADMINISTRAR_USUARIOS')),
     use_case: ActualizarUsuarioUseCase = Depends(get_actualizar_usuario_use_case)
 ):
+    sid = getattr(http_request.state, 'sid', None)
+    sesion_id_ejecutor = UUID(sid) if sid else None
+
     actualizado = use_case.ejecutar(
         rut=rut,
         nombre=request.nombre,
@@ -111,7 +126,8 @@ def actualizar_usuario(
         codigo_roles=request.codigo_roles,
         meta_mensual_uf=request.meta_mensual_uf,
         porcentaje_comision=request.porcentaje_comision,
-        habilitado=request.habilitado
+        habilitado=request.habilitado,
+        sesion_id_ejecutor=sesion_id_ejecutor
     )
 
     if not actualizado:
@@ -122,6 +138,75 @@ def actualizar_usuario(
 
     return {
         'message': 'Usuario actualizado correctamente'
+    }
+
+
+@router.patch('/{rut}', status_code=status.HTTP_200_OK)
+def actualizar_perfil(
+    rut: str,
+    request: ActualizarPerfilRequest,
+    http_request: Request,
+    usuario: Usuario = Depends(get_current_user),
+    use_case: ActualizarPerfilUseCase = Depends(get_actualizar_perfil_use_case)
+):
+    # Self-service: cada usuario solo actualiza su propio perfil
+    if usuario.rut != rut:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Solo puede actualizar su propio perfil'
+        )
+
+    actualizado = use_case.ejecutar(
+        rut=rut,
+        nombre=request.nombre,
+        contexto=construir_contexto_peticion(http_request),
+    )
+
+    if not actualizado:
+        raise HTTPException(
+            status_code=400,
+            detail='Error al actualizar el perfil'
+        )
+
+    return {
+        'message': 'Perfil actualizado correctamente'
+    }
+
+
+@router.put('/{rut}/password', status_code=status.HTTP_200_OK)
+def cambiar_password(
+    rut: str,
+    request: CambiarPasswordRequest,
+    http_request: Request,
+    usuario: Usuario = Depends(get_current_user),
+    use_case: CambiarPasswordUseCase = Depends(get_cambiar_password_use_case)
+):
+    # Self-service: cada usuario solo cambia su propia contraseña
+    if usuario.rut != rut:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Solo puede cambiar su propia contraseña'
+        )
+
+    sid = getattr(http_request.state, 'sid', None)
+    sesion_id_actual = UUID(sid) if sid else None
+
+    actualizado = use_case.ejecutar(
+        rut=rut,
+        password_actual=request.password_actual,
+        password_nueva=request.password_nueva,
+        sesion_id_actual=sesion_id_actual,
+        contexto=construir_contexto_peticion(http_request),
+    )
+
+    if not actualizado:
+        raise HTTPException(
+            status_code=400,
+            detail='Error al cambiar la contraseña'
+        )
+
+    return {
+        'message': 'Contraseña actualizada correctamente'
     }
 
 

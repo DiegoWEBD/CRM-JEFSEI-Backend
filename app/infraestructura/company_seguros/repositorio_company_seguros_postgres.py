@@ -158,25 +158,24 @@ class RepositorioCompanySegurosPostgres(RepositorioCompanySeguros):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = '''
-                    SELECT EXISTS(
-                        SELECT 1 FROM CompanySeguros
-                        WHERE UNACCENT(LOWER(nombre)) = UNACCENT(LOWER(%(nombre)s))
-                        AND eliminado = false
-                '''
+                condiciones: list[sql.Composable] = [
+                    sql.SQL('UNACCENT(LOWER(nombre)) = UNACCENT(LOWER(%(nombre)s))'),
+                    sql.SQL('eliminado = false'),
+                ]
                 params: dict = {
                     'nombre': nombre.strip().lower(),
                 }
 
                 if id_excluir is not None:
-                    query += '''
-                        AND id <> %(id_excluir)s
-                    '''
+                    condiciones.append(sql.SQL('id <> %(id_excluir)s'))
                     params['id_excluir'] = id_excluir
 
-                query += '''
+                query = sql.SQL('''
+                    SELECT EXISTS(
+                        SELECT 1 FROM CompanySeguros
+                        WHERE {condiciones}
                     ) as total
-                '''
+                ''').format(condiciones=sql.SQL(' AND ').join(condiciones))
 
                 cur.execute(query, params)
                 row = cur.fetchone()

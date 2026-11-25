@@ -5,6 +5,7 @@ from app.dominio.archivo.repositorio_archivos import RepositorioArchivos
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.prospecto.repositorio_prospectos import RepositorioProspectos
+from app.dominio.usuario.usuario import Usuario
 
 
 class EliminarArchivoUseCase:
@@ -21,13 +22,13 @@ class EliminarArchivoUseCase:
         self.authorization_service = authorization_service
         self.servicio_archivos = servicio_archivos
 
-    def ejecutar(self, id_archivo: int, id_prospecto: int, rut_usuario: str) -> None:
+    def ejecutar(self, usuario: Usuario, id_archivo: int, id_prospecto: int) -> None:
         prospecto = self.repositorio_prospectos.buscar(id_prospecto)
 
         if prospecto is None:
             raise RecursoNoEncontradoException("No se encontró el prospecto")
 
-        if not self.authorization_service.usuario_puede_ver_prospecto(rut_usuario, id_prospecto):
+        if not self.authorization_service.usuario_puede_administrar_archivos_prospecto(usuario, id_prospecto):
             raise UsuarioNoAutorizadoException
 
         archivo = self.repositorio_archivos.obtener_por_id(id_archivo)

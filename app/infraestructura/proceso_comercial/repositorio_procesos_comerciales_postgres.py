@@ -152,7 +152,28 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
 
-                query = """
+                condiciones: list[sql.Composable] = []
+                params: dict = {}
+
+                if id_prospecto is not None:
+                    condiciones.append(sql.SQL("PC.id_prospecto = %(id_prospecto)s"))
+                    params["id_prospecto"] = id_prospecto
+
+                if abiertos is True:
+                    condiciones.append(sql.SQL("PC.cerrado = false"))
+                elif abiertos is False:
+                    condiciones.append(sql.SQL("PC.cerrado = true"))
+
+                if renovaciones is not None:
+                    condiciones.append(sql.SQL("PC.renovacion = %(renovaciones)s"))
+                    params["renovaciones"] = renovaciones
+
+                if condiciones:
+                    where_clause = sql.SQL(" where ") + sql.SQL(" and ").join(condiciones)
+                else:
+                    where_clause = sql.SQL("")
+
+                query = sql.SQL("""
                     select PC.id,
                     PC.id_prospecto,
                     PR.nombre_riesgo as nombre_cliente,
@@ -200,32 +221,8 @@ class RepositorioProcesosComercialesPostgres(RepositorioProcesosComerciales):
                     on PC.rut_ej_renovacion = EJ_REN.rut
                     left join Usuario AS REN
                     on PC.rut_as_renovacion = REN.rut
-                    where 1 = 1
-                """
-
-                params: dict = {}
-
-                if id_prospecto is not None:
-                    query += """
-                        and PC.id_prospecto = %(id_prospecto)s
-                    """
-                    params["id_prospecto"] = id_prospecto
-
-                if abiertos is True:
-                    query += """
-                        and PC.cerrado = false
-                    """
-                elif abiertos is False:
-                    query += """
-                        and PC.cerrado = true
-                    """
-
-                if renovaciones is not None:
-                    query += """
-                        and PC.renovacion = %(renovaciones)s
-                    """
-                    params["renovaciones"] = renovaciones
-
+                    {where_clause}
+                """).format(where_clause=where_clause)
 
                 cur.execute(query, params)
                 rows = cur.fetchall()
