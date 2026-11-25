@@ -1,19 +1,24 @@
 from datetime import date
 
+from psycopg import sql
+
 from app.dominio.cobranza.repositorio_consulta_dashboard_cobranza import (
     RepositorioConsultaDashboardCobranza,
 )
 from app.infraestructura.db.conexion import obtener_conexion
 
 
-def _filtro_cobrador(rut_usuario: str | None) -> tuple[str, dict]:
+def _filtro_cobrador(rut_usuario: str | None) -> tuple[sql.Composable, dict]:
     """Fragmento opcional de scoping por ejecutivo de cobranza asignado.
 
     Con rut_usuario=None (permiso global) no se filtra por cobrador.
     """
     if rut_usuario is None:
-        return '', {}
-    return ' and C.rut_ej_cobranza_asignado = %(rut_usuario)s', {'rut_usuario': rut_usuario}
+        return sql.SQL(''), {}
+    return (
+        sql.SQL(' and C.rut_ej_cobranza_asignado = %(rut_usuario)s'),
+        {'rut_usuario': rut_usuario},
+    )
 
 
 class RepositorioConsultaDashboardCobranzaPostgres(
@@ -24,7 +29,7 @@ class RepositorioConsultaDashboardCobranzaPostgres(
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 filtro_cobrador, params = _filtro_cobrador(rut_usuario)
-                query = """
+                query = sql.SQL("""
                     select
                         CU.id as cuota_id,
                         CU.numero_cuota,
@@ -57,10 +62,10 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                     inner join Prospecto P
                         on C.id_prospecto = P.id
                     where 1 = 1
-                """ + filtro_cobrador + """
+                    {filtro_cobrador}
                       and POL.cancelada = false
                     order by P.nombre_riesgo, PP.numero_poliza, CU.numero_cuota
-                """
+                """).format(filtro_cobrador=filtro_cobrador)
                 cur.execute(query, params)
                 return cur.fetchall()
 
@@ -68,7 +73,7 @@ class RepositorioConsultaDashboardCobranzaPostgres(
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 filtro_cobrador, params = _filtro_cobrador(rut_usuario)
-                query = """
+                query = sql.SQL("""
                     select
                         POL.numero_poliza,
                         C.id_prospecto,
@@ -91,14 +96,14 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                     left join CompanySeguros CS
                         on POL.id_company = CS.id
                     where 1 = 1
-                """ + filtro_cobrador + """
+                    {filtro_cobrador}
                       and POL.cancelada = false
                       and not exists (
                           select 1 from PlanPago PP
                           where PP.numero_poliza = POL.numero_poliza
                       )
                     order by P.nombre_riesgo, POL.numero_poliza
-                """
+                """).format(filtro_cobrador=filtro_cobrador)
                 cur.execute(query, params)
                 return cur.fetchall()
 
@@ -108,7 +113,8 @@ class RepositorioConsultaDashboardCobranzaPostgres(
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
                 filtro_cobrador, params = _filtro_cobrador(rut_usuario)
-                query = """
+                params['fecha_hasta'] = fecha_hasta.isoformat()
+                query = sql.SQL("""
                     select
                         R.id as id_recordatorio,
                         R.fecha_recordatorio,
@@ -126,12 +132,11 @@ class RepositorioConsultaDashboardCobranzaPostgres(
                     inner join Cliente C
                         on POL.id_cliente = C.id
                     where 1 = 1
-                """ + filtro_cobrador + """
+                    {filtro_cobrador}
                       and POL.cancelada = false
                       and R.completado = false
                       and R.fecha_recordatorio::date <= %(fecha_hasta)s
                     order by R.fecha_recordatorio
-                """
-                params['fecha_hasta'] = fecha_hasta.isoformat()
+                """).format(filtro_cobrador=filtro_cobrador)
                 cur.execute(query, params)
                 return cur.fetchall()
