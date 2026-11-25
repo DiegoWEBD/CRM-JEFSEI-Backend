@@ -19,6 +19,7 @@ def _use_case():
     repo_planes_pago = MagicMock()
     repo_planes_pago.buscar_plan_pago_poliza.return_value = None
     authorization = MagicMock()
+    authorization.usuario_puede_crear_plan_pago.return_value = True
     repo_procesos = MagicMock()
     repo_procesos.buscar.return_value = MagicMock(id=42)
     repo_notificaciones = MagicMock(spec=RepositorioNotificaciones)

@@ -6,7 +6,6 @@ from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
@@ -41,7 +40,8 @@ class IniciarRenovacionPolizaUseCase:
             raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         if not self.authorization_service.usuario_puede_gestionar_renovacion(usuario.rut, numero_poliza):
-            raise UsuarioNoAutorizadoException
+            # Denegación de ownership: 404 idéntico al de póliza inexistente.
+            raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         if self.repositorio_procesos_comerciales.buscar_renovacion_por_poliza_base(numero_poliza) is not None:
             raise ConflictoEnAccionException(

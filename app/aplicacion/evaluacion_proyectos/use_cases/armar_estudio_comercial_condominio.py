@@ -12,6 +12,7 @@ from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAcci
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.proceso_comercial.repositorio_procesos_comerciales import RepositorioProcesosComerciales
+from app.dominio.solicitud_cotizacion.repositorio_solicitudes_cotizacion import RepositorioSolicitudesCotizacion
 from app.dominio.usuario.usuario import Usuario
 from app.dominio.estudio_comercial.detalle_estudio_comercial.detalle_estudio_comercial import DetalleEstudioComercial
 from app.dominio.cotizacion.servicio_calculo_primas import ServicioCalculoPrimas
@@ -30,13 +31,15 @@ class ArmarEstudioComercialCondominioUseCase:
         repositorio_prospectos: RepositorioProspectos,
         repositorio_company_seguros: RepositorioCompanySeguros,
         repositorio_cotizaciones: RepositorioCotizaciones,
-        repositorio_procesos_comerciales: RepositorioProcesosComerciales
+        repositorio_procesos_comerciales: RepositorioProcesosComerciales,
+        repositorio_solicitudes_cotizacion: RepositorioSolicitudesCotizacion
     ):
         self.authorization_service = authorization_service
         self.repositorio_prospectos = repositorio_prospectos
         self.repositorio_company_seguros = repositorio_company_seguros
         self.repositorio_cotizaciones = repositorio_cotizaciones
         self.repositorio_procesos_comerciales = repositorio_procesos_comerciales
+        self.repositorio_solicitudes_cotizacion = repositorio_solicitudes_cotizacion
         self.datos_plantilla: dict[str, object] = {}
         self.doc = DocxTemplate('app/infraestructura/templates/Plantilla Estudio Condominio.docx')
 
@@ -96,13 +99,7 @@ class ArmarEstudioComercialCondominioUseCase:
 
         es_unidades = proceso.producto.codigo == 'unidades'
 
-        cotizaciones = []
-
-        for id_cotizacion in ids_cotizacion:
-            cotizacion = self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
-
-            if cotizacion is not None:
-                cotizaciones.append(cotizacion)
+        cotizaciones = self.__buscar_cotizaciones(ids_cotizacion, proceso.id)
 
         rt = RichText()
         rt.add('\f')
@@ -144,7 +141,38 @@ class ArmarEstudioComercialCondominioUseCase:
         )
 
         return str(ruta_docx)
-    
+
+    def __buscar_cotizaciones(
+        self, ids_cotizacion: list[int], id_proceso_comercial: int
+    ) -> list[Cotizacion]:
+        """Carga las cotizaciones del body validando que cada una pertenezca a una
+        de las solicitudes de la oportunidad (evita filtrar cotizaciones ajenas al .docx)."""
+        ids_solicitud = [
+            solicitud.id
+            for solicitud in self.repositorio_solicitudes_cotizacion.obtener_solicitudes(id_proceso_comercial)
+            if solicitud.id is not None
+        ]
+
+        cotizaciones: list[Cotizacion] = []
+
+        for id_cotizacion in ids_cotizacion:
+            cotizacion = self.repositorio_cotizaciones.obtener_por_id(id_cotizacion)
+
+            if cotizacion is None:
+                raise RecursoNoEncontradoException(f'Cotización {id_cotizacion} no encontrada')
+
+            if not any(
+                self.repositorio_cotizaciones.cotizacion_pertenece_a_solicitud(cotizacion, id_solicitud)
+                for id_solicitud in ids_solicitud
+            ):
+                raise ConflictoEnAccionException(
+                    f'La cotización {id_cotizacion} no pertenece a la oportunidad {id_proceso_comercial}'
+                )
+
+            cotizaciones.append(cotizacion)
+
+        return cotizaciones
+
     def __armar_estudio(
         self,
         id_prospecto: int,

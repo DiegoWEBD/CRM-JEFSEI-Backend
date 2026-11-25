@@ -8,7 +8,6 @@ from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import Servi
 from app.aplicacion.notificacion.use_cases.generar_alerta_renovacion_poliza import GenerarAlertaRenovacionPolizaUseCase
 from app.aplicacion.poliza.use_cases.actualizar_poliza import ActualizarPolizaUseCase
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from tests.factories.notificacion_factory import crear_notificacion_mock
@@ -71,7 +70,8 @@ class TestActualizarPolizaAlertasRenovacion:
     def test_sin_permiso_no_actualiza(self):
         uc, repo_polizas, _, _ = _use_case(autorizado=False)
 
-        with pytest.raises(UsuarioNoAutorizadoException):
+        # Denegación de ownership: 404 idéntico al de póliza inexistente.
+        with pytest.raises(RecursoNoEncontradoException):
             _ejecutar(uc)
 
         repo_polizas.actualizar.assert_not_called()

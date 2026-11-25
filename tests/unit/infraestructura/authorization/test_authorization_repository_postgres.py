@@ -254,3 +254,345 @@ class TestUsuarioPuedeSubirEstudioComercialASolicitud:
         )
 
         assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeRegistrarCotizacion:
+
+    def test_permiso_carga_y_evaluador_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CARGAR_COTIZACIONES"}]
+        solicitud = {"rut_ej_evaluacion_asignado": "12345678-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_registrar_cotizacion(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_carga_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_SOLICITUDES_COTIZACION_PROPIAS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_registrar_cotizacion(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_de_vista_no_basta_para_registrar(self, obtener_conexion_mock):
+        # Quien solo puede ver la solicitud (VER_SOLICITUDES_COTIZACION_*) no
+        # puede cargar cotizaciones: el re-chequeo es de escritura.
+        permisos = [{"codigo_permiso": "VER_SOLICITUDES_COTIZACION_GLOBAL"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_registrar_cotizacion(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_pero_no_evaluador_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CARGAR_COTIZACIONES"}]
+        solicitud = {"rut_ej_evaluacion_asignado": "99999999-9"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = solicitud
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_registrar_cotizacion(
+            rut_usuario="12345678-9", id_solicitud=1
+        )
+
+        assert resultado is False
+
+    def test_solicitud_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CARGAR_COTIZACIONES"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_registrar_cotizacion(
+            rut_usuario="12345678-9", id_solicitud=999
+        )
+
+        assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeCrearPlanPago:
+
+    def test_permiso_global_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CREAR_PLAN_PAGO_GLOBAL"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_crear_plan_pago(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_propios_y_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CREAR_PLAN_PAGO_PROPIOS"}]
+        poliza = {"rut_ej_comercial_asignado": "12345678-9", "rut_ej_cobranza_asignado": None}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_crear_plan_pago(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "VER_PLAN_PAGO_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_crear_plan_pago(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CREAR_PLAN_PAGO_PROPIOS"}]
+        poliza = {"rut_ej_comercial_asignado": "99999999-9", "rut_ej_cobranza_asignado": "88888888-8"}
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_crear_plan_pago(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+
+    def test_poliza_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CREAR_PLAN_PAGO_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_crear_plan_pago(
+            rut_usuario="12345678-9", numero_poliza="POL-404"
+        )
+
+        assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeCancelarPoliza:
+
+    def test_permiso_todos_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CANCELAR_POLIZA_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_cancelar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_propios_y_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CANCELAR_POLIZA_PROPIOS"}]
+        poliza = {
+            "rut_ej_comercial_asignado": None,
+            "rut_ej_evaluacion_asignado": "12345678-9",
+            "rut_ej_renovacion_asignado": None,
+            "rut_as_renovacion_asignado": None,
+            "rut_ej_cobranza_asignado": None,
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_cancelar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "OBTENER_POLIZAS_PROPIAS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_cancelar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CANCELAR_POLIZA_PROPIOS"}]
+        poliza = {
+            "rut_ej_comercial_asignado": "99999999-9",
+            "rut_ej_evaluacion_asignado": "88888888-8",
+            "rut_ej_renovacion_asignado": None,
+            "rut_as_renovacion_asignado": None,
+            "rut_ej_cobranza_asignado": None,
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_cancelar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+
+    def test_poliza_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "CANCELAR_POLIZA_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_cancelar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-404"
+        )
+
+        assert resultado is False
+
+
+@patch(
+    "app.infraestructura.authorization.authorization_repository_postgres.obtener_conexion"
+)
+@pytest.mark.unit
+class TestUsuarioPuedeReactivarPoliza:
+
+    def test_permiso_todos_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "REACTIVAR_POLIZA_TODOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_reactivar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+        cursor.fetchone.assert_not_called()
+
+    def test_permiso_propios_y_asignado_retorna_true(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "REACTIVAR_POLIZA_PROPIOS"}]
+        poliza = {
+            "rut_ej_comercial_asignado": None,
+            "rut_ej_evaluacion_asignado": None,
+            "rut_ej_renovacion_asignado": None,
+            "rut_as_renovacion_asignado": "12345678-9",
+            "rut_ej_cobranza_asignado": None,
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_reactivar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is True
+
+    def test_sin_permiso_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "OBTENER_POLIZAS_PROPIAS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_reactivar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+        cursor.fetchone.assert_not_called()
+
+    def test_propios_pero_no_asignado_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "REACTIVAR_POLIZA_PROPIOS"}]
+        poliza = {
+            "rut_ej_comercial_asignado": "99999999-9",
+            "rut_ej_evaluacion_asignado": "88888888-8",
+            "rut_ej_renovacion_asignado": "77777777-7",
+            "rut_as_renovacion_asignado": "66666666-6",
+            "rut_ej_cobranza_asignado": "55555555-5",
+        }
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = poliza
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_reactivar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-001"
+        )
+
+        assert resultado is False
+
+    def test_poliza_inexistente_retorna_false(self, obtener_conexion_mock):
+        permisos = [{"codigo_permiso": "REACTIVAR_POLIZA_PROPIOS"}]
+        conexion, cursor = _conexion_mock()
+        cursor.fetchall.return_value = permisos
+        cursor.fetchone.return_value = None
+        obtener_conexion_mock.return_value = conexion
+
+        repo = AuthorizationRepositoryPostgres()
+        resultado = repo.usuario_puede_reactivar_poliza(
+            rut_usuario="12345678-9", numero_poliza="POL-404"
+        )
+
+        assert resultado is False

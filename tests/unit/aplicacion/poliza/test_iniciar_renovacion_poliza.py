@@ -10,7 +10,6 @@ from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso
 from app.dominio.estado_informativo_proceso_comercial.repositorio_estados_proceso_comercial import RepositorioEstadosProcesoComercial
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
@@ -88,7 +87,8 @@ class TestIniciarRenovacionPoliza:
     def test_sin_permiso_no_inicia(self):
         uc, _, _, repo_procesos, *_ = _use_case(autorizado=False)
 
-        with pytest.raises(UsuarioNoAutorizadoException):
+        # Denegación de ownership: 404 idéntico al de póliza inexistente.
+        with pytest.raises(RecursoNoEncontradoException):
             uc.ejecutar('POL-001', _Usuario())
 
         repo_procesos.nuevo_renovacion.assert_not_called()

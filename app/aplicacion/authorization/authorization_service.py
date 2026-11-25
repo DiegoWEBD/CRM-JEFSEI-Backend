@@ -62,6 +62,15 @@ class AuthorizationService:
     
     def usuario_puede_ver_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
         return self.authorization_repository.usuario_puede_ver_plan_pago(rut_usuario, numero_poliza)
+
+    def usuario_puede_crear_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self.authorization_repository.usuario_puede_crear_plan_pago(rut_usuario, numero_poliza)
+
+    def usuario_puede_cancelar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self.authorization_repository.usuario_puede_cancelar_poliza(rut_usuario, numero_poliza)
+
+    def usuario_puede_reactivar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self.authorization_repository.usuario_puede_reactivar_poliza(rut_usuario, numero_poliza)
     
     def usuario_puede_crear_estudio_comercial(self, rut_usuario: str, id_prospecto: int) -> bool:
         return self.authorization_repository.usuario_puede_crear_estudio_comercial(rut_usuario, id_prospecto)
@@ -80,6 +89,9 @@ class AuthorizationService:
 
     def usuario_puede_actualizar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_actualizar_cotizacion(rut_usuario, id_solicitud)
+
+    def usuario_puede_registrar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        return self.authorization_repository.usuario_puede_registrar_cotizacion(rut_usuario, id_solicitud)
 
     def usuario_puede_eliminar_solicitud_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
         return self.authorization_repository.usuario_puede_eliminar_solicitud_cotizacion(rut_usuario, id_solicitud)

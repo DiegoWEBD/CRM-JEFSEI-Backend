@@ -1,6 +1,5 @@
 from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.poliza.poliza import Poliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
 from app.dominio.usuario.usuario import Usuario
@@ -23,6 +22,7 @@ class ObtenerPolizaUseCase:
             raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
         
         if not self.authorization_service.usuario_puede_ver_poliza(usuario.rut, numero_poliza):
-            raise UsuarioNoAutorizadoException
+            # Denegación de ownership: 404 idéntico al de póliza inexistente.
+            raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         return poliza

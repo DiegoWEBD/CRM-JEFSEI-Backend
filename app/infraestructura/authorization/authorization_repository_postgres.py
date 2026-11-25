@@ -551,7 +551,143 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
                     row['rut_ej_comercial_asignado'] == rut_usuario,
                     row['rut_ej_cobranza_asignado'] == rut_usuario
                 ])
-            
+
+    def usuario_puede_crear_plan_pago(self, rut_usuario: str, numero_poliza: str) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'CREAR_PLAN_PAGO_GLOBAL':
+                        return True
+                    if row['codigo_permiso'] == 'CREAR_PLAN_PAGO_PROPIOS':
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                # Mismas asignaciones que usuario_puede_ver_plan_pago: ejecutivo
+                # comercial o ejecutivo de cobranza del cliente de la póliza.
+                query = '''
+                    select C.rut_ej_cobranza_asignado,
+                    PR.rut_ej_comercial_asignado
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PR
+                    on C.id_prospecto = PR.id
+                    where P.numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
+                ])
+
+    def usuario_puede_cancelar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self._usuario_puede_poliza_par(
+            rut_usuario, numero_poliza, 'CANCELAR_POLIZA_TODOS', 'CANCELAR_POLIZA_PROPIOS'
+        )
+
+    def usuario_puede_reactivar_poliza(self, rut_usuario: str, numero_poliza: str) -> bool:
+        return self._usuario_puede_poliza_par(
+            rut_usuario, numero_poliza, 'REACTIVAR_POLIZA_TODOS', 'REACTIVAR_POLIZA_PROPIOS'
+        )
+
+    def _usuario_puede_poliza_par(
+        self, rut_usuario: str, numero_poliza: str, permiso_todos: str, permiso_propios: str
+    ) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == permiso_todos:
+                        return True
+                    if row['codigo_permiso'] == permiso_propios:
+                        tiene_permisos = True
+
+                if not tiene_permisos:
+                    return False
+
+                # Ownership: las 5 asignaciones del cliente de la póliza (mismo
+                # criterio que usuario_puede_ver_poliza).
+                query = '''
+                    select PR.rut_ej_comercial_asignado,
+                    PR.rut_ej_evaluacion_asignado,
+                    C.rut_ej_renovacion_asignado,
+                    C.rut_as_renovacion_asignado,
+                    C.rut_ej_cobranza_asignado
+                    from Poliza P
+                    inner join Cliente C
+                    on P.id_cliente = C.id
+                    inner join Prospecto PR
+                    on C.id_prospecto = PR.id
+                    where P.numero_poliza = %(numero_poliza)s
+                '''
+
+                params = {
+                    'numero_poliza': numero_poliza
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return any([
+                    row['rut_ej_comercial_asignado'] == rut_usuario,
+                    row['rut_ej_evaluacion_asignado'] == rut_usuario,
+                    row['rut_ej_renovacion_asignado'] == rut_usuario,
+                    row['rut_as_renovacion_asignado'] == rut_usuario,
+                    row['rut_ej_cobranza_asignado'] == rut_usuario
+                ])
+
     def usuario_puede_crear_estudio_comercial(self, rut_usuario: str, id_prospecto: int) -> bool:
         with obtener_conexion() as conn:
             with conn.cursor() as cur:
@@ -729,6 +865,58 @@ class AuthorizationRepositoryPostgres(AuthorizationRepository):
 
                 for row in rows:
                     if row['codigo_permiso'] == 'ACTUALIZAR_COTIZACION':
+                        tiene_permisos = True
+                        break
+
+                if not tiene_permisos:
+                    return False
+
+                query = '''
+                    select P.rut_ej_evaluacion_asignado
+                    from SolicitudCotizacion SC
+                    inner join ProcesoComercial PC
+                    on SC.id_proceso_comercial = PC.id
+                    inner join Prospecto P
+                    on PC.id_prospecto = P.id
+                    where SC.id = %(id_solicitud)s
+                '''
+
+                params = {
+                    'id_solicitud': id_solicitud
+                }
+
+                cur.execute(query, params)
+                row = cur.fetchone()
+
+                if row is None:
+                    return False
+
+                return row['rut_ej_evaluacion_asignado'] == rut_usuario
+
+    def usuario_puede_registrar_cotizacion(self, rut_usuario: str, id_solicitud: int) -> bool:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+
+                query = '''
+                    select PR.codigo_permiso
+                    from Usuario U
+                    inner join RolUsuario RU
+                    on U.rut = RU.rut_usuario
+                    inner join PermisoRol PR
+                    on RU.codigo_rol = PR.codigo_rol
+                    where U.rut = %(rut_usuario)s
+                '''
+
+                params = {
+                    'rut_usuario': rut_usuario
+                }
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                tiene_permisos = False
+
+                for row in rows:
+                    if row['codigo_permiso'] == 'CARGAR_COTIZACIONES':
                         tiene_permisos = True
                         break
 

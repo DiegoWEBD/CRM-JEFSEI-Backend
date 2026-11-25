@@ -67,18 +67,22 @@ def get_registrar_poliza_a_proceso_comercial_use_case():
 
 def get_cancelar_poliza_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
 
     return CancelarPolizaUseCase(
         repositorio_polizas=repositorio_polizas,
+        authorization_service=authorization_service,
         servicio_alertas=ServicioAlertasProceso(RepositorioNotificacionesPostgres()),
     )
 
 
 def get_reactivar_poliza_use_case():
     repositorio_polizas = RepositorioPolizasPostgres()
+    authorization_service = AuthorizationServiceFactory.crear_authorization_service()
 
     return ReactivarPolizaUseCase(
         repositorio_polizas=repositorio_polizas,
+        authorization_service=authorization_service,
         generar_alerta_renovacion=GenerarAlertaRenovacionPolizaUseCase(
             RepositorioNotificacionesPostgres()
         ),

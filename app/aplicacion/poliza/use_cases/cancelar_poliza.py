@@ -1,9 +1,11 @@
+from app.aplicacion.authorization.authorization_service import AuthorizationService
 from app.aplicacion.notificacion.servicios.servicio_alertas_proceso import ServicioAlertasProceso
 from app.core.hub_notificaciones import EVENTO_NOTIFICACIONES_ACTUALIZADAS, hub
 from app.dominio.exceptions.conflicto_en_accion_exception import ConflictoEnAccionException
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.poliza.estado_poliza.estado_poliza import EstadoPoliza
 from app.dominio.poliza.repositorio_polizas import RepositorioPolizas
+from app.dominio.usuario.usuario import Usuario
 
 
 class CancelarPolizaUseCase:
@@ -11,15 +13,23 @@ class CancelarPolizaUseCase:
     def __init__(
         self,
         repositorio_polizas: RepositorioPolizas,
+        authorization_service: AuthorizationService,
         servicio_alertas: ServicioAlertasProceso,
     ):
         self.repositorio_polizas = repositorio_polizas
+        self.authorization_service = authorization_service
         self.servicio_alertas = servicio_alertas
 
-    def ejecutar(self, numero_poliza: str) -> None:
+    def ejecutar(self, numero_poliza: str, usuario: Usuario) -> None:
         poliza = self.repositorio_polizas.buscar(numero_poliza)
 
         if poliza is None:
+            raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
+
+        # Re-chequeo (CANCELAR_POLIZA_TODOS/_PROPIOS + ownership de las 5
+        # asignaciones). La denegación responde 404 idéntico al de póliza
+        # inexistente (sin oráculo de existencia).
+        if not self.authorization_service.usuario_puede_cancelar_poliza(usuario.rut, numero_poliza):
             raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         if poliza.estado == EstadoPoliza.CANCELADA:

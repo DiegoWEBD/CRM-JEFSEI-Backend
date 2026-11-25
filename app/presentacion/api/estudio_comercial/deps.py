@@ -23,7 +23,8 @@ def get_armar_estudio_comercial_use_case():
         repositorio_company_seguros=repositorio_companies,
         repositorio_cotizaciones=repositorio_cotizaciones,
         authorization_service=authorization_service,
-        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres()
+        repositorio_procesos_comerciales=RepositorioProcesosComercialesPostgres(),
+        repositorio_solicitudes_cotizacion=RepositorioSolicitudesCotizacionPostgres()
     )
 
 

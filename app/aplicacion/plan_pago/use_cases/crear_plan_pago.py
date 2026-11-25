@@ -8,7 +8,6 @@ from app.dominio.cuota.cuota import Cuota
 from app.dominio.estado_informativo_proceso_comercial.estado_informativo_proceso_comercial import EstadoInformativoProcesoComercial
 from app.dominio.exceptions.recurso_no_encontrado import RecursoNoEncontradoException
 from app.dominio.exceptions.recurso_ya_existe import RecursoYaExisteException
-from app.dominio.exceptions.usuario_no_autorizado import UsuarioNoAutorizadoException
 from app.dominio.historial_estado.historial_estado_proceso_comercial import HistorialEstadoProcesoComercial
 from app.dominio.historial_estado.repositorio_historial_estado_procesos_comerciales import RepositorioHistorialEstadoProcesosComerciales
 from app.dominio.notificacion.tipos_alerta import TIPOS_ALERTA_FECHA, TIPOS_ALERTA_SLA
@@ -43,9 +42,11 @@ class CrearPlanPagoUseCase:
 
         if not poliza:
             raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
-        
-        if not self.authorization_service.usuario_puede_ver_plan_pago(usuario.rut, numero_poliza):
-            raise UsuarioNoAutorizadoException
+
+        # Re-chequeo de escritura (CREAR_PLAN_PAGO_* + ownership). La denegación
+        # responde 404 idéntico al de póliza inexistente (sin oráculo de existencia).
+        if not self.authorization_service.usuario_puede_crear_plan_pago(usuario.rut, numero_poliza):
+            raise RecursoNoEncontradoException(f'Póliza {numero_poliza} no encontrada')
 
         plan_pago = self.repositorio_planes_pago.buscar_plan_pago_poliza(numero_poliza)
 
